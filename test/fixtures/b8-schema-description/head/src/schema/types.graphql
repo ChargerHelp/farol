@@ -1,0 +1,20 @@
+type Query {
+  "A brand, by its id"
+  brand(id: ID!): Brand
+  brands: [Brand!]!
+}
+
+type Mutation {
+  renameBrand(id: ID!, name: String!): Brand
+}
+
+type Brand {
+  id: ID!
+  name: String
+  posts: [Post!]!
+}
+
+type Post {
+  id: ID!
+  title: String!
+}

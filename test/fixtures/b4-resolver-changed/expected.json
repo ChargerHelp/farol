@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "surface": "backend",
+  "tool": {
+    "name": "farol",
+    "version": "0.1.0"
+  },
+  "repo": null,
+  "pr": null,
+  "base": {
+    "ref": "main",
+    "sha": "<base>"
+  },
+  "mergeBase": "<base>",
+  "head": {
+    "ref": "feature",
+    "sha": "<head>"
+  },
+  "analyzedAt": "2026-01-15T12:00:00.000Z",
+  "classification": "touches-existing",
+  "reasons": [
+    {
+      "code": "resolvers-not-additive",
+      "file": "src/resolvers/brand.ts",
+      "detail": "resolver Brand.posts changed"
+    }
+  ],
+  "files": [
+    {
+      "path": "src/resolvers/brand.ts",
+      "status": "modified",
+      "role": "resolvers",
+      "linesAdded": 1,
+      "linesRemoved": 1,
+      "additive": false
+    }
+  ],
+  "ignoredFiles": [],
+  "dependencies": {
+    "manifests": [],
+    "lockfiles": [],
+    "changes": [],
+    "summary": {
+      "critical": 0,
+      "major": 0,
+      "minor": 0,
+      "patch": 0,
+      "added": 0,
+      "removed": 0
+    }
+  },
+  "risk": {
+    "totalPages": 6,
+    "files": [
+      {
+        "path": "src/resolvers/brand.ts",
+        "change": "modified",
+        "level": "high",
+        "directImporters": 0,
+        "transitiveDependents": 0,
+        "centrality": 0,
+        "pagesReached": 3,
+        "routesReached": 3,
+        "why": "used by 3 of 6 existing operations"
+      }
+    ],
+    "summary": {
+      "high": 1,
+      "medium": 0,
+      "low": 0
+    }
+  },
+  "routes": {
+    "added": [],
+    "affected": [
+      {
+        "key": "Mutation.renameBrand",
+        "path": "Mutation.renameBrand",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/resolvers/brand.ts",
+            "chain": [
+              "src/resolvers/brand.ts"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "Query.brand",
+        "path": "Query.brand",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/resolvers/brand.ts",
+            "chain": [
+              "src/resolvers/brand.ts"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "Query.brands",
+        "path": "Query.brands",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/resolvers/brand.ts",
+            "chain": [
+              "src/resolvers/brand.ts"
+            ]
+          }
+        ]
+      }
+    ],
+    "disconnectedNewFiles": []
+  },
+  "signals": {
+    "coverage": {
+      "status": "not-provided",
+      "message": "no coverage report given (--coverage or signals.coverage)",
+      "files": [],
+      "total": null,
+      "ignoredFiles": []
+    },
+    "lint": {
+      "status": "not-provided",
+      "message": "no ESLint report given (--eslint or signals.eslint)",
+      "changedLines": null,
+      "otherLines": null,
+      "findings": [],
+      "omittedFindings": 0
+    },
+    "security": {
+      "status": "ok",
+      "findings": [],
+      "summary": {
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      }
+    },
+    "vulnerabilities": {
+      "status": "not-provided",
+      "message": "no audit report given (--audit or signals.audit)",
+      "related": [],
+      "total": null
+    },
+    "suppressions": {
+      "status": "ok",
+      "items": [
+        {
+          "path": "src/resolvers/brand.ts",
+          "line": 12,
+          "kind": "any-annotation",
+          "text": "posts: (brand: { id: string }, _: unknown, { loaders }: any) => loaders.Post.byBrand(brand.id).slice(0, 20),"
+        }
+      ]
+    },
+    "testsModified": {
+      "status": "ok",
+      "files": []
+    }
+  },
+  "diagnostics": {
+    "unresolvedImports": [],
+    "dynamicRoutes": [],
+    "parseErrors": [],
+    "timingsMs": {
+      "diff": 0,
+      "readTree": 0,
+      "program": 0,
+      "graph": 0,
+      "routes": 0,
+      "base": 0,
+      "classify": 0,
+      "signals": 0,
+      "diffs": 0
+    },
+    "error": null
+  },
+  "review": null,
+  "contracts": {
+    "readable": 4,
+    "entries": [],
+    "summary": {
+      "breaking": 0,
+      "dangerous": 0,
+      "safe": 0
+    }
+  }
+}

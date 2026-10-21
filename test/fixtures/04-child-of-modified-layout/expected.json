@@ -1,0 +1,261 @@
+{
+  "schemaVersion": 1,
+  "surface": "frontend",
+  "tool": {
+    "name": "farol",
+    "version": "0.1.0"
+  },
+  "repo": null,
+  "pr": null,
+  "base": {
+    "ref": "main",
+    "sha": "<base>"
+  },
+  "mergeBase": "<base>",
+  "head": {
+    "ref": "feature",
+    "sha": "<head>"
+  },
+  "analyzedAt": "2026-01-15T12:00:00.000Z",
+  "classification": "touches-existing",
+  "reasons": [
+    {
+      "code": "existing-file-modified",
+      "file": "src/layouts/AppLayout.tsx",
+      "detail": "func src/layouts/AppLayout.tsx#AppLayout changed: reached by 5 existing route(s): /; / > (index); / > about; and 2 more"
+    },
+    {
+      "code": "route-added",
+      "file": "src/routes.tsx",
+      "detail": "/help (/ > help) renders src/pages/HelpPage.tsx"
+    },
+    {
+      "code": "routes-additive",
+      "file": "src/routes.tsx",
+      "detail": "every existing route is unchanged and no line was removed"
+    },
+    {
+      "code": "new-file-in-new-route",
+      "file": "src/pages/HelpPage.tsx",
+      "detail": "reached only by new route(s): /help"
+    }
+  ],
+  "files": [
+    {
+      "path": "src/layouts/AppLayout.tsx",
+      "status": "modified",
+      "role": "source",
+      "linesAdded": 4,
+      "linesRemoved": 1,
+      "additive": false
+    },
+    {
+      "path": "src/pages/HelpPage.tsx",
+      "status": "added",
+      "role": "source",
+      "linesAdded": 5,
+      "linesRemoved": 0
+    },
+    {
+      "path": "src/routes.tsx",
+      "status": "modified",
+      "role": "routes",
+      "linesAdded": 2,
+      "linesRemoved": 0,
+      "additive": true
+    }
+  ],
+  "ignoredFiles": [],
+  "dependencies": {
+    "manifests": [],
+    "lockfiles": [],
+    "changes": [],
+    "summary": {
+      "critical": 0,
+      "major": 0,
+      "minor": 0,
+      "patch": 0,
+      "added": 0,
+      "removed": 0
+    }
+  },
+  "risk": {
+    "totalPages": 4,
+    "files": [
+      {
+        "path": "src/layouts/AppLayout.tsx",
+        "change": "modified",
+        "level": "high",
+        "directImporters": 1,
+        "transitiveDependents": 3,
+        "centrality": 0.143,
+        "pagesReached": 4,
+        "routesReached": 4,
+        "why": "used by 4 of 4 existing pages"
+      },
+      {
+        "path": "src/pages/HelpPage.tsx",
+        "change": "added",
+        "level": "low",
+        "directImporters": 1,
+        "transitiveDependents": 3,
+        "centrality": 0.143,
+        "pagesReached": 0,
+        "routesReached": 0,
+        "why": "new code not used by existing pages"
+      },
+      {
+        "path": "src/routes.tsx",
+        "change": "additive",
+        "level": "low",
+        "directImporters": 1,
+        "transitiveDependents": 2,
+        "centrality": 0.095,
+        "pagesReached": 0,
+        "routesReached": 0,
+        "why": "additive change: nothing that existed changed"
+      }
+    ],
+    "summary": {
+      "high": 1,
+      "medium": 0,
+      "low": 2
+    }
+  },
+  "routes": {
+    "added": [
+      {
+        "key": "/ > help",
+        "path": "/help",
+        "entry": "src/pages/HelpPage.tsx",
+        "hasChildren": false
+      }
+    ],
+    "affected": [
+      {
+        "key": "/",
+        "path": "/",
+        "hasChildren": true,
+        "via": [
+          {
+            "file": "src/layouts/AppLayout.tsx",
+            "chain": [
+              "src/layouts/AppLayout.tsx"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "/ > (index)",
+        "path": "/",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/layouts/AppLayout.tsx",
+            "chain": [
+              "src/layouts/AppLayout.tsx"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "/ > about",
+        "path": "/about",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/layouts/AppLayout.tsx",
+            "chain": [
+              "src/layouts/AppLayout.tsx"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "/ > products",
+        "path": "/products",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/layouts/AppLayout.tsx",
+            "chain": [
+              "src/layouts/AppLayout.tsx"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "/ > settings",
+        "path": "/settings",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/layouts/AppLayout.tsx",
+            "chain": [
+              "src/layouts/AppLayout.tsx"
+            ]
+          }
+        ]
+      }
+    ],
+    "disconnectedNewFiles": []
+  },
+  "signals": {
+    "coverage": {
+      "status": "not-provided",
+      "message": "no coverage report given (--coverage or signals.coverage)",
+      "files": [],
+      "total": null,
+      "ignoredFiles": []
+    },
+    "lint": {
+      "status": "not-provided",
+      "message": "no ESLint report given (--eslint or signals.eslint)",
+      "changedLines": null,
+      "otherLines": null,
+      "findings": [],
+      "omittedFindings": 0
+    },
+    "security": {
+      "status": "ok",
+      "findings": [],
+      "summary": {
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      }
+    },
+    "vulnerabilities": {
+      "status": "not-provided",
+      "message": "no audit report given (--audit or signals.audit)",
+      "related": [],
+      "total": null
+    },
+    "suppressions": {
+      "status": "ok",
+      "items": []
+    },
+    "testsModified": {
+      "status": "ok",
+      "files": []
+    }
+  },
+  "diagnostics": {
+    "unresolvedImports": [],
+    "dynamicRoutes": [],
+    "parseErrors": [],
+    "timingsMs": {
+      "diff": 0,
+      "readTree": 0,
+      "program": 0,
+      "graph": 0,
+      "routes": 0,
+      "base": 0,
+      "classify": 0,
+      "signals": 0,
+      "diffs": 0
+    },
+    "error": null
+  },
+  "review": null
+}

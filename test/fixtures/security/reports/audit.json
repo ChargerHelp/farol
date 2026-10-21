@@ -1,0 +1,26 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "clsx": {
+      "name": "clsx",
+      "severity": "high",
+      "isDirect": true,
+      "via": [{ "source": 1, "name": "clsx", "dependency": "clsx", "title": "ReDoS in clsx", "url": "https://github.com/advisories/GHSA-test-clsx-0001", "severity": "high", "range": "<2.1.1" }],
+      "effects": [],
+      "range": "<2.1.1",
+      "nodes": ["node_modules/clsx"],
+      "fixAvailable": true
+    },
+    "lodash": {
+      "name": "lodash",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [{ "source": 2, "name": "lodash", "dependency": "lodash", "title": "Prototype pollution in lodash", "url": "https://github.com/advisories/GHSA-test-lodash-0002", "severity": "moderate", "range": "<4.17.21" }],
+      "effects": [],
+      "range": "<4.17.21",
+      "nodes": ["node_modules/lodash"],
+      "fixAvailable": true
+    }
+  },
+  "metadata": {}
+}

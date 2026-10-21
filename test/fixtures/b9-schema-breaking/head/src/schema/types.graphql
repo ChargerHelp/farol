@@ -1,0 +1,19 @@
+type Query {
+  "A brand by id"
+  brand(id: ID!, locale: String!): Brand
+  brands(first: Int): [Brand!]!
+}
+
+type Mutation {
+  renameBrand(id: ID!, name: String!): Brand
+}
+
+type Brand {
+  id: ID!
+  name: String
+  posts: [Post!]!
+}
+
+type Post {
+  id: ID!
+}

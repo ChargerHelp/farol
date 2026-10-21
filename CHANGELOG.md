@@ -1,0 +1,34 @@
+# Changelog
+
+## 0.1.0 — 2026-10-21 (first public release)
+
+- **Roles:** each `roles` key left out keeps the default of the project's language (setting `roles.global` in a Python project no longer turns Python tests into code).
+- **Test plan follows the review:** items whose changed files are all reviewed are marked (✓ files reviewed, or 🚩 behind a flag).
+- **Monorepos:** a lockfile or manifest of another language above the project (a root `bun.lock` for a Python backend) no longer makes its PRs `global`.
+- **FastAPI contracts:** dependencies declared through an alias (`CurrentUser = Annotated[User, Depends(…)]`) are no longer read as the request body.
+- **Barrels:** adding a name to an existing `export { … } from` list is additive (generated clients no longer affect every page).
+- **Python prefixes:** `include_router(…, prefix=settings.API_V1_STR)` reads the settings default; other non-literal paths keep their routes as `{expr}` instead of making the PR `unknown`.
+- **Inline diffs:** a large new file shows its first 1,000 lines (it showed nothing over 400); oversized hunks are cut instead of dropped.
+- **Go precision:** route paths that are not constants keep their entry point (`POST {path + "*"}`) instead of making the PR `unknown`; `String`, `Error`, `MarshalJSON`… called through library interfaces no longer reach every implementation; constants are compared by value, so appending to an `iota` group changes nothing else.
+- **Next.js and TanStack Router:** `routes.adapter` `next` (Pages Router, App Router, middleware) and `tanstack-router` (file-based routes, `createFileRoute` ids) read file-system routing, with layouts, dynamic segments and route groups.
+- **Docs:** README rewritten around recipes per stack and a guide to each part of the review, with screenshots; every command, option and key moved to `docs/reference.md`. Example workflows follow the CI pattern used in production: farol runs after the tests and reuses their reports, a new comment per push with the report since the last push, HTML reports that open in the browser, optional daily Datadog job.
+- **Result tab:** a Markdown record of the review (flags, reviewed files, checked findings and contract changes, initial and final risk) to paste in the PR; flag panel at the top; Reviewers tab.
+- **`farol reviewers`:** reviewers by who wrote the changed code (git blame, weighed by risk), added to the HTML and the comment with `--reviewers`.
+- **🚩 Behind a feature flag:** mark pages/operations as flagged in the HTML report; files only they use leave the review.
+- **Contract changes (backends):** GraphQL (graphql-js rules), FastAPI (parameters, body, response, Pydantic models), Go handlers and gRPC: breaking, dangerous and safe changes per endpoint, removed endpoints, and the services that call them (Datadog).
+- **Traffic from Datadog (optional):** `farol usage` reads RUM page views and APM requests per operation into `usage.json`; `analyze --usage` shows the traffic of the affected pages/operations in the comment and the HTML report (information only).
+- **Production errors (optional):** RUM errors per page, APM error spans per operation and Error Tracking issues attributed to the changed files that threw them.
+
+### Foundations
+
+- **Languages:**
+  - TypeScript/React frontends (React Router), TypeScript/JavaScript backends (GraphQL, REST).
+  - Go: chi, gin, echo, net/http, gRPC, binaries.
+  - Python: FastAPI, Flask, Django, MCP, Celery, Temporal, Prefect, scripts.
+- **Analysis:**
+  - Declaration-level reach: TypeScript type checker, `go/types`, Python `ast` with local type inference.
+  - Classification (`isolated`, `touches-existing`, `global`, `unknown`) with reason codes.
+- **Review aids:** merge risk score weighted by diff coverage, review verdict and plan, inline diffs, manual test checklist, "mark files as reviewed".
+- **Signals:** diff coverage, lint, security (built-in, gosec, bandit), vulnerabilities, suppressions, modified tests, dependency changes.
+- **Reports:** JSON, PR comment and single-file HTML report.
+- **Workflow and tools:** GitHub Action with HTML artifact, incremental mode (`--since`), suggested reviewers (`--reviewers`), `routes`, `impact`, `history` and `calibrate` commands, Go/Python helper cache.

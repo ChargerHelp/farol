@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "surface": "frontend",
+  "tool": {
+    "name": "farol",
+    "version": "0.1.0"
+  },
+  "repo": null,
+  "pr": null,
+  "base": {
+    "ref": "main",
+    "sha": "<base>"
+  },
+  "mergeBase": "<base>",
+  "head": {
+    "ref": "feature",
+    "sha": "<head>"
+  },
+  "analyzedAt": "2026-01-15T12:00:00.000Z",
+  "classification": "touches-existing",
+  "reasons": [
+    {
+      "code": "existing-file-modified",
+      "file": "src/components/Card.tsx",
+      "detail": "func src/components/Card.tsx#Card changed: reached by 2 existing route(s): / > (index); / > products"
+    }
+  ],
+  "files": [
+    {
+      "path": "src/components/Card.tsx",
+      "status": "modified",
+      "role": "source",
+      "linesAdded": 1,
+      "linesRemoved": 1,
+      "additive": false
+    }
+  ],
+  "ignoredFiles": [],
+  "dependencies": {
+    "manifests": [],
+    "lockfiles": [],
+    "changes": [],
+    "summary": {
+      "critical": 0,
+      "major": 0,
+      "minor": 0,
+      "patch": 0,
+      "added": 0,
+      "removed": 0
+    }
+  },
+  "risk": {
+    "totalPages": 4,
+    "files": [
+      {
+        "path": "src/components/Card.tsx",
+        "change": "modified",
+        "level": "high",
+        "directImporters": 3,
+        "transitiveDependents": 6,
+        "centrality": 0.3,
+        "pagesReached": 2,
+        "routesReached": 2,
+        "why": "used by 2 of 4 existing pages"
+      }
+    ],
+    "summary": {
+      "high": 1,
+      "medium": 0,
+      "low": 0
+    }
+  },
+  "routes": {
+    "added": [],
+    "affected": [
+      {
+        "key": "/ > (index)",
+        "path": "/",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/components/Card.tsx",
+            "chain": [
+              "src/pages/HomePage.tsx",
+              "src/components/Card.tsx"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "/ > products",
+        "path": "/products",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/components/Card.tsx",
+            "chain": [
+              "src/pages/ProductsPage.tsx",
+              "src/components/Card.tsx"
+            ]
+          }
+        ]
+      }
+    ],
+    "disconnectedNewFiles": []
+  },
+  "signals": {
+    "coverage": {
+      "status": "not-provided",
+      "message": "no coverage report given (--coverage or signals.coverage)",
+      "files": [],
+      "total": null,
+      "ignoredFiles": []
+    },
+    "lint": {
+      "status": "not-provided",
+      "message": "no ESLint report given (--eslint or signals.eslint)",
+      "changedLines": null,
+      "otherLines": null,
+      "findings": [],
+      "omittedFindings": 0
+    },
+    "security": {
+      "status": "ok",
+      "findings": [],
+      "summary": {
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      }
+    },
+    "vulnerabilities": {
+      "status": "not-provided",
+      "message": "no audit report given (--audit or signals.audit)",
+      "related": [],
+      "total": null
+    },
+    "suppressions": {
+      "status": "ok",
+      "items": []
+    },
+    "testsModified": {
+      "status": "ok",
+      "files": []
+    }
+  },
+  "diagnostics": {
+    "unresolvedImports": [],
+    "dynamicRoutes": [],
+    "parseErrors": [],
+    "timingsMs": {
+      "diff": 0,
+      "readTree": 0,
+      "program": 0,
+      "graph": 0,
+      "routes": 0,
+      "base": 0,
+      "classify": 0,
+      "signals": 0,
+      "diffs": 0
+    },
+    "error": null
+  },
+  "review": null
+}

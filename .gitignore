@@ -1,0 +1,9 @@
+node_modules/
+coverage/
+*.log
+.DS_Store
+/farol.json
+/reports/
+.vitest/
+/farol-history/
+__pycache__/

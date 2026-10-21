@@ -1,0 +1,46 @@
+import { describe, expect, it } from 'vitest'
+import { findSuppressions } from '../../src/signals/suppressions.js'
+
+const all = (code: string): Set<number> => new Set(code.split('\n').map((_, i) => i + 1))
+
+describe('findSuppressions', () => {
+  it('finds directives in comments and any in code', () => {
+    const code = [
+      '// eslint-disable-next-line no-console',
+      'console.log(1) // eslint-disable-line',
+      '/* eslint-disable */',
+      '// @ts-expect-error wrong type',
+      '/** @ts-ignore */',
+      '// @ts-nocheck',
+      'const a = value as any',
+      'function f(x: any): any { return x }',
+      'const ok: Array<any> = []',
+    ].join('\n')
+    expect(findSuppressions('a.ts', code, all(code)).map((i) => [i.line, i.kind])).toEqual([
+      [1, 'eslint-disable-next-line'],
+      [2, 'eslint-disable-line'],
+      [3, 'eslint-disable'],
+      [4, 'ts-expect-error'],
+      [5, 'ts-ignore'],
+      [6, 'ts-nocheck'],
+      [7, 'as-any'],
+      [8, 'any-annotation'],
+      [8, 'any-annotation'],
+    ])
+  })
+
+  it('ignores the same sequences inside strings, templates and JSX text', () => {
+    const code = [
+      "const s = '// eslint-disable-next-line'",
+      'const t = `/* @ts-ignore */ ${"as any"} as any`',
+      'const r = "x as any"',
+      'export const C = () => <p>// eslint-disable-line @ts-ignore as any</p>',
+    ].join('\n')
+    expect(findSuppressions('a.tsx', code, all(code))).toEqual([])
+  })
+
+  it('only reports added lines and finds comments inside JSX expressions', () => {
+    const code = ['// @ts-ignore', 'export const C = () => (', '  <div>', '    {/* eslint-disable-next-line */}', '  </div>', ')'].join('\n')
+    expect(findSuppressions('a.tsx', code, new Set([4])).map((i) => [i.line, i.kind, i.text])).toEqual([[4, 'eslint-disable-next-line', '{/* eslint-disable-next-line */}']])
+  })
+})

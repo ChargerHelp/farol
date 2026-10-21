@@ -1,0 +1,18 @@
+{
+  "config": "farol.config.json",
+  "analyze": {
+    "base": "origin/main",
+    "head": "HEAD",
+    "coverage": "coverage/coverage-final.json",
+    "eslint": "reports/eslint.json",
+    "out": "farol.json",
+    "ignore": ["src/generated/**"]
+  },
+  "html": {
+    "in": "farol.json",
+    "out": "farol.html",
+    "repo": "acme/shop"
+  },
+  "report": { "in": "farol.json" },
+  "history": { "since": "90 days ago", "branch": "origin/main", "out": "farol-history", "firstParent": true }
+}

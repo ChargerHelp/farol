@@ -1,0 +1,344 @@
+{
+  "schemaVersion": 1,
+  "surface": "backend",
+  "tool": {
+    "name": "farol",
+    "version": "0.1.0"
+  },
+  "repo": null,
+  "pr": null,
+  "base": {
+    "ref": "main",
+    "sha": "<base>"
+  },
+  "mergeBase": "<base>",
+  "head": {
+    "ref": "feature",
+    "sha": "<head>"
+  },
+  "analyzedAt": "2026-01-15T12:00:00.000Z",
+  "classification": "touches-existing",
+  "reasons": [
+    {
+      "code": "existing-file-modified",
+      "file": "src/shop/models.py",
+      "detail": "class shop.models.Brand changed: reached by 5 existing entry point(s): GET /brands; GET /brands/current/owner; GET /brands/{brand_id}; and 2 more"
+    },
+    {
+      "code": "existing-file-modified",
+      "file": "src/shop/routers/brands.py",
+      "detail": "class shop.routers.brands.Tier changed; class shop.routers.brands.BrandIn changed; func shop.routers.brands.list_brands changed; func shop.routers.brands.create_brand changed: reached by 2 existing entry point(s): GET /brands; POST /brands"
+    }
+  ],
+  "files": [
+    {
+      "path": "src/shop/models.py",
+      "status": "modified",
+      "role": "source",
+      "linesAdded": 2,
+      "linesRemoved": 1,
+      "additive": false
+    },
+    {
+      "path": "src/shop/routers/brands.py",
+      "status": "modified",
+      "role": "source",
+      "linesAdded": 4,
+      "linesRemoved": 3,
+      "additive": false
+    }
+  ],
+  "ignoredFiles": [],
+  "dependencies": {
+    "manifests": [],
+    "lockfiles": [],
+    "changes": [],
+    "summary": {
+      "critical": 0,
+      "major": 0,
+      "minor": 0,
+      "patch": 0,
+      "added": 0,
+      "removed": 0
+    }
+  },
+  "risk": {
+    "totalPages": 7,
+    "files": [
+      {
+        "path": "src/shop/models.py",
+        "change": "modified",
+        "level": "high",
+        "directImporters": 5,
+        "transitiveDependents": 7,
+        "centrality": 0.7,
+        "pagesReached": 5,
+        "routesReached": 5,
+        "why": "used by 5 of 7 existing operations"
+      },
+      {
+        "path": "src/shop/routers/brands.py",
+        "change": "modified",
+        "level": "medium",
+        "directImporters": 1,
+        "transitiveDependents": 1,
+        "centrality": 0.1,
+        "pagesReached": 2,
+        "routesReached": 2,
+        "why": "used by 2 of 7 existing operations"
+      }
+    ],
+    "summary": {
+      "high": 1,
+      "medium": 1,
+      "low": 0
+    }
+  },
+  "routes": {
+    "added": [],
+    "affected": [
+      {
+        "key": "GET /brands",
+        "path": "GET /brands",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/shop/models.py",
+            "chain": [
+              "src/shop/routers/brands.py",
+              "src/shop/models.py"
+            ]
+          },
+          {
+            "file": "src/shop/routers/brands.py",
+            "chain": [
+              "src/shop/routers/brands.py"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "GET /brands/current/owner",
+        "path": "GET /brands/current/owner",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/shop/models.py",
+            "chain": [
+              "src/shop/routers/brands.py",
+              "src/shop/models.py"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "GET /brands/{brand_id}",
+        "path": "GET /brands/{brand_id}",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/shop/models.py",
+            "chain": [
+              "src/shop/routers/brands.py",
+              "src/shop/models.py"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "POST /brands",
+        "path": "POST /brands",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/shop/models.py",
+            "chain": [
+              "src/shop/routers/brands.py",
+              "src/shop/models.py"
+            ]
+          },
+          {
+            "file": "src/shop/routers/brands.py",
+            "chain": [
+              "src/shop/routers/brands.py"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "RUN src/shop/worker.py",
+        "path": "RUN src/shop/worker.py",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/shop/models.py",
+            "chain": [
+              "src/shop/worker.py",
+              "src/shop/store.py",
+              "src/shop/models.py"
+            ]
+          }
+        ]
+      }
+    ],
+    "disconnectedNewFiles": []
+  },
+  "signals": {
+    "coverage": {
+      "status": "not-provided",
+      "message": "no coverage report given (--coverage or signals.coverage)",
+      "files": [],
+      "total": null,
+      "ignoredFiles": []
+    },
+    "lint": {
+      "status": "not-provided",
+      "message": "no ruff report given (--eslint or signals.eslint)",
+      "changedLines": null,
+      "otherLines": null,
+      "findings": [],
+      "omittedFindings": 0
+    },
+    "security": {
+      "status": "not-provided",
+      "findings": [],
+      "summary": {
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      },
+      "message": "Python files are checked by flake8-bandit: give a ruff JSON report (with the S rules selected) as the lint report"
+    },
+    "vulnerabilities": {
+      "status": "not-provided",
+      "message": "no audit report given (--audit or signals.audit)",
+      "related": [],
+      "total": null
+    },
+    "suppressions": {
+      "status": "ok",
+      "items": []
+    },
+    "testsModified": {
+      "status": "ok",
+      "files": []
+    }
+  },
+  "diagnostics": {
+    "unresolvedImports": [],
+    "dynamicRoutes": [],
+    "parseErrors": [],
+    "timingsMs": {
+      "diff": 0,
+      "helperSetup": 0,
+      "helperRead": 0,
+      "base": 0,
+      "classify": 0,
+      "signals": 0,
+      "diffs": 0
+    },
+    "error": null
+  },
+  "review": null,
+  "contracts": {
+    "readable": 6,
+    "entries": [
+      {
+        "key": "GET /brands",
+        "level": "breaking",
+        "changes": [
+          {
+            "level": "breaking",
+            "where": "response[].name",
+            "detail": "field removed"
+          },
+          {
+            "level": "safe",
+            "where": "query:cursor",
+            "detail": "new optional parameter"
+          },
+          {
+            "level": "safe",
+            "where": "response[].logo",
+            "detail": "field added"
+          },
+          {
+            "level": "safe",
+            "where": "response[].title",
+            "detail": "field added"
+          }
+        ],
+        "omitted": 0
+      },
+      {
+        "key": "GET /brands/{brand_id}",
+        "level": "breaking",
+        "changes": [
+          {
+            "level": "breaking",
+            "where": "response.name",
+            "detail": "field removed"
+          },
+          {
+            "level": "safe",
+            "where": "response.logo",
+            "detail": "field added"
+          },
+          {
+            "level": "safe",
+            "where": "response.title",
+            "detail": "field added"
+          }
+        ],
+        "omitted": 0
+      },
+      {
+        "key": "POST /brands",
+        "level": "breaking",
+        "changes": [
+          {
+            "level": "breaking",
+            "where": "body.owner",
+            "detail": "new required field"
+          },
+          {
+            "level": "breaking",
+            "where": "body.tier",
+            "detail": "enum values removed: enterprise"
+          },
+          {
+            "level": "breaking",
+            "where": "query:dry_run",
+            "detail": "became required"
+          },
+          {
+            "level": "breaking",
+            "where": "response.name",
+            "detail": "field removed"
+          },
+          {
+            "level": "safe",
+            "where": "body.color",
+            "detail": "new optional field"
+          },
+          {
+            "level": "safe",
+            "where": "response.logo",
+            "detail": "field added"
+          },
+          {
+            "level": "safe",
+            "where": "response.title",
+            "detail": "field added"
+          }
+        ],
+        "omitted": 0
+      }
+    ],
+    "summary": {
+      "breaking": 3,
+      "dangerous": 0,
+      "safe": 0
+    }
+  }
+}

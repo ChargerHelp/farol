@@ -1,0 +1,19 @@
+[
+  {
+    "filePath": "<root>/src/lib/format.ts",
+    "messages": [
+      { "ruleId": "no-magic-numbers", "severity": 2, "message": "No magic number: 100.", "line": 9, "column": 35 },
+      { "ruleId": "prefer-template", "severity": 2, "message": "Unexpected string concatenation.", "line": 2, "column": 3 },
+      { "ruleId": "no-nested-ternary", "severity": 1, "message": "Do not nest ternary expressions.", "line": 14, "column": 10 },
+      { "ruleId": "curly", "severity": 0, "message": "Disabled rule.", "line": 7, "column": 5 }
+    ],
+    "errorCount": 2,
+    "warningCount": 1
+  },
+  {
+    "filePath": "<root>/src/pages/HomePage.tsx",
+    "messages": [{ "ruleId": "react/no-unescaped-entities", "severity": 1, "message": "Escape this.", "line": 3, "column": 1 }],
+    "errorCount": 0,
+    "warningCount": 1
+  }
+]

@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 1,
+  "surface": "backend",
+  "tool": {
+    "name": "farol",
+    "version": "0.1.0"
+  },
+  "repo": null,
+  "pr": null,
+  "base": {
+    "ref": "main",
+    "sha": "<base>"
+  },
+  "mergeBase": "<base>",
+  "head": {
+    "ref": "feature",
+    "sha": "<head>"
+  },
+  "analyzedAt": "2026-01-15T12:00:00.000Z",
+  "classification": "touches-existing",
+  "reasons": [
+    {
+      "code": "existing-file-modified",
+      "file": "src/shop/store.py",
+      "detail": "func shop.store.find_brand changed: reached by 7 existing entry point(s): ACTIVITY load_brand; ANY /brands/<str:brand_id>/; TOOL brand; and 4 more"
+    }
+  ],
+  "files": [
+    {
+      "path": "src/shop/store.py",
+      "status": "modified",
+      "role": "source",
+      "linesAdded": 1,
+      "linesRemoved": 1,
+      "additive": false
+    }
+  ],
+  "ignoredFiles": [],
+  "dependencies": {
+    "manifests": [],
+    "lockfiles": [],
+    "changes": [],
+    "summary": {
+      "critical": 0,
+      "major": 0,
+      "minor": 0,
+      "patch": 0,
+      "added": 0,
+      "removed": 0
+    }
+  },
+  "risk": {
+    "totalPages": 17,
+    "files": [
+      {
+        "path": "src/shop/store.py",
+        "change": "modified",
+        "level": "medium",
+        "directImporters": 7,
+        "transitiveDependents": 11,
+        "centrality": 0.55,
+        "pagesReached": 7,
+        "routesReached": 7,
+        "why": "used by 7 of 17 existing operations"
+      }
+    ],
+    "summary": {
+      "high": 0,
+      "medium": 1,
+      "low": 0
+    }
+  },
+  "routes": {
+    "added": [],
+    "affected": [
+      {
+        "key": "ACTIVITY load_brand",
+        "path": "ACTIVITY load_brand",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/shop/store.py",
+            "chain": [
+              "src/shop/workflows.py",
+              "src/shop/store.py"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "ANY /brands/<str:brand_id>/",
+        "path": "ANY /brands/<str:brand_id>/",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/shop/store.py",
+            "chain": [
+              "src/web/views.py",
+              "src/shop/store.py"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "TOOL brand",
+        "path": "TOOL brand",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/shop/store.py",
+            "chain": [
+              "src/shop/mcp_server.py",
+              "src/shop/store.py"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "WORKFLOW BrandWorkflow",
+        "path": "WORKFLOW BrandWorkflow",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/shop/store.py",
+            "chain": [
+              "src/shop/workflows.py",
+              "src/shop/store.py"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "legacy DELETE /legacy/brands/<brand_id>",
+        "path": "legacy DELETE /legacy/brands/<brand_id>",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/shop/store.py",
+            "chain": [
+              "src/legacy/app.py",
+              "src/shop/store.py"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "legacy GET /legacy/brands/<brand_id>",
+        "path": "legacy GET /legacy/brands/<brand_id>",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/shop/store.py",
+            "chain": [
+              "src/legacy/app.py",
+              "src/shop/store.py"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "shop GET /brands/{brand_id}",
+        "path": "shop GET /brands/{brand_id}",
+        "hasChildren": false,
+        "via": [
+          {
+            "file": "src/shop/store.py",
+            "chain": [
+              "src/shop/routers/brands.py",
+              "src/shop/services/brands.py",
+              "src/shop/store.py"
+            ]
+          }
+        ]
+      }
+    ],
+    "disconnectedNewFiles": []
+  },
+  "signals": {
+    "coverage": {
+      "status": "not-provided",
+      "message": "no coverage report given (--coverage or signals.coverage)",
+      "files": [],
+      "total": null,
+      "ignoredFiles": []
+    },
+    "lint": {
+      "status": "not-provided",
+      "message": "no ruff report given (--eslint or signals.eslint)",
+      "changedLines": null,
+      "otherLines": null,
+      "findings": [],
+      "omittedFindings": 0
+    },
+    "security": {
+      "status": "not-provided",
+      "findings": [],
+      "summary": {
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      },
+      "message": "Python files are checked by flake8-bandit: give a ruff JSON report (with the S rules selected) as the lint report"
+    },
+    "vulnerabilities": {
+      "status": "not-provided",
+      "message": "no audit report given (--audit or signals.audit)",
+      "related": [],
+      "total": null
+    },
+    "suppressions": {
+      "status": "ok",
+      "items": []
+    },
+    "testsModified": {
+      "status": "ok",
+      "files": []
+    }
+  },
+  "diagnostics": {
+    "unresolvedImports": [],
+    "dynamicRoutes": [],
+    "parseErrors": [],
+    "timingsMs": {
+      "diff": 0,
+      "helperSetup": 0,
+      "helperRead": 0,
+      "base": 0,
+      "classify": 0,
+      "signals": 0,
+      "diffs": 0
+    },
+    "error": null
+  },
+  "review": null,
+  "contracts": {
+    "readable": 4,
+    "entries": [],
+    "summary": {
+      "breaking": 0,
+      "dangerous": 0,
+      "safe": 0
+    }
+  }
+}

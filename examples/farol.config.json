@@ -1,0 +1,16 @@
+{
+  "tsconfig": "tsconfig.json",
+  "routes": { "adapter": "react-router", "file": "src/routes.tsx" },
+  "exclude": ["**/*.stories.tsx", "src/mocks/**"],
+  "roles": {
+    "barrel": ["**/index.ts"],
+    "i18n": ["src/locales/**/*.json"],
+    "test": ["**/*.test.ts", "**/*.test.tsx"],
+    "story": ["**/*.stories.tsx"],
+    "global": ["src/App.tsx", "src/main.tsx", "src/styles/global.css", "package.json", "package-lock.json", "tsconfig*.json", "eslint.config.*", "vite.config.ts"]
+  },
+  "signals": {
+    "coverage": "coverage/coverage-final.json",
+    "eslint": "reports/eslint.json"
+  }
+}

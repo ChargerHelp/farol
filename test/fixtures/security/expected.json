@@ -1,0 +1,250 @@
+{
+  "schemaVersion": 1,
+  "surface": "frontend",
+  "tool": {
+    "name": "farol",
+    "version": "0.1.0"
+  },
+  "repo": null,
+  "pr": null,
+  "base": {
+    "ref": "main",
+    "sha": "<base>"
+  },
+  "mergeBase": "<base>",
+  "head": {
+    "ref": "feature",
+    "sha": "<head>"
+  },
+  "analyzedAt": "2026-01-15T12:00:00.000Z",
+  "classification": "isolated",
+  "reasons": [
+    {
+      "code": "dependency-changed",
+      "file": "package.json",
+      "detail": "clsx added ^2.1.0"
+    },
+    {
+      "code": "dependency-changed",
+      "file": "package.json",
+      "detail": "date-fns ^3.0.0 → ^3.6.0 (minor)"
+    },
+    {
+      "code": "dependency-changed",
+      "file": "package.json",
+      "detail": "zod ^3.22.4 → ^3.22.5 (patch)"
+    },
+    {
+      "code": "lockfile-changed",
+      "file": "package-lock.json",
+      "detail": "lockfile modified together with dependency changes"
+    },
+    {
+      "code": "new-file-disconnected",
+      "file": "src/lib/render-html.ts",
+      "detail": "new file that no route reaches"
+    },
+    {
+      "code": "no-existing-code-touched",
+      "detail": "the PR only adds new files, routes, exports or keys, or changes tests"
+    }
+  ],
+  "files": [
+    {
+      "path": "package-lock.json",
+      "status": "modified",
+      "role": "lockfile",
+      "linesAdded": 1,
+      "linesRemoved": 1
+    },
+    {
+      "path": "package.json",
+      "status": "modified",
+      "role": "manifest",
+      "linesAdded": 3,
+      "linesRemoved": 2
+    },
+    {
+      "path": "src/lib/render-html.ts",
+      "status": "added",
+      "role": "source",
+      "linesAdded": 6,
+      "linesRemoved": 0
+    }
+  ],
+  "ignoredFiles": [],
+  "dependencies": {
+    "manifests": [
+      "package.json"
+    ],
+    "lockfiles": [
+      "package-lock.json"
+    ],
+    "changes": [
+      {
+        "manifest": "package.json",
+        "name": "clsx",
+        "section": "dependencies",
+        "change": "added",
+        "from": null,
+        "to": "^2.1.0",
+        "bump": null,
+        "direction": null,
+        "critical": false
+      },
+      {
+        "manifest": "package.json",
+        "name": "date-fns",
+        "section": "dependencies",
+        "change": "updated",
+        "from": "^3.0.0",
+        "to": "^3.6.0",
+        "bump": "minor",
+        "direction": "upgrade",
+        "critical": false
+      },
+      {
+        "manifest": "package.json",
+        "name": "zod",
+        "section": "dependencies",
+        "change": "updated",
+        "from": "^3.22.4",
+        "to": "^3.22.5",
+        "bump": "patch",
+        "direction": "upgrade",
+        "critical": false
+      }
+    ],
+    "summary": {
+      "critical": 0,
+      "major": 0,
+      "minor": 1,
+      "patch": 1,
+      "added": 1,
+      "removed": 0
+    }
+  },
+  "risk": {
+    "totalPages": 4,
+    "files": [
+      {
+        "path": "src/lib/render-html.ts",
+        "change": "added",
+        "level": "low",
+        "directImporters": 0,
+        "transitiveDependents": 0,
+        "centrality": 0,
+        "pagesReached": 0,
+        "routesReached": 0,
+        "why": "new code not used by existing pages"
+      }
+    ],
+    "summary": {
+      "high": 0,
+      "medium": 0,
+      "low": 1
+    }
+  },
+  "routes": {
+    "added": [],
+    "affected": [],
+    "disconnectedNewFiles": [
+      "src/lib/render-html.ts"
+    ]
+  },
+  "signals": {
+    "coverage": {
+      "status": "not-provided",
+      "message": "no coverage report given (--coverage or signals.coverage)",
+      "files": [],
+      "total": null,
+      "ignoredFiles": []
+    },
+    "lint": {
+      "status": "not-provided",
+      "message": "no ESLint report given (--eslint or signals.eslint)",
+      "changedLines": null,
+      "otherLines": null,
+      "findings": [],
+      "omittedFindings": 0
+    },
+    "security": {
+      "status": "ok",
+      "findings": [
+        {
+          "path": "src/lib/render-html.ts",
+          "line": 2,
+          "rule": "inner-html",
+          "severity": "high",
+          "message": "assignment to innerHTML: an XSS sink, use textContent or sanitize",
+          "text": "el.innerHTML = html"
+        },
+        {
+          "path": "src/lib/render-html.ts",
+          "line": 5,
+          "rule": "hardcoded-secret",
+          "severity": "high",
+          "message": "looks like a GitHub token in the code: move it to a secret store and rotate it",
+          "text": "export const ANALYTICS_TOKEN = 'ghp_a1B2a1B2a1B2a1B2a1B2a1B2a1B2a1B2a1B2'"
+        }
+      ],
+      "summary": {
+        "high": 2,
+        "medium": 0,
+        "low": 0
+      }
+    },
+    "vulnerabilities": {
+      "status": "ok",
+      "related": [
+        {
+          "package": "clsx",
+          "severity": "high",
+          "title": "ReDoS in clsx",
+          "id": "GHSA-test-clsx-0001",
+          "url": "https://github.com/advisories/GHSA-test-clsx-0001",
+          "cves": [],
+          "vulnerableRange": "<2.1.1",
+          "patchedVersions": null,
+          "relatedTo": [
+            "clsx"
+          ],
+          "kind": "direct"
+        }
+      ],
+      "total": {
+        "critical": 0,
+        "high": 1,
+        "moderate": 1,
+        "low": 0,
+        "info": 0
+      }
+    },
+    "suppressions": {
+      "status": "ok",
+      "items": []
+    },
+    "testsModified": {
+      "status": "ok",
+      "files": []
+    }
+  },
+  "diagnostics": {
+    "unresolvedImports": [],
+    "dynamicRoutes": [],
+    "parseErrors": [],
+    "timingsMs": {
+      "diff": 0,
+      "readTree": 0,
+      "program": 0,
+      "graph": 0,
+      "routes": 0,
+      "base": 0,
+      "classify": 0,
+      "signals": 0,
+      "diffs": 0
+    },
+    "error": null
+  },
+  "review": null
+}

@@ -1,0 +1,94 @@
+import { describe, expect, it } from 'vitest'
+import { nextAdapter } from '../../src/routes/next/index.js'
+import { tanstackRouterAdapter } from '../../src/routes/tanstack-router/index.js'
+import type { RouteAdapter, RouteTable } from '../../src/routes/types.js'
+
+function extract(adapter: RouteAdapter, dir: string, modules: Record<string, string>): RouteTable {
+  return adapter.extract({ file: dir, code: '', files: Object.keys(modules).sort(), resolve: () => ({ kind: 'unresolved' }), read: (f) => modules[f] })
+}
+
+const rows = (t: RouteTable): string[][] => t.routes.map((r) => [r.key, r.path, r.entry ?? '-', r.layouts.join(',')])
+
+describe('next adapter', () => {
+  it('reads the Pages Router: index, dynamic and catch-all segments, _app/_document as layouts, API routes', () => {
+    const t = extract(nextAdapter, 'web', {
+      'web/pages/_app.tsx': '',
+      'web/pages/_document.tsx': '',
+      'web/pages/index.tsx': '',
+      'web/pages/org/[slug]/index.tsx': '',
+      'web/pages/docs/[...path].tsx': '',
+      'web/pages/api/health.ts': '',
+      'web/pages/org/[slug]/Card.test.tsx': '',
+      'web/pages/styles.css': '',
+      'web/middleware.ts': '',
+    })
+    expect(rows(t)).toEqual([
+      ['/', '/', 'web/pages/index.tsx', 'web/middleware.ts,web/pages/_document.tsx,web/pages/_app.tsx'],
+      ['/api/health', '/api/health', 'web/pages/api/health.ts', 'web/middleware.ts'],
+      ['/docs/*', '/docs/*', 'web/pages/docs/[...path].tsx', 'web/middleware.ts,web/pages/_document.tsx,web/pages/_app.tsx'],
+      ['/org/:slug', '/org/:slug', 'web/pages/org/[slug]/index.tsx', 'web/middleware.ts,web/pages/_document.tsx,web/pages/_app.tsx'],
+    ])
+    expect(t.dynamic).toEqual([])
+    expect(t.sources).toContain('web/pages/_app.tsx')
+  })
+
+  it('reads the App Router: layouts and templates above, boundaries, groups, slots and private folders', () => {
+    const t = extract(nextAdapter, '', {
+      'src/app/layout.tsx': '',
+      'src/app/page.tsx': '',
+      'src/app/(shop)/layout.tsx': '',
+      'src/app/(shop)/products/[id]/page.tsx': '',
+      'src/app/(shop)/products/[id]/loading.tsx': '',
+      'src/app/_lib/page.tsx': '',
+      'src/app/api/orders/route.ts': '',
+      'src/app/@modal/(.)photo/page.tsx': '',
+    })
+    expect(rows(t)).toEqual([
+      ['/', '/', 'src/app/page.tsx', 'src/app/layout.tsx'],
+      ['/(shop)/products/[id]', '/products/:id', 'src/app/(shop)/products/[id]/page.tsx', 'src/app/layout.tsx,src/app/(shop)/layout.tsx'],
+      ['/api/orders', '/api/orders', 'src/app/api/orders/route.ts', ''],
+    ])
+    expect(t.routes[1]?.modules).toEqual(['src/app/(shop)/products/[id]/loading.tsx', 'src/app/(shop)/products/[id]/page.tsx'])
+  })
+
+  it('reports a project with no route (fail closed) and a path defined twice', () => {
+    expect(extract(nextAdapter, 'web', { 'web/src/a.ts': '' }).dynamic.map((d) => d.detail)).toEqual([expect.stringContaining('no Next.js route found')])
+    const twice = extract(nextAdapter, '', { 'pages/about.tsx': '', 'pages/about/index.tsx': '' })
+    expect(twice.dynamic.map((d) => d.detail)).toEqual(['route /about is defined twice: pages/about.tsx and pages/about/index.tsx'])
+  })
+})
+
+const route = (id: string): string => `import { createFileRoute } from '@tanstack/react-router'\nexport const Route = createFileRoute('${id}')({ component: () => null })\n`
+
+describe('tanstack-router adapter', () => {
+  it('lists the leaf routes with their layouts: root, pathless and parent routes', () => {
+    const t = extract(tanstackRouterAdapter, 'src/routes', {
+      'src/routes/__root.tsx': "import { createRootRouteWithContext } from '@tanstack/react-router'\nexport const Route = createRootRouteWithContext<{ a: 1 }>()({})\n",
+      'src/routes/index.tsx': route('/'),
+      'src/routes/_app.tsx': route('/_app'),
+      'src/routes/_app/org/$slug/webhooks/index.tsx': route('/_app/org/$slug/webhooks/'),
+      'src/routes/posts.tsx': route('/posts'),
+      'src/routes/posts/$postId.tsx': route('/posts/$postId'),
+      'src/routes/posts/$postId.lazy.tsx': "import { createLazyFileRoute } from '@tanstack/react-router'\nexport const Route = createLazyFileRoute('/posts/$postId')({})\n",
+      'src/routes/files/$.tsx': route('/files/$'),
+      'src/routes/-components/Header.tsx': route('/ignored'),
+      'src/routes/helpers.ts': 'export const x = 1\n',
+    })
+    expect(rows(t)).toEqual([
+      ['/', '/', 'src/routes/index.tsx', 'src/routes/__root.tsx'],
+      ['/_app/org/$slug/webhooks/', '/org/:slug/webhooks', 'src/routes/_app/org/$slug/webhooks/index.tsx', 'src/routes/__root.tsx,src/routes/_app.tsx'],
+      ['/files/$', '/files/*', 'src/routes/files/$.tsx', 'src/routes/__root.tsx'],
+      ['/posts/$postId', '/posts/:postId', 'src/routes/posts/$postId.lazy.tsx', 'src/routes/__root.tsx,src/routes/posts.tsx'],
+    ])
+    expect(t.routes[3]?.modules).toEqual(['src/routes/posts/$postId.lazy.tsx', 'src/routes/posts/$postId.tsx'])
+    expect(t.dynamic).toEqual([])
+  })
+
+  it('reports route ids it cannot read and a directory without routes', () => {
+    const t = extract(tanstackRouterAdapter, 'routes', { 'routes/a.tsx': "import { createFileRoute } from '@tanstack/react-router'\nconst id = '/a'\nexport const Route = createFileRoute(id)({})\n" })
+    expect(t.dynamic.map((d) => [d.file, d.line, d.detail])).toEqual([
+      ['routes', 1, expect.stringContaining('no TanStack Router route found')],
+      ['routes/a.tsx', 3, 'createFileRoute without a literal route id'],
+    ])
+  })
+})
