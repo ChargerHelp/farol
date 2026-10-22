@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>farol · know what a pull request reaches before you review it</title>
-<meta name="description" content="farol is an open-source CLI and GitHub Action that tells code reviewers how much attention a pull request needs and where to look first: what the change reaches, a merge risk score and a review plan. TypeScript/React, Go and Python.">
-<meta property="og:title" content="farol · know what a pull request reaches before you review it">
-<meta property="og:description" content="Static analysis that points reviewers at the code that matters. Open source, runs in your CI, never blocks a merge.">
+<title>farol · know the risk of merging a pull request, and where it lives</title>
+<meta name="description" content="farol is a free, open-source CLI and GitHub Action. After your AI review, it tells the person who approves how risky the merge is and which files carry the risk, so the riskiest changes get the most attention. TypeScript/React, Go and Python.">
+<meta property="og:title" content="farol · know the risk of merging a pull request, and where it lives">
+<meta property="og:description" content="Free, open-source CLI and GitHub Action: the risk of merging a pull request and the files that carry it, from static analysis.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://winnin.github.io/farol/">
 <meta property="og:image" content="https://winnin.github.io/farol/images/report-overview-dark.png">
@@ -70,7 +70,7 @@ nav.links a:hover { color: var(--text); text-decoration: none; }
 }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--text-2); padding: 5px 12px 5px 8px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel); }
 .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--beam); }
-h1 { font-size: clamp(2.3rem, 5.2vw, 3.9rem); line-height: 1.06; letter-spacing: -.035em; margin: 22px 0 18px; max-width: 15ch; }
+h1 { font-size: clamp(2.3rem, 5.2vw, 3.9rem); line-height: 1.06; letter-spacing: -.035em; margin: 22px 0 18px; max-width: 17ch; }
 h1 .beam { background: var(--beam); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .lede { font-size: clamp(1.05rem, 1.6vw, 1.22rem); color: var(--text-2); max-width: 60ch; margin: 0 0 30px; }
 .ctas { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
@@ -104,6 +104,12 @@ h1 .beam { background: var(--beam); -webkit-background-clip: text; background-cl
 .pc-file { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
 .pc-pts { font-weight: 700; color: var(--red); font-variant-numeric: tabular-nums; }
 .pc-link { display: inline-block; margin-top: 8px; font-weight: 600; }
+
+
+.or-ci { margin: 10px 0 0; font-size: .9rem; color: var(--muted); }
+.or-ci code { font-size: .88em; padding: 2px 7px; border-radius: 6px; background: var(--bg-soft); border: 1px solid var(--border); color: var(--text-2); }
+.flow { margin-bottom: 8px; }
+.flow .step.is-farol { border-color: var(--indigo); background: linear-gradient(180deg, color-mix(in srgb, var(--indigo) 10%, var(--panel)), var(--panel)); }
 
 /* screenshot */
 .shot { margin: 56px auto 0; border-radius: 18px; border: 1px solid var(--border-strong); background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
@@ -208,6 +214,7 @@ pre.code .c { color: var(--code-muted); }
 pre.code .k { color: #22d3ee; }
 pre.code .s { color: #a5f3c4; }
 .codebox { position: relative; }
+.card pre.code { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .84rem; }
 .codebox .copy { position: absolute; top: 12px; right: 12px; }
 .checks { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; }
 .checks li { padding-left: 28px; position: relative; color: var(--text-2); }
@@ -248,18 +255,19 @@ footer a { color: var(--text-2); }
     <div class="wrap">
       <div class="hero-grid">
       <div>
-      <span class="eyebrow"><span class="dot"></span>Open source · MIT · TypeScript, Go and Python</span>
-      <h1>Know what a pull request <span class="beam">reaches</span> before you review it.</h1>
-      <p class="lede">farol reads a change the way your compiler does, follows it to every page, endpoint and job that runs it, and tells the reviewer how much attention the pull request needs and where to start.</p>
+      <span class="eyebrow"><span class="dot"></span>Free and open source · CLI and GitHub Action</span>
+      <h1>Know the <span class="beam">risk</span> of merging, and where it lives.</h1>
+      <p class="lede">Agents write the code and agents review it. The last call is still a person's. farol tells that person how risky the merge is, which files carry the risk and what they reach, so the riskiest changes get the most attention instead of the same skim as everything else.</p>
       <div class="ctas">
         <a class="btn primary" href="demo/backend.html">Open a live report <span aria-hidden="true">→</span></a>
         <a class="btn ghost" href="#start">Get started</a>
       </div>
       <div>
         <div class="cmd"><span class="prompt">$</span><code id="cmd-hero">npx @winninjs/farol routes</code><button class="copy" data-copy="cmd-hero" type="button">Copy</button></div>
+        <p class="or-ci">or on every pull request: <code>uses: winnin/farol/action@main</code></p>
       </div>
       <div class="facts">
-        <span>Runs in your CI</span><span>Never executes your code</span><span>Never blocks a merge</span><span>Same input, same report</span>
+        <span>Free, MIT license</span><span>No account, no service</span><span>Never executes your code</span><span>Never blocks a merge</span>
       </div>
       </div>
       <aside class="pr-comment" aria-label="Example of the comment farol posts on a pull request">
@@ -297,15 +305,15 @@ footer a { color: var(--text-2); }
   <section id="why">
     <div class="wrap">
       <span class="kicker">Why farol</span>
-      <h2>Code got cheap to write. Reviewing it did not.</h2>
-      <p class="quote">An assistant writes a 1,500-line pull request in minutes; a person still has to approve it. Reading every line with the same care does not scale, and skimming is how <em>a one-line change to a shared hook breaks forty pages</em>.</p>
-      <p class="sub" style="margin-top:22px">farol does the triage before the reviewer opens the diff, so attention goes to the few files that can actually hurt.</p>
+      <h2>Review effort should follow risk.</h2>
+      <p class="quote">Agents now write much of the code and review it too, so the human approval is the scarce part. Spread evenly over every pull request it turns into a skim, and a skim is how <em>a one-line change to a shared hook breaks forty pages</em>.</p>
+      <p class="sub" style="margin-top:22px">farol makes the risk explicit before anyone approves: a verdict that says how much review the merge needs, and the files that carry the risk, ranked. Low-risk pull requests can go fast; risky ones get read line by line, starting where it matters. The Claude Code team describes the same principle in <a href="https://claude.dev/blog/solving-code-review-at-anthropic/">how they do code review</a>: “The change sets the tier, not the author.”</p>
 
       <div class="grid g4">
         <div class="card">
           <div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg></div>
-          <h3>Effort where the risk is</h3>
-          <p>A forty-file pull request usually has two or three files that matter. farol ranks them, with their reach and diff coverage.</p>
+          <h3>The riskiest files, first</h3>
+          <p>A forty-file pull request usually has two or three files that can hurt. farol ranks them by reach, diff coverage and findings, so they get the closest read.</p>
         </div>
         <div class="card">
           <div class="icon"><svg viewBox="0 0 24 24"><path d="M5 12h4l3-8 3 16 3-8h1"/></svg></div>
@@ -328,12 +336,19 @@ footer a { color: var(--text-2); }
 
   <section id="ai">
     <div class="wrap">
-      <span class="kicker">Next to your AI reviewer</span>
-      <h2>Not another AI reviewer. The context it is missing.</h2>
-      <p class="sub">Keep your review agent: it is good at commenting on the lines in the diff. What it cannot tell you reliably is what those lines reach. farol answers that with static analysis, so both the human and the agent spend their attention where it counts.</p>
+      <span class="kicker">Where it fits</span>
+      <h2>After the AI review, before the human approval.</h2>
+      <p class="sub">farol does not replace your review agent. Let the agent comment on the lines; when it is done, farol gives the person who approves what the agent cannot reliably give: the risk of accepting the change, and where it lives.</p>
+      <div class="steps flow">
+        <div class="step"><h3>An agent writes the change</h3><p>Fast, and often larger than a person would write it.</p></div>
+        <div class="step"><h3>An agent reviews the lines</h3><p>Bugs, style and local mistakes, comment by comment.</p></div>
+        <div class="step is-farol"><h3>farol measures the risk</h3><p>What the change reaches, broken contracts, untested lines and findings, turned into a verdict and a ranked list of files.</p></div>
+        <div class="step"><h3>A person decides</h3><p>A quick look when the risk is low; a careful, file-by-file read of the risky parts when it is high.</p></div>
+      </div>
+      <p class="sub" style="margin:40px 0 18px">What each one is good at:</p>
       <div class="compare">
         <div class="ai">
-          <h3>AI review agents</h3>
+          <h3>Your AI reviewer</h3>
           <ul>
             <li>Read the diff, and whatever context fits in the prompt</li>
             <li>Tell you what may be wrong in these lines</li>
@@ -345,7 +360,7 @@ footer a { color: var(--text-2); }
           <h3>farol</h3>
           <ul>
             <li>Reads the whole program at the base and the head, with the compilers</li>
-            <li>Tells you what these lines reach and how much review the merge needs</li>
+            <li>Tells you how risky the merge is, which files carry the risk and what they reach</li>
             <li>Same pull request, same report, with the call chain behind each claim</li>
             <li>Says <code>unknown</code> and asks for a careful review</li>
           </ul>
@@ -404,6 +419,34 @@ footer a { color: var(--text-2); }
       <p class="note">The pull request was written for the demo: <a href="https://github.com/erich-oliveira-winnin/full-stack-fastapi-template/pull/1">see it on GitHub</a>, with farol's comments.</p>
     </div>
   </div>
+
+  <section id="free">
+    <div class="wrap">
+      <span class="kicker">Free and open source</span>
+      <h2>A CLI and a GitHub Action. Nothing to sign up for.</h2>
+      <p class="sub">farol is MIT-licensed and free to use, on any repository. There is no account, no hosted service and no telemetry: it runs on your machine or in your CI runner.</p>
+      <div class="grid g2">
+        <div class="card">
+          <h3>On your machine</h3>
+          <p>Run it with npx on any branch; it writes a JSON result and a single-file HTML report.</p>
+<pre class="code" style="margin-top:14px"><span class="k">npx</span> @winninjs/farol analyze --base origin/main --head HEAD --out farol.json
+<span class="k">npx</span> @winninjs/farol html --in farol.json --out farol.html</pre>
+        </div>
+        <div class="card">
+          <h3>On every pull request</h3>
+          <p>Use the GitHub Action after your tests: a comment on each push, with a link that opens the report in the browser.</p>
+<pre class="code" style="margin-top:14px"><span class="c"># .github/workflows/farol.yml (excerpt)</span>
+- <span class="k">uses:</span> winnin/farol/action@main
+  <span class="k">with:</span>
+    command: analyze
+    base: <span class="s">${{ github.event.pull_request.base.sha }}</span>
+    head: <span class="s">${{ github.event.pull_request.head.sha }}</span>
+    out: farol.json</pre>
+          <p style="margin-top:12px"><a href="https://github.com/winnin/farol/tree/main/examples">Complete workflows for TypeScript, Go and Python →</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <section id="stacks">
     <div class="wrap">

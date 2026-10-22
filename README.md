@@ -5,10 +5,11 @@
   </picture>
 </p>
 
-<h3 align="center">Point your reviewers at the code that matters.</h3>
+<h3 align="center">Know the risk of merging a pull request, and where it lives.</h3>
 
 <p align="center">
-  farol reads a pull request and tells the reviewer how much attention it needs, what it can break and where to look first.
+  A free, open-source CLI and GitHub Action. After your AI review, farol tells the person who approves how risky the
+  merge is and which files carry the risk, so the riskiest changes get the most attention.
 </p>
 
 <p align="center">
@@ -27,15 +28,19 @@
 
 ---
 
-Code is cheap now. An AI assistant writes a 1,500-line pull request in minutes, and a human still has to review it.
-Reading every line with the same care does not scale, and skimming everything is how a one-line change to a shared
-hook takes down forty pages.
+Agents write the code and agents review it. The last call is still a person's: approve the merge or not. That
+approval is the scarce part, and spread evenly over every pull request it turns into a skim, which is how a one-line
+change to a shared hook takes down forty pages.
 
-**farol is not another AI reviewer, and it does not compete with them.** Keep your AI review bot: it is good at
-commenting on the lines in the diff. What it cannot tell you reliably is what those lines *reach*: the forty pages
-that render the hook, the clients of the endpoint whose response lost a field, the untested branch in the file every
-route imports. farol answers that with static analysis (the compilers' own view of your code, not a model's guess),
-so the human reviewer goes straight to what matters, and the AI's comments land where they count.
+**farol comes after the AI review, not instead of it.** Your review agent comments on the lines in the diff. farol
+gives the person who approves what the agent cannot reliably give: **the risk of accepting the change, and where it
+lives**. The goal is not only a faster review: low-risk pull requests can go fast, and the risky ones get read line by
+line, starting with the files that carry the risk. It works from static analysis (the compilers' own view of your
+code, not a model's guess), so the same pull request always gets the same answer.
+
+The Claude Code team describes the same principle in
+[How the Claude Code team does code review](https://claude.dev/blog/solving-code-review-at-anthropic/): review effort
+follows the risk of the change. As they put it, "The change sets the tier, not the author."
 
 **farol** (Portuguese for *lighthouse*) does the triage before the reviewer opens the diff:
 
@@ -43,8 +48,9 @@ so the human reviewer goes straight to what matters, and the AI's comments land 
 - **How risky is the merge?** A verdict (*fast track*, *quick review*, *careful review*) and a 0–100 risk score from reach, diff coverage, security findings, contract breaks and dependency changes.
 - **Where do I start?** The riskiest files first, with inline diffs, untested lines marked, and a checklist of what to try by hand.
 
-It runs in your CI, comments on every PR and never blocks a merge. It **never executes your code** and never sends it
-anywhere.
+**Free and open source (MIT).** Run it as a CLI with `npx @winninjs/farol`, or on every pull request with the GitHub
+Action `winnin/farol/action`. No account, no hosted service: it runs on your machine or in your CI runner, comments on
+every PR and never blocks a merge. It **never executes your code** and never sends it anywhere.
 
 <p align="center">
   <picture>
@@ -70,7 +76,7 @@ follow the test plan and copy the review record from the Result tab. They are th
 comments link to ([the pull request](https://github.com/erich-oliveira-winnin/full-stack-fastapi-template/pull/1)); the
 copies live in [`docs/demo/`](docs/demo/).
 
-## farol and AI code review
+## farol after your AI review
 
 | | AI review agents | farol |
 |---|---|---|
@@ -80,9 +86,10 @@ copies live in [`docs/demo/`](docs/demo/).
 | **When unsure** | may sound confident anyway | says `unknown` and asks for a careful review |
 | **Runs** | a model, usually a hosted service | locally or in your CI: it never executes your code and never sends it anywhere |
 
-Use both. Let the agent comment on style, naming and local bugs; use farol to decide how much human attention the PR
-needs, which files deserve it, which pages and endpoints to test by hand, and which contract changes need their clients
-checked. The agent's review is not enough exactly when a small change has a large reach, and that is what farol shows.
+Use both, in that order. The agent reviews the lines first; then farol tells the person who approves how much attention
+the merge needs, which files deserve it, which pages and endpoints to test by hand and which contract changes need
+their clients checked. The agent's review is not enough exactly when a small change has a large reach, and that is
+what farol shows.
 
 ## Why farol
 
@@ -97,7 +104,7 @@ checked. The agent's review is not enough exactly when a small change has a larg
 ## Contents
 
 - [Live demo](#live-demo)
-- [farol and AI code review](#farol-and-ai-code-review)
+- [farol after your AI review](#farol-after-your-ai-review)
 - [Get started](#get-started)
 - [Recipes](#recipes): [React Router](#react-frontend-react-router) · [Next.js](#nextjs) · [TanStack Router](#tanstack-router) · [TypeScript API](#typescript-api-graphql-or-rest) · [Go](#go-service) · [Python](#python-service) · [Datadog](#add-datadog-traffic-and-errors)
 - [What is supported](#what-is-supported)
@@ -441,8 +448,12 @@ The details per language are in [docs/how-it-works.md](docs/how-it-works.md), an
 ## FAQ
 
 **We already have an AI reviewer. Why add farol?** They answer different questions. The agent comments on the lines
-in the diff; farol tells you what those lines reach and how much review the PR needs, from static analysis of the whole
-program. Run both: farol's comment and report sit next to the agent's, and neither blocks the merge.
+in the diff; after it, farol tells the person who approves how risky the merge is and which files carry the risk, from
+static analysis of the whole program. Run both: farol's comment and report sit next to the agent's, and neither blocks
+the merge.
+
+**Is it free?** Yes. farol is open source under the MIT license, with no account, hosted service or paid tier: run it
+with `npx @winninjs/farol` or the GitHub Action `winnin/farol/action`.
 
 **Will it slow down CI?** No. farol runs after your tests and reuses their reports. The analysis takes about 3 s for
 a 300-file Python service, 8–10 s for a large TypeScript monorepo or a Go service with a cold cache, and under a
