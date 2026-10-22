@@ -21,11 +21,11 @@ farol is published on npm as [`@winninjs/farol`](https://www.npmjs.com/package/@
 dependencies: one bundled file plus the Go and Python helpers.
 
 ```sh
-npm install --global @winninjs/farol
-farol --help
-
-npx @winninjs/farol --help            # without installing
+npx @winninjs/farol --help              # no install needed
+npm install --global @winninjs/farol    # or a plain `farol` command
 ```
+
+The commands below write `farol`; with npx, run `npx @winninjs/farol <command>`.
 
 The same bundle, `dist/cli.js`, is committed to the repository (the GitHub Action runs it): `git clone
 https://github.com/winnin/farol.git && node farol/dist/cli.js --help` works too.

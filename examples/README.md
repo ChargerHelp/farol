@@ -36,6 +36,9 @@ farol analyze --base origin/main --head HEAD \
 farol html --in farol.json --out farol.html
 ```
 
+Run farol with `npx @winninjs/farol <command>` (no install), or install it once with `npm install --global
+@winninjs/farol`; the commands in this guide write `farol` for short.
+
 Requirements: Node.js 22+ and git with the full history of both branches (`fetch-depth: 0` in CI). Go projects also
 need `go` and their modules downloaded (`go mod download`); Python projects need `python3` 3.11+.
 

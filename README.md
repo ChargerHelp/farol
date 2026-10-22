@@ -73,29 +73,60 @@ checked. The agent's review is not enough exactly when a small change has a larg
 ## Contents
 
 - [farol and AI code review](#farol-and-ai-code-review)
-- [Get started in one minute](#get-started-in-one-minute)
+- [Get started](#get-started)
 - [Recipes](#recipes): [React Router](#react-frontend-react-router) · [Next.js](#nextjs) · [TanStack Router](#tanstack-router) · [TypeScript API](#typescript-api-graphql-or-rest) · [Go](#go-service) · [Python](#python-service) · [Datadog](#add-datadog-traffic-and-errors)
 - [What is supported](#what-is-supported)
 - [Reading the review](#reading-the-review)
 - [How it works](#how-it-works) · [Security](#security-and-privacy) · [Limitations](#limitations) · [FAQ](#faq)
 - [Reference](docs/reference.md) (every command, option and configuration key)
 
-## Get started in one minute
+## Get started
 
-You need **Node.js 22+** and **git** (plus `go` for Go projects, `python3` 3.11+ for Python ones).
+You need **Node.js 22+** and **git** (plus `go` for Go projects, `python3` 3.11+ for Python ones). Nothing to
+install: run farol with `npx @winninjs/farol`.
+
+**1. Describe your project** in a `farol.config.json` at its root. One line is enough to start; pick your stack:
+
+| Your project | `farol.config.json` | Full recipe |
+|---|---|---|
+| React app with React Router | `{ "routes": { "file": "src/routes.tsx" } }` (the file that builds the route table) | [React Router](#react-frontend-react-router) |
+| Next.js app (Pages or App Router) | `{ "routes": { "adapter": "next" } }` | [Next.js](#nextjs) |
+| React app with TanStack Router | `{ "routes": { "adapter": "tanstack-router", "dir": "src/routes" } }` | [TanStack Router](#tanstack-router) |
+| TypeScript API (GraphQL, REST) | `{ "surface": "backend" }` | [TypeScript API](#typescript-api-graphql-or-rest) |
+| Go service | `{ "language": "go", "surface": "backend" }` | [Go](#go-service) |
+| Python service (FastAPI, Flask, Django, Celery…) | `{ "language": "python", "surface": "backend" }` | [Python](#python-service) |
+
+**2. Check what farol sees:** the pages, endpoints, jobs and scripts it found.
 
 ```sh
-npm install --global @winninjs/farol      # or run it without installing: npx @winninjs/farol <command>
-
-cd path/to/your/repo
-echo '{ "routes": { "file": "src/routes.tsx" } }' > farol.config.json   # pick yours from the recipes below
-
-farol analyze --base origin/main --head HEAD --out farol.json
-farol html --in farol.json --out farol.html && open farol.html          # xdg-open on Linux
+npx @winninjs/farol routes
 ```
 
-That is the whole loop: describe the project once, analyze a branch, open the report. Check that farol sees your
-entry points with `farol routes`. The recipes below add your test reports and put it on every PR.
+**3. Analyze a branch** against its target and open the report.
+
+```sh
+npx @winninjs/farol analyze --base origin/main --head HEAD --out farol.json
+npx @winninjs/farol html --in farol.json --out farol.html && open farol.html     # xdg-open on Linux
+```
+
+### Example: a React app with React Router
+
+```sh
+cd path/to/your/react-app
+echo '{ "routes": { "file": "src/routes.tsx" } }' > farol.config.json
+
+npx @winninjs/farol routes                                        # lists your pages: "/", "/products", "/settings"…
+git checkout my-feature-branch
+npx @winninjs/farol analyze --base origin/main --head HEAD --out farol.json
+npx @winninjs/farol html --in farol.json --out farol.html && open farol.html
+```
+
+The report already shows the verdict, the score, the files to start with, the pages the change reaches and what to
+test by hand. **Next steps:** add your coverage, lint and audit reports and run farol on every PR with the
+[recipe for your stack](#recipes). Every option is in the [reference](docs/reference.md) and, per stack, in
+[examples/README.md](examples/README.md).
+
+> Running it often? `npm install --global @winninjs/farol` gives you a plain `farol` command.
 
 ## Recipes
 
@@ -127,7 +158,7 @@ npx vitest run --coverage.enabled --coverage.reporter=json --coverage.reportsDir
 npx eslint -f json -o reports/eslint.json <changed files>
 npm audit --json > reports/audit.json                     # or pnpm audit --json
 
-farol analyze --base origin/main --head HEAD \
+npx @winninjs/farol analyze --base origin/main --head HEAD \
   --coverage reports/coverage/coverage-final.json --eslint reports/eslint.json --audit reports/audit.json --out farol.json
 ```
 
@@ -194,7 +225,7 @@ go test -coverpkg=./... -coverprofile=reports/cover.out ./...
 golangci-lint run --output.json.path=reports/golangci.json --issues-exit-code=0 ./...   # enable gosec
 govulncheck -json ./... > reports/govulncheck.json
 
-farol analyze --base origin/main --head HEAD \
+npx @winninjs/farol analyze --base origin/main --head HEAD \
   --coverage reports/cover.out --eslint reports/golangci.json --audit reports/govulncheck.json --out farol.json
 ```
 
@@ -215,7 +246,7 @@ pytest --cov=src --cov-report=json:reports/coverage.json
 ruff check --output-format json --extend-select S --exit-zero . > reports/ruff.json    # S = flake8-bandit
 pip-audit --format json -o reports/pip-audit.json
 
-farol analyze --base origin/main --head HEAD \
+npx @winninjs/farol analyze --base origin/main --head HEAD \
   --coverage reports/coverage.json --eslint reports/ruff.json --audit reports/pip-audit.json --out farol.json
 ```
 
@@ -238,8 +269,8 @@ errors, and the services that call each changed endpoint.
 ```
 
 ```sh
-DD_API_KEY=… DD_APP_KEY=… farol usage --out usage.json      # last 14 days
-farol analyze … --usage usage.json
+DD_API_KEY=… DD_APP_KEY=… npx @winninjs/farol usage --out usage.json      # last 14 days
+npx @winninjs/farol analyze … --usage usage.json
 ```
 
 **CI:** the example workflows have a `farol-usage` job: set the `DD_API_KEY` and `DD_APP_KEY` secrets and the
@@ -393,12 +424,13 @@ a 300-file Python service, 8–10 s for a large TypeScript monorepo or a Go serv
 second for the base when its helper output is cached.
 
 **Can I use it outside GitHub?** Yes. `analyze`, `html` and `report` work anywhere; only `comment` is
-GitHub-specific. Post the output of `farol report` with your platform's API.
+GitHub-specific. Post the output of `npx @winninjs/farol report` with your platform's API.
 
 **The report says "not verified".** That report was not given, or the path is wrong. Paths given to `analyze` are
 relative to the current directory; paths in `farol.config.json` are relative to the project.
 
-**A page I changed is not listed.** Run `farol routes` to see the entry points farol reads, and `farol impact <file>`
+**A page I changed is not listed.** Run `npx @winninjs/farol routes` to see the entry points farol reads, and
+`npx @winninjs/farol impact <file>`
 to see what reaches a file. Unreadable route constructs are listed under diagnostics.
 
 **Go: "farol reads Go modules offline: run go mod download".** The module cache lacks a dependency of the base or the
