@@ -236666,7 +236666,7 @@ var package_default = {
     "diff-coverage"
   ],
   author: "Winnin",
-  homepage: "https://github.com/winnin/farol#readme",
+  homepage: "https://winnin.github.io/farol/",
   repository: {
     type: "git",
     url: "git+https://github.com/winnin/farol.git"

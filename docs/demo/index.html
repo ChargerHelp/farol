@@ -4,183 +4,100 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>farol live demo</title>
-<meta name="description" content="farol reports of a real pull request on the FastAPI full-stack template: backend and frontend.">
+<meta name="description" content="Two farol reports from a real pull request: a FastAPI backend and a React frontend. Open them, mark files as reviewed, follow the test plan.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Imljb25CZWFtTGlnaHQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMDZCNkQ0IiAvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzEwQjk4MSIgLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iaWNvbk1vbm9saXRoTGlnaHQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM0RjQ2RTUiIC8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMzczMEEzIiAvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTE4IiBmaWxsPSIjRkZGRkZGIiAvPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTE4IiBmaWxsPSJub25lIiBzdHJva2U9IiNFMkU4RjAiIHN0cm9rZS13aWR0aD0iNCIgLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMzIsIDExNikgc2NhbGUoMS44NSkiPjxwb2x5Z29uIHBvaW50cz0iNTAsNzMgNTAsNzcgMTQ2LDg0IDE0Niw2NiIgZmlsbD0idXJsKCNpY29uQmVhbUxpZ2h0KSIgLz48cmVjdCB4PSI4OCIgeT0iNDciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyIiByeD0iMSIgZmlsbD0iIzk0QTNCOCIgb3BhY2l0eT0iMC41NSIgLz48cmVjdCB4PSI4OCIgeT0iNTUiIHdpZHRoPSI0NCIgaGVpZ2h0PSIyIiByeD0iMSIgZmlsbD0iIzk0QTNCOCIgb3BhY2l0eT0iMC41NSIgLz48cmVjdCB4PSI4OCIgeT0iNjMiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyIiByeD0iMSIgZmlsbD0iIzk0QTNCOCIgb3BhY2l0eT0iMC41NSIgLz48cmVjdCB4PSI4OCIgeT0iNzIuNSIgd2lkdGg9IjU0IiBoZWlnaHQ9IjUiIHJ4PSIyLjUiIGZpbGw9IiNGRkZGRkYiIC8+PHJlY3QgeD0iODgiIHk9Ijg3IiB3aWR0aD0iMzgiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiM5NEEzQjgiIG9wYWNpdHk9IjAuNTUiIC8+PHJlY3QgeD0iODgiIHk9Ijk1IiB3aWR0aD0iNDYiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiM5NEEzQjgiIG9wYWNpdHk9IjAuNTUiIC8+PHJlY3QgeD0iODgiIHk9IjEwMyIgd2lkdGg9IjI2IiBoZWlnaHQ9IjIiIHJ4PSIxIiBmaWxsPSIjOTRBM0I4IiBvcGFjaXR5PSIwLjU1IiAvPjxwYXRoIGQ9Ik0gMjYgMTE2IEwgMjYgMzQgQyAyNiAyOCwgMzEgMjQsIDM3IDI1IEwgNDYgMjcgQyA0OSAyOCwgNTAgMzAsIDUwIDMzIEwgNTAgNjkgTCA0NCA2OSBDIDQxLjggNjksIDQwIDcwLjgsIDQwIDczIEwgNDAgNzcgQyA0MCA3OS4yLCA0MS44IDgxLCA0NCA4MSBMIDUwIDgxIEwgNTAgMTE2IFoiIGZpbGw9InVybCgjaWNvbk1vbm9saXRoTGlnaHQpIiAvPjxyZWN0IHg9IjQzIiB5PSI3MyIgd2lkdGg9IjciIGhlaWdodD0iNCIgcng9IjEiIGZpbGw9IiMyMkQzRUUiIC8+PHBhdGggZD0iTSAyNiAxMTYgTCAzNCAxMTYgTCAzNCAyNiBMIDMwIDI1IEMgMjcuNSAyNywgMjYgMjkuNSwgMjYgMzQgWiIgZmlsbD0iIzMxMkU4MSIgb3BhY2l0eT0iMC40IiAvPjwvZz48L3N2Zz4=" media="(prefers-color-scheme: light)">
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Imljb25CZWFtVGlnaHQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMjJEM0VFIiAvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzEwQjk4MSIgLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExOCIgZmlsbD0iIzBGMTcyQSIgLz48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMUUyOTNCIiBzdHJva2Utd2lkdGg9IjIiIC8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTMyLCAxMTYpIHNjYWxlKDEuODUpIj48cG9seWdvbiBwb2ludHM9IjUwLDczIDUwLDc3IDE0Niw4NCAxNDYsNjYiIGZpbGw9InVybCgjaWNvbkJlYW1UaWdodCkiIC8+PHJlY3QgeD0iODgiIHk9IjQ3IiB3aWR0aD0iMjgiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiMzMzQxNTUiIC8+PHJlY3QgeD0iODgiIHk9IjU1IiB3aWR0aD0iNDQiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiMzMzQxNTUiIC8+PHJlY3QgeD0iODgiIHk9IjYzIiB3aWR0aD0iMjQiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiMzMzQxNTUiIC8+PHJlY3QgeD0iODgiIHk9IjcyLjUiIHdpZHRoPSI1NCIgaGVpZ2h0PSI1IiByeD0iMi41IiBmaWxsPSIjRkZGRkZGIiAvPjxyZWN0IHg9Ijg4IiB5PSI4NyIgd2lkdGg9IjM4IiBoZWlnaHQ9IjIiIHJ4PSIxIiBmaWxsPSIjMzM0MTU1IiAvPjxyZWN0IHg9Ijg4IiB5PSI5NSIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjIiIHJ4PSIxIiBmaWxsPSIjMzM0MTU1IiAvPjxyZWN0IHg9Ijg4IiB5PSIxMDMiIHdpZHRoPSIyNiIgaGVpZ2h0PSIyIiByeD0iMSIgZmlsbD0iIzMzNDE1NSIgLz48cGF0aCBkPSJNIDI2IDExNiBMIDI2IDM0IEMgMjYgMjgsIDMxIDI0LCAzNyAyNSBMIDQ2IDI3IEMgNDkgMjgsIDUwIDMwLCA1MCAzMyBMIDUwIDY5IEwgNDQgNjkgQyA0MS44IDY5LCA0MCA3MC44LCA0MCA3MyBMIDQwIDc3IEMgNDAgNzkuMiwgNDEuOCA4MSwgNDQgODEgTCA1MCA4MSBMIDUwIDExNiBaIiBmaWxsPSIjNjM2NkYxIiAvPjxyZWN0IHg9IjQzIiB5PSI3MyIgd2lkdGg9IjciIGhlaWdodD0iNCIgcng9IjEiIGZpbGw9IiMyMkQzRUUiIC8+PHBhdGggZD0iTSAyNiAxMTYgTCAzNCAxMTYgTCAzNCAyNiBMIDMwIDI1IEMgMjcuNSAyNywgMjYgMjkuNSwgMjYgMzQgWiIgZmlsbD0iIzQzMzhDQSIgLz48L2c+PC9zdmc+" media="(prefers-color-scheme: dark)">
 <style>
-:root { --bg: #f6f7fb; --panel: #ffffff; --text: #18202e; --muted: #5b6577; --border: #e3e6ee; --accent: #4f46e5; --careful: #d9480f; }
-@media (prefers-color-scheme: dark) { :root { --bg: #0f1420; --panel: #171e2c; --text: #e7ebf3; --muted: #9aa5b8; --border: #273044; --accent: #8b85ff; --careful: #ff8a4c; } }
+:root { --bg: #f7f8fc; --panel: #ffffff; --text: #0f172a; --text-2: #334155; --muted: #64748b; --border: #e2e6f0; --border-strong: #cfd5e4; --indigo: #4f46e5; --red: #c2410c; --shadow: 0 1px 2px rgba(15,23,42,.04), 0 12px 32px -12px rgba(15,23,42,.14); }
+@media (prefers-color-scheme: dark) { :root { --bg: #0b1020; --panel: #121a2e; --text: #e8ecf5; --text-2: #c3cad8; --muted: #8b95a9; --border: #1f2a42; --border-strong: #2b3754; --indigo: #8b85ff; --red: #fb923c; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 16px 40px -16px rgba(0,0,0,.6); } }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { max-width: 920px; margin: 0 auto; padding: 40px 16px 64px; }
-.logo { display: block; height: 56px; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: var(--indigo); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+@media (max-width: 640px) { .wrap { padding: 0 16px; } }
+header { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+.brand svg { height: 32px; width: auto; display: block; }
 .logo-dark { display: none; }
 @media (prefers-color-scheme: dark) { .logo-light { display: none; } .logo-dark { display: block; } }
-.logo-svg { height: 56px; width: auto; }
-h1 { font-size: 1.6rem; margin: 28px 0 8px; }
-p { color: var(--muted); margin: 0 0 12px; }
-a { color: var(--accent); }
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 28px 0; }
-.card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-decoration: none; color: inherit; display: block; transition: border-color .15s, transform .15s; }
-.card:hover { border-color: var(--accent); transform: translateY(-2px); }
-.card h2 { margin: 0 0 6px; font-size: 1.15rem; }
-.verdict { color: var(--careful); font-weight: 600; }
-.card ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: .95rem; }
-.open { margin-top: 14px; font-weight: 600; color: var(--accent); }
-.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
-.panel ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
-footer { margin-top: 40px; font-size: .9rem; color: var(--muted); }
+header nav { display: flex; gap: 20px; font-size: .95rem; }
+header nav a { color: var(--text-2); }
+h1 { font-size: clamp(2rem, 4.4vw, 2.8rem); letter-spacing: -.03em; line-height: 1.1; margin: 40px 0 10px; }
+.lede { color: var(--text-2); font-size: 1.1rem; margin: 0 0 28px; max-width: 60ch; }
+.reports { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 720px) { .reports { grid-template-columns: 1fr; } }
+.report { display: flex; flex-direction: column; gap: 10px; padding: 24px; border-radius: 18px; background: var(--panel); border: 1px solid var(--border-strong); box-shadow: var(--shadow); color: inherit; transition: transform .15s, border-color .15s; }
+.report:hover { text-decoration: none; transform: translateY(-2px); border-color: var(--indigo); }
+.report .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.report h2 { margin: 0; font-size: 1.25rem; letter-spacing: -.01em; }
+.score { font-weight: 700; color: var(--red); white-space: nowrap; }
+.report ul { margin: 0; padding-left: 18px; color: var(--text-2); font-size: .97rem; }
+.open { margin-top: auto; display: inline-flex; align-self: flex-start; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px; background: var(--indigo); color: #fff; font-weight: 600; }
+@media (prefers-color-scheme: dark) { .open { color: #0b1020; } }
+h3 { margin: 48px 0 10px; font-size: 1.1rem; }
+.try { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 24px; padding: 0; margin: 0; list-style: none; }
+@media (max-width: 720px) { .try { grid-template-columns: 1fr; } }
+.try li { padding-left: 26px; position: relative; color: var(--text-2); }
+.try li::before { content: "→"; position: absolute; left: 0; color: var(--indigo); font-weight: 700; }
+.about { margin-top: 48px; padding: 20px 22px; border-radius: 14px; border: 1px solid var(--border); background: var(--panel); color: var(--text-2); font-size: .97rem; }
+.about p { margin: 0 0 8px; }
+.about p:last-child { margin: 0; }
+footer { margin: 56px 0 40px; color: var(--muted); font-size: .9rem; }
 </style>
 </head>
 <body>
-<main>
-  <a href="https://github.com/winnin/farol" aria-label="farol on GitHub">
-    <span class="logo logo-light"><svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="100%" height="100%">
-  <defs>
-    <linearGradient id="mainBeamTight" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#22D3EE" />
-      <stop offset="100%" stop-color="#10B981" />
-    </linearGradient>
-
-    <linearGradient id="ambientTight" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#4F46E5" stop-opacity="0.10" />
-      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0.02" />
-    </linearGradient>
-
-    <linearGradient id="monolithGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#4F46E5" />
-      <stop offset="100%" stop-color="#3730A3" />
-    </linearGradient>
-  </defs>
-
-  <rect width="520" height="160" fill="#FFFFFF"/>
-
-  <g id="mark">
-    <polygon points="50,75 148,34 148,116" fill="url(#ambientTight)" />
-
-    <polygon points="50,73 50,77 146,84 146,66" fill="url(#mainBeamTight)" />
-
-    <rect x="88" y="47" width="28" height="2" rx="1" fill="#94A3B8" opacity="0.45" />
-    <rect x="88" y="55" width="44" height="2" rx="1" fill="#94A3B8" opacity="0.45" />
-    <rect x="88" y="63" width="24" height="2" rx="1" fill="#94A3B8" opacity="0.45" />
-
-    <rect x="88" y="72.5" width="54" height="5" rx="2.5" fill="#FFFFFF" />
-
-    <rect x="88" y="87" width="38" height="2" rx="1" fill="#94A3B8" opacity="0.45" />
-    <rect x="88" y="95" width="46" height="2" rx="1" fill="#94A3B8" opacity="0.45" />
-    <rect x="88" y="103" width="26" height="2" rx="1" fill="#94A3B8" opacity="0.45" />
-
-    <path d="M 26 116 L 26 34 C 26 28, 31 24, 37 25 L 46 27 C 49 28, 50 30, 50 33 L 50 69 L 44 69 C 41.8 69, 40 70.8, 40 73 L 40 77 C 40 79.2, 41.8 81, 44 81 L 50 81 L 50 116 Z" 
-          fill="url(#monolithGrad)" />
-    
-    <rect x="43" y="73" width="7" height="4" rx="1" fill="#22D3EE" />
-
-    <path d="M 26 116 L 34 116 L 34 26.5 L 30 25.5 C 27.5 27, 26 29.5, 26 34 Z" fill="#312E81" opacity="0.4" />
-  </g>
-
-  <text 
-    x="185" 
-    y="93" 
-    font-family="system-ui, -apple-system, 'Inter', 'Satoshi', sans-serif" 
-    font-size="56" 
-    font-weight="600" 
-    letter-spacing="-0.04em" 
-    fill="#0F172A">farol</text>
-</svg></span>
-    <span class="logo logo-dark"><svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="100%" height="100%">
-  <defs>
-    <linearGradient id="mainBeamDark" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#22D3EE" />
-      <stop offset="100%" stop-color="#10B981" />
-    </linearGradient>
-
-    <linearGradient id="ambientDark" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.25" />
-      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0.02" />
-    </linearGradient>
-
-    <linearGradient id="monolithDark" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#818CF8" />
-      <stop offset="100%" stop-color="#4F46E5" />
-    </linearGradient>
-  </defs>
-
-  <rect width="520" height="160" fill="#0F172A"/>
-
-  <g id="mark">
-    <polygon points="50,75 148,34 148,116" fill="url(#ambientDark)" />
-
-    <polygon points="50,73 50,77 146,84 146,66" fill="url(#mainBeamDark)" />
-
-    <rect x="88" y="47" width="28" height="2" rx="1" fill="#334155" />
-    <rect x="88" y="55" width="44" height="2" rx="1" fill="#334155" />
-    <rect x="88" y="63" width="24" height="2" rx="1" fill="#334155" />
-
-    <rect x="88" y="72.5" width="54" height="5" rx="2.5" fill="#FFFFFF" />
-
-    <rect x="88" y="87" width="38" height="2" rx="1" fill="#334155" />
-    <rect x="88" y="95" width="46" height="2" rx="1" fill="#334155" />
-    <rect x="88" y="103" width="26" height="2" rx="1" fill="#334155" />
-
-    <path d="M 26 116 L 26 34 C 26 28, 31 24, 37 25 L 46 27 C 49 28, 50 30, 50 33 L 50 69 L 44 69 C 41.8 69, 40 70.8, 40 73 L 40 77 C 40 79.2, 41.8 81, 44 81 L 50 81 L 50 116 Z" 
-          fill="url(#monolithDark)" />
-    
-    <rect x="43" y="73" width="7" height="4" rx="1" fill="#22D3EE" />
-
-    <path d="M 26 116 L 34 116 L 34 26.5 L 30 25.5 C 27.5 27, 26 29.5, 26 34 Z" fill="#3730A3" opacity="0.6" />
-  </g>
-
-  <text 
-    x="185" 
-    y="93" 
-    font-family="system-ui, -apple-system, 'Inter', 'Satoshi', sans-serif" 
-    font-size="56" 
-    font-weight="600" 
-    letter-spacing="-0.04em" 
-    fill="#F1F5F9">farol</text>
-</svg></span>
-  </a>
-  <h1>Live demo</h1>
-  <p>These are the reports farol produced in CI for a real pull request on the
-  <a href="https://github.com/fastapi/full-stack-fastapi-template">FastAPI full-stack template</a> (a FastAPI backend and a
-  React frontend with TanStack Router). The pull request,
-  <a href="https://github.com/erich-oliveira-winnin/full-stack-fastapi-template/pull/1">“Items: status, filter by status and an Insights page”</a>,
-  was written for this demo: a realistic feature with the problems a reviewer should catch.</p>
-  <p>Everything is interactive: mark files as reviewed, mark pages as behind a feature flag, open the inline diffs and copy the
-  review record from the Result tab. Your marks stay in your browser.</p>
-
-  <div class="cards">
-    <a class="card" href="backend.html">
-      <h2>Backend · FastAPI</h2>
-      <div class="verdict">⚠ Careful review · 72/100</div>
-      <ul>
-        <li>Breaking contract: <code>GET /items/</code> no longer returns <code>count</code></li>
-        <li>SQL built with an f-string in the new <code>/items/stats</code> (high-severity finding)</li>
-        <li>A model change reaching 23 endpoints; 38% diff coverage</li>
-      </ul>
-      <div class="open">Open the backend report →</div>
+<div class="wrap">
+  <header>
+    <a class="brand" href="../" aria-label="farol home">
+      <span class="logo-light"><svg role="img" aria-label="farol" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="18 20 320 104"><defs><linearGradient id="mainBeamTight" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#22D3EE" /><stop offset="100%" stop-color="#10B981" /></linearGradient><linearGradient id="ambientTight" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4F46E5" stop-opacity="0.10" /><stop offset="100%" stop-color="#22D3EE" stop-opacity="0.02" /></linearGradient><linearGradient id="monolithGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4F46E5" /><stop offset="100%" stop-color="#3730A3" /></linearGradient></defs><g id="mark"><polygon points="50,75 148,34 148,116" fill="url(#ambientTight)" /><polygon points="50,73 50,77 146,84 146,66" fill="url(#mainBeamTight)" /><rect x="88" y="47" width="28" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="55" width="44" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="63" width="24" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="72.5" width="54" height="5" rx="2.5" fill="#FFFFFF" /><rect x="88" y="87" width="38" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="95" width="46" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="103" width="26" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><path d="M 26 116 L 26 34 C 26 28, 31 24, 37 25 L 46 27 C 49 28, 50 30, 50 33 L 50 69 L 44 69 C 41.8 69, 40 70.8, 40 73 L 40 77 C 40 79.2, 41.8 81, 44 81 L 50 81 L 50 116 Z" fill="url(#monolithGrad)" /><rect x="43" y="73" width="7" height="4" rx="1" fill="#22D3EE" /><path d="M 26 116 L 34 116 L 34 26.5 L 30 25.5 C 27.5 27, 26 29.5, 26 34 Z" fill="#312E81" opacity="0.4" /></g><text x="185" y="93" font-family="system-ui, -apple-system, 'Inter', 'Satoshi', sans-serif" font-size="56" font-weight="600" letter-spacing="-0.04em" fill="#0F172A">farol</text></svg></span>
+      <span class="logo-dark"><svg role="img" aria-label="farol" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="18 20 320 104"><defs><linearGradient id="mainBeamDark" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#22D3EE" /><stop offset="100%" stop-color="#10B981" /></linearGradient><linearGradient id="ambientDark" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#6366F1" stop-opacity="0.25" /><stop offset="100%" stop-color="#22D3EE" stop-opacity="0.02" /></linearGradient><linearGradient id="monolithDark" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#818CF8" /><stop offset="100%" stop-color="#4F46E5" /></linearGradient></defs><g id="mark"><polygon points="50,75 148,34 148,116" fill="url(#ambientDark)" /><polygon points="50,73 50,77 146,84 146,66" fill="url(#mainBeamDark)" /><rect x="88" y="47" width="28" height="2" rx="1" fill="#334155" /><rect x="88" y="55" width="44" height="2" rx="1" fill="#334155" /><rect x="88" y="63" width="24" height="2" rx="1" fill="#334155" /><rect x="88" y="72.5" width="54" height="5" rx="2.5" fill="#FFFFFF" /><rect x="88" y="87" width="38" height="2" rx="1" fill="#334155" /><rect x="88" y="95" width="46" height="2" rx="1" fill="#334155" /><rect x="88" y="103" width="26" height="2" rx="1" fill="#334155" /><path d="M 26 116 L 26 34 C 26 28, 31 24, 37 25 L 46 27 C 49 28, 50 30, 50 33 L 50 69 L 44 69 C 41.8 69, 40 70.8, 40 73 L 40 77 C 40 79.2, 41.8 81, 44 81 L 50 81 L 50 116 Z" fill="url(#monolithDark)" /><rect x="43" y="73" width="7" height="4" rx="1" fill="#22D3EE" /><path d="M 26 116 L 34 116 L 34 26.5 L 30 25.5 C 27.5 27, 26 29.5, 26 34 Z" fill="#3730A3" opacity="0.6" /></g><text x="185" y="93" font-family="system-ui, -apple-system, 'Inter', 'Satoshi', sans-serif" font-size="56" font-weight="600" letter-spacing="-0.04em" fill="#F1F5F9">farol</text></svg></span>
     </a>
-    <a class="card" href="frontend.html">
-      <h2>Frontend · React + TanStack Router</h2>
-      <div class="verdict">⚠ Careful review · 77/100</div>
+    <nav><a href="../">Home</a><a href="https://github.com/winnin/farol">GitHub</a></nav>
+  </header>
+
+  <h1>Live demo</h1>
+  <p class="lede">Two reports farol wrote in CI for one pull request: pick a side and open it. Everything works in the page; nothing to install.</p>
+
+  <div class="reports">
+    <a class="report" href="backend.html">
+      <div class="row"><h2>Backend · FastAPI</h2><span class="score">⚠ 72/100</span></div>
       <ul>
-        <li>A new page, <code>/insights</code>, and 4 existing pages reached through the sidebar and the shared table</li>
-        <li>A central component with no test; 12% diff coverage</li>
-        <li>New dev dependencies (Vitest) in <code>package.json</code></li>
+        <li>A breaking change: <code>GET /items/</code> no longer returns <code>count</code></li>
+        <li>SQL built with an f-string, flagged as high severity</li>
+        <li>A model change that reaches 23 endpoints; 38% diff coverage</li>
       </ul>
-      <div class="open">Open the frontend report →</div>
+      <span class="open">Open the backend report <span aria-hidden="true">→</span></span>
+    </a>
+    <a class="report" href="frontend.html">
+      <div class="row"><h2>Frontend · React + TanStack Router</h2><span class="score">⚠ 77/100</span></div>
+      <ul>
+        <li>A new page, <code>/insights</code>, and four existing pages reached through the sidebar and a shared table</li>
+        <li>A central component with no test; 12% diff coverage</li>
+        <li>New dev dependencies in <code>package.json</code></li>
+      </ul>
+      <span class="open">Open the frontend report <span aria-hidden="true">→</span></span>
     </a>
   </div>
 
-  <div class="panel">
-    <strong>How these were made</strong>
-    <ul>
-      <li>The pull request's workflow ran the project's tests with coverage, ruff and pip-audit, then farol on each side: no code of the pull request is run by farol itself.</li>
-      <li>The same reports are linked from the pull request comments, one per side, on every push.</li>
-      <li>Workflow and setup: <a href="https://github.com/winnin/farol/blob/main/examples/README.md">examples/README.md</a>.</li>
-    </ul>
+  <h3>Things to try in a report</h3>
+  <ul class="try">
+    <li>Start at <b>Start here</b>: open the inline diff of the riskiest file</li>
+    <li>Tick <b>Mark as reviewed</b> and watch the score and the test plan follow</li>
+    <li>Mark a page as <b>behind a feature flag</b> in the pages list</li>
+    <li>Open <b>Contracts</b> (backend) to see the breaking change field by field</li>
+    <li>Open an entry in <b>Routes</b> (frontend) or <b>Operations</b> (backend) to see how the change reaches it</li>
+    <li>Copy the review record from the <b>Result</b> tab</li>
+  </ul>
+
+  <div class="about">
+    <p><b>About the pull request.</b> It was written for this demo on a fork of the
+    <a href="https://github.com/fastapi/full-stack-fastapi-template">FastAPI full-stack template</a>: items get a status, the list endpoint filters by it, and an Insights page shows the totals, with the kind of problems a reviewer should catch.</p>
+    <p>The pull request's workflow ran the project's tests with coverage, ruff and pip-audit, then farol on each side. <a href="https://github.com/erich-oliveira-winnin/full-stack-fastapi-template/pull/1">See the pull request</a> and farol's comments on it.</p>
   </div>
 
   <footer>farol · <a href="https://github.com/winnin/farol">github.com/winnin/farol</a> · <code>npx @winninjs/farol</code></footer>
-</main>
+</div>
 </body>
 </html>

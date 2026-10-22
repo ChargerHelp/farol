@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>farol · know what a pull request reaches before you review it</title>
+<meta name="description" content="farol is an open-source CLI and GitHub Action that tells code reviewers how much attention a pull request needs and where to look first: what the change reaches, a merge risk score and a review plan. TypeScript/React, Go and Python.">
+<meta property="og:title" content="farol · know what a pull request reaches before you review it">
+<meta property="og:description" content="Static analysis that points reviewers at the code that matters. Open source, runs in your CI, never blocks a merge.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://winnin.github.io/farol/">
+<meta property="og:image" content="https://winnin.github.io/farol/images/report-overview-dark.png">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Imljb25CZWFtTGlnaHQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMDZCNkQ0IiAvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzEwQjk4MSIgLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iaWNvbk1vbm9saXRoTGlnaHQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM0RjQ2RTUiIC8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMzczMEEzIiAvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTE4IiBmaWxsPSIjRkZGRkZGIiAvPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTE4IiBmaWxsPSJub25lIiBzdHJva2U9IiNFMkU4RjAiIHN0cm9rZS13aWR0aD0iNCIgLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMzIsIDExNikgc2NhbGUoMS44NSkiPjxwb2x5Z29uIHBvaW50cz0iNTAsNzMgNTAsNzcgMTQ2LDg0IDE0Niw2NiIgZmlsbD0idXJsKCNpY29uQmVhbUxpZ2h0KSIgLz48cmVjdCB4PSI4OCIgeT0iNDciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyIiByeD0iMSIgZmlsbD0iIzk0QTNCOCIgb3BhY2l0eT0iMC41NSIgLz48cmVjdCB4PSI4OCIgeT0iNTUiIHdpZHRoPSI0NCIgaGVpZ2h0PSIyIiByeD0iMSIgZmlsbD0iIzk0QTNCOCIgb3BhY2l0eT0iMC41NSIgLz48cmVjdCB4PSI4OCIgeT0iNjMiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyIiByeD0iMSIgZmlsbD0iIzk0QTNCOCIgb3BhY2l0eT0iMC41NSIgLz48cmVjdCB4PSI4OCIgeT0iNzIuNSIgd2lkdGg9IjU0IiBoZWlnaHQ9IjUiIHJ4PSIyLjUiIGZpbGw9IiNGRkZGRkYiIC8+PHJlY3QgeD0iODgiIHk9Ijg3IiB3aWR0aD0iMzgiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiM5NEEzQjgiIG9wYWNpdHk9IjAuNTUiIC8+PHJlY3QgeD0iODgiIHk9Ijk1IiB3aWR0aD0iNDYiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiM5NEEzQjgiIG9wYWNpdHk9IjAuNTUiIC8+PHJlY3QgeD0iODgiIHk9IjEwMyIgd2lkdGg9IjI2IiBoZWlnaHQ9IjIiIHJ4PSIxIiBmaWxsPSIjOTRBM0I4IiBvcGFjaXR5PSIwLjU1IiAvPjxwYXRoIGQ9Ik0gMjYgMTE2IEwgMjYgMzQgQyAyNiAyOCwgMzEgMjQsIDM3IDI1IEwgNDYgMjcgQyA0OSAyOCwgNTAgMzAsIDUwIDMzIEwgNTAgNjkgTCA0NCA2OSBDIDQxLjggNjksIDQwIDcwLjgsIDQwIDczIEwgNDAgNzcgQyA0MCA3OS4yLCA0MS44IDgxLCA0NCA4MSBMIDUwIDgxIEwgNTAgMTE2IFoiIGZpbGw9InVybCgjaWNvbk1vbm9saXRoTGlnaHQpIiAvPjxyZWN0IHg9IjQzIiB5PSI3MyIgd2lkdGg9IjciIGhlaWdodD0iNCIgcng9IjEiIGZpbGw9IiMyMkQzRUUiIC8+PHBhdGggZD0iTSAyNiAxMTYgTCAzNCAxMTYgTCAzNCAyNiBMIDMwIDI1IEMgMjcuNSAyNywgMjYgMjkuNSwgMjYgMzQgWiIgZmlsbD0iIzMxMkU4MSIgb3BhY2l0eT0iMC40IiAvPjwvZz48L3N2Zz4=" media="(prefers-color-scheme: light)">
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Imljb25CZWFtVGlnaHQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMjJEM0VFIiAvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzEwQjk4MSIgLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExOCIgZmlsbD0iIzBGMTcyQSIgLz48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMUUyOTNCIiBzdHJva2Utd2lkdGg9IjIiIC8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTMyLCAxMTYpIHNjYWxlKDEuODUpIj48cG9seWdvbiBwb2ludHM9IjUwLDczIDUwLDc3IDE0Niw4NCAxNDYsNjYiIGZpbGw9InVybCgjaWNvbkJlYW1UaWdodCkiIC8+PHJlY3QgeD0iODgiIHk9IjQ3IiB3aWR0aD0iMjgiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiMzMzQxNTUiIC8+PHJlY3QgeD0iODgiIHk9IjU1IiB3aWR0aD0iNDQiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiMzMzQxNTUiIC8+PHJlY3QgeD0iODgiIHk9IjYzIiB3aWR0aD0iMjQiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiMzMzQxNTUiIC8+PHJlY3QgeD0iODgiIHk9IjcyLjUiIHdpZHRoPSI1NCIgaGVpZ2h0PSI1IiByeD0iMi41IiBmaWxsPSIjRkZGRkZGIiAvPjxyZWN0IHg9Ijg4IiB5PSI4NyIgd2lkdGg9IjM4IiBoZWlnaHQ9IjIiIHJ4PSIxIiBmaWxsPSIjMzM0MTU1IiAvPjxyZWN0IHg9Ijg4IiB5PSI5NSIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjIiIHJ4PSIxIiBmaWxsPSIjMzM0MTU1IiAvPjxyZWN0IHg9Ijg4IiB5PSIxMDMiIHdpZHRoPSIyNiIgaGVpZ2h0PSIyIiByeD0iMSIgZmlsbD0iIzMzNDE1NSIgLz48cGF0aCBkPSJNIDI2IDExNiBMIDI2IDM0IEMgMjYgMjgsIDMxIDI0LCAzNyAyNSBMIDQ2IDI3IEMgNDkgMjgsIDUwIDMwLCA1MCAzMyBMIDUwIDY5IEwgNDQgNjkgQyA0MS44IDY5LCA0MCA3MC44LCA0MCA3MyBMIDQwIDc3IEMgNDAgNzkuMiwgNDEuOCA4MSwgNDQgODEgTCA1MCA4MSBMIDUwIDExNiBaIiBmaWxsPSIjNjM2NkYxIiAvPjxyZWN0IHg9IjQzIiB5PSI3MyIgd2lkdGg9IjciIGhlaWdodD0iNCIgcng9IjEiIGZpbGw9IiMyMkQzRUUiIC8+PHBhdGggZD0iTSAyNiAxMTYgTCAzNCAxMTYgTCAzNCAyNiBMIDMwIDI1IEMgMjcuNSAyNywgMjYgMjkuNSwgMjYgMzQgWiIgZmlsbD0iIzQzMzhDQSIgLz48L2c+PC9zdmc+" media="(prefers-color-scheme: dark)">
+<style>
+:root {
+  --bg: #f7f8fc; --bg-soft: #eef0f8; --panel: #ffffff; --panel-2: #f9fafe;
+  --text: #0f172a; --text-2: #334155; --muted: #64748b; --border: #e2e6f0; --border-strong: #cfd5e4;
+  --indigo: #4f46e5; --indigo-soft: #eef0ff; --cyan: #0891b2; --emerald: #059669; --amber: #b45309; --red: #c2410c;
+  --code-bg: #0f172a; --code-text: #e2e8f0; --code-muted: #94a3b8;
+  --shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 12px 32px -12px rgba(15, 23, 42, .14);
+  --beam: linear-gradient(90deg, #22d3ee, #10b981);
+  --radius: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1020; --bg-soft: #0f1629; --panel: #121a2e; --panel-2: #0f1628;
+    --text: #e8ecf5; --text-2: #c3cad8; --muted: #8b95a9; --border: #1f2a42; --border-strong: #2b3754;
+    --indigo: #8b85ff; --indigo-soft: #1b2040; --cyan: #22d3ee; --emerald: #34d399; --amber: #fbbf24; --red: #fb923c;
+    --code-bg: #0a0f1d; --code-text: #e2e8f0; --code-muted: #7c879c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 16px 40px -16px rgba(0, 0, 0, .6);
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--indigo); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, kbd { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+@media (max-width: 640px) { .wrap { padding: 0 16px; } }
+
+/* header */
+header.top { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(160%) blur(12px); background: color-mix(in srgb, var(--bg) 82%, transparent); border-bottom: 1px solid var(--border); }
+header.top .wrap { display: flex; align-items: center; gap: 24px; height: 64px; }
+.brand { display: flex; align-items: center; }
+.brand svg { height: 34px; width: auto; display: block; }
+.logo-dark { display: none; }
+@media (prefers-color-scheme: dark) { .logo-light { display: none; } .logo-dark { display: block; } }
+nav.links { display: flex; gap: 22px; margin-left: auto; align-items: center; font-size: .95rem; white-space: nowrap; }
+nav.links a { color: var(--text-2); }
+nav.links a:hover { color: var(--text); text-decoration: none; }
+.gh { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border: 1px solid var(--border-strong); border-radius: 999px; color: var(--text) !important; }
+.gh svg { width: 16px; height: 16px; fill: currentColor; }
+@media (max-width: 760px) { nav.links a.hide-sm { display: none; } }
+@media (max-width: 480px) { nav.links { gap: 14px; } nav.links a.hide-xs { display: none; } }
+
+/* hero */
+.hero { position: relative; padding: 88px 0 40px; overflow: hidden; }
+.hero::before {
+  content: ""; position: absolute; inset: -40% -10% auto auto; width: 900px; height: 900px; pointer-events: none;
+  background: radial-gradient(closest-side, color-mix(in srgb, #22d3ee 18%, transparent), transparent 70%),
+              radial-gradient(closest-side, color-mix(in srgb, #6366f1 16%, transparent), transparent 70%) 220px 260px / 700px 700px no-repeat;
+  opacity: .9;
+}
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--text-2); padding: 5px 12px 5px 8px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel); }
+.eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--beam); }
+h1 { font-size: clamp(2.3rem, 5.2vw, 3.9rem); line-height: 1.06; letter-spacing: -.035em; margin: 22px 0 18px; max-width: 15ch; }
+h1 .beam { background: var(--beam); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede { font-size: clamp(1.05rem, 1.6vw, 1.22rem); color: var(--text-2); max-width: 60ch; margin: 0 0 30px; }
+.ctas { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 12px; font-weight: 600; border: 1px solid transparent; transition: transform .12s ease, box-shadow .12s ease, background .12s ease; }
+.btn:hover { text-decoration: none; transform: translateY(-1px); }
+.btn.primary { background: var(--indigo); color: #fff; box-shadow: 0 8px 24px -10px var(--indigo); }
+@media (prefers-color-scheme: dark) { .btn.primary { color: #0b1020; } }
+.btn.ghost { border-color: var(--border-strong); color: var(--text); background: var(--panel); }
+.cmd { display: inline-flex; align-items: center; gap: 12px; margin-top: 22px; padding: 10px 10px 10px 16px; border-radius: 12px; background: var(--code-bg); color: var(--code-text); font-size: .95rem; border: 1px solid #1e293b; }
+.cmd .prompt { color: #22d3ee; user-select: none; }
+.copy { cursor: pointer; border: 1px solid #334155; background: transparent; color: var(--code-muted); border-radius: 8px; padding: 4px 10px; font: inherit; font-size: .8rem; }
+.copy:hover { color: var(--code-text); border-color: #475569; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 26px; color: var(--muted); font-size: .92rem; }
+.facts span::before { content: "✓"; color: var(--emerald); margin-right: 7px; font-weight: 700; }
+
+
+/* hero layout and the PR comment preview */
+.hero-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 48px; align-items: center; position: relative; }
+@media (max-width: 960px) { .hero-grid { grid-template-columns: 1fr; } }
+.pr-comment { border: 1px solid var(--border-strong); border-radius: 16px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; font-size: .93rem; }
+.pc-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--panel-2); }
+.pc-avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--beam); }
+.pc-muted { color: var(--muted); font-weight: 400; }
+.pc-body { padding: 16px 18px 18px; }
+.pc-title { font-weight: 700; margin-bottom: 10px; }
+.pc-verdict { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-weight: 700; color: var(--red); background: color-mix(in srgb, var(--red) 10%, transparent); border: 1px solid color-mix(in srgb, var(--red) 30%, transparent); }
+.pc-score { font-variant-numeric: tabular-nums; }
+.pr-comment ul { margin: 12px 0 14px; padding-left: 18px; color: var(--text-2); display: grid; gap: 4px; }
+.pr-comment code { font-size: .86em; background: var(--bg-soft); padding: 1px 5px; border-radius: 5px; }
+.pc-label { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 6px; }
+.pc-file { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
+.pc-pts { font-weight: 700; color: var(--red); font-variant-numeric: tabular-nums; }
+.pc-link { display: inline-block; margin-top: 8px; font-weight: 600; }
+
+/* screenshot */
+.shot { margin: 56px auto 0; border-radius: 18px; border: 1px solid var(--border-strong); background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.shot .bar { display: flex; align-items: center; gap: 7px; padding: 11px 14px; border-bottom: 1px solid var(--border); background: var(--panel-2); }
+.shot .bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--border-strong); display: block; }
+.shot .bar span { margin-left: 10px; font-size: .8rem; color: var(--muted); font-family: ui-monospace, monospace; }
+.shot img { display: block; width: 100%; height: auto; }
+.shot a { display: block; position: relative; max-height: 560px; overflow: hidden; }
+.shot a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 140px; background: linear-gradient(transparent, var(--panel)); }
+.shot-caption { text-align: center; color: var(--muted); font-size: .9rem; margin-top: 12px; }
+
+/* sections */
+section { padding: 96px 0 0; }
+.kicker { color: var(--indigo); font-weight: 600; font-size: .9rem; letter-spacing: .02em; }
+h2 { font-size: clamp(1.7rem, 3.2vw, 2.4rem); letter-spacing: -.025em; line-height: 1.15; margin: 8px 0 14px; max-width: 24ch; }
+.sub { color: var(--text-2); max-width: 64ch; margin: 0 0 36px; font-size: 1.05rem; }
+.grid { display: grid; gap: 16px; }
+.g2 { grid-template-columns: repeat(2, 1fr); }
+.g3 { grid-template-columns: repeat(3, 1fr); }
+.g4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 960px) { .g3, .g4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .g2, .g3, .g4 { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
+.card h3 { margin: 0 0 8px; font-size: 1.05rem; letter-spacing: -.01em; }
+.card p { margin: 0; color: var(--text-2); font-size: .97rem; }
+.icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: var(--indigo-soft); color: var(--indigo); margin-bottom: 14px; }
+.icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* problem band */
+.quote { font-size: clamp(1.15rem, 2vw, 1.4rem); line-height: 1.5; color: var(--text); max-width: 46ch; letter-spacing: -.01em; }
+.quote em { font-style: normal; background: linear-gradient(transparent 62%, color-mix(in srgb, #22d3ee 28%, transparent) 62%); }
+
+/* comparison */
+.compare { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--panel); }
+.compare > div { padding: 24px; }
+.compare > div + div { border-left: 1px solid var(--border); background: linear-gradient(180deg, color-mix(in srgb, var(--indigo) 6%, transparent), transparent 60%); }
+.compare h3 { margin: 0 0 14px; font-size: 1rem; }
+.compare ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+.compare li { color: var(--text-2); font-size: .97rem; padding-left: 26px; position: relative; }
+.compare li::before { position: absolute; left: 0; top: 0; font-weight: 700; }
+.compare .ai li::before { content: "·"; color: var(--muted); font-size: 1.4rem; line-height: 1; top: -2px; }
+.compare .farol li::before { content: "→"; color: var(--indigo); }
+@media (max-width: 720px) { .compare { grid-template-columns: 1fr; } .compare > div + div { border-left: 0; border-top: 1px solid var(--border); } }
+
+/* report features */
+.feat { display: grid; grid-template-columns: .95fr 1.05fr; gap: 40px; align-items: start; }
+.feat-media { position: sticky; top: 96px; }
+@media (max-width: 900px) { .feat { grid-template-columns: 1fr; } .feat-media { position: static; } }
+.list { display: grid; gap: 10px; }
+.item { display: grid; grid-template-columns: 36px 1fr; gap: 14px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--panel); }
+.item b { display: block; font-size: .98rem; }
+.item span { color: var(--text-2); font-size: .93rem; }
+.badge { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-weight: 700; font-size: .95rem; }
+.b-red { background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--red); }
+.b-amber { background: color-mix(in srgb, var(--amber) 16%, transparent); color: var(--amber); }
+.b-indigo { background: var(--indigo-soft); color: var(--indigo); }
+.b-cyan { background: color-mix(in srgb, var(--cyan) 14%, transparent); color: var(--cyan); }
+.b-emerald { background: color-mix(in srgb, var(--emerald) 14%, transparent); color: var(--emerald); }
+.contracts-img { border-radius: 14px; border: 1px solid var(--border-strong); box-shadow: var(--shadow); width: 100%; height: auto; display: block; }
+
+/* demo band */
+.demo { margin-top: 96px; border-radius: 24px; padding: 48px; color: #e8ecf5; background: radial-gradient(1200px 400px at 90% -10%, rgba(34, 211, 238, .22), transparent 60%), radial-gradient(900px 400px at 0% 120%, rgba(99, 102, 241, .35), transparent 60%), #0f172a; border: 1px solid #1e293b; }
+.demo h2 { color: #fff; }
+.demo .sub { color: #c3cad8; }
+.demo-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .demo { padding: 28px 20px; } .demo-cards { grid-template-columns: 1fr; } }
+.demo-card { display: block; padding: 22px; border-radius: 16px; background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1); color: #e8ecf5; transition: border-color .15s, transform .15s, background .15s; }
+.demo-card:hover { text-decoration: none; border-color: #22d3ee; background: rgba(255, 255, 255, .07); transform: translateY(-2px); }
+.demo-card .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.demo-card h3 { margin: 0; font-size: 1.12rem; color: #fff; }
+.score { font-weight: 700; color: #fb923c; white-space: nowrap; }
+.demo-card ul { margin: 12px 0 16px; padding-left: 18px; color: #c3cad8; font-size: .95rem; }
+.demo-card .go { font-weight: 600; color: #22d3ee; }
+.demo .note { margin-top: 18px; font-size: .9rem; color: #94a3b8; }
+.demo .note a { color: #a5b4fc; }
+
+/* stacks */
+.stack h3 { display: flex; align-items: center; gap: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.chip { font-size: .82rem; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-2); background: var(--panel-2); }
+.stack .tools { margin-top: 14px; color: var(--muted); font-size: .86rem; }
+
+/* how it works */
+.steps { counter-reset: s; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 960px) { .steps { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .steps { grid-template-columns: 1fr; } }
+.step { position: relative; padding: 22px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--border); }
+.step::before { counter-increment: s; content: counter(s); display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--beam); color: #04232b; font-weight: 700; font-size: .9rem; margin-bottom: 12px; }
+.step h3 { margin: 0 0 6px; font-size: 1rem; }
+.step p { margin: 0; color: var(--text-2); font-size: .94rem; }
+
+/* get started */
+.start { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 32px; align-items: start; }
+.start > *, .feat > *, .hero-grid > *, .grid > * { min-width: 0; }
+@media (max-width: 900px) { .start { grid-template-columns: minmax(0, 1fr); } }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.tab { cursor: pointer; font: inherit; font-size: .88rem; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); color: var(--text-2); }
+.tab[aria-selected="true"] { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+@media (prefers-color-scheme: dark) { .tab[aria-selected="true"] { color: #0b1020; } }
+pre.code { margin: 0; padding: 20px; border-radius: 14px; background: var(--code-bg); color: var(--code-text); overflow-x: auto; font-size: .9rem; line-height: 1.7; border: 1px solid #1e293b; }
+pre.code .c { color: var(--code-muted); }
+pre.code .k { color: #22d3ee; }
+pre.code .s { color: #a5f3c4; }
+.codebox { position: relative; }
+.codebox .copy { position: absolute; top: 12px; right: 12px; }
+.checks { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; }
+.checks li { padding-left: 28px; position: relative; color: var(--text-2); }
+.checks li::before { content: "✓"; position: absolute; left: 0; color: var(--emerald); font-weight: 700; }
+
+/* trust */
+.trust .card h3 { display: flex; gap: 10px; align-items: center; }
+
+/* footer */
+footer { margin-top: 112px; border-top: 1px solid var(--border); padding: 36px 0 48px; color: var(--muted); font-size: .92rem; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: center; justify-content: space-between; }
+footer nav { display: flex; flex-wrap: wrap; gap: 20px; }
+footer a { color: var(--text-2); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="farol home">
+      <span class="logo-light"><svg role="img" aria-label="farol" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="18 20 320 104"><defs><linearGradient id="mainBeamTight" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#22D3EE" /><stop offset="100%" stop-color="#10B981" /></linearGradient><linearGradient id="ambientTight" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4F46E5" stop-opacity="0.10" /><stop offset="100%" stop-color="#22D3EE" stop-opacity="0.02" /></linearGradient><linearGradient id="monolithGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4F46E5" /><stop offset="100%" stop-color="#3730A3" /></linearGradient></defs><g id="mark"><polygon points="50,75 148,34 148,116" fill="url(#ambientTight)" /><polygon points="50,73 50,77 146,84 146,66" fill="url(#mainBeamTight)" /><rect x="88" y="47" width="28" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="55" width="44" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="63" width="24" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="72.5" width="54" height="5" rx="2.5" fill="#FFFFFF" /><rect x="88" y="87" width="38" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="95" width="46" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="103" width="26" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><path d="M 26 116 L 26 34 C 26 28, 31 24, 37 25 L 46 27 C 49 28, 50 30, 50 33 L 50 69 L 44 69 C 41.8 69, 40 70.8, 40 73 L 40 77 C 40 79.2, 41.8 81, 44 81 L 50 81 L 50 116 Z" fill="url(#monolithGrad)" /><rect x="43" y="73" width="7" height="4" rx="1" fill="#22D3EE" /><path d="M 26 116 L 34 116 L 34 26.5 L 30 25.5 C 27.5 27, 26 29.5, 26 34 Z" fill="#312E81" opacity="0.4" /></g><text x="185" y="93" font-family="system-ui, -apple-system, 'Inter', 'Satoshi', sans-serif" font-size="56" font-weight="600" letter-spacing="-0.04em" fill="#0F172A">farol</text></svg></span>
+      <span class="logo-dark"><svg role="img" aria-label="farol" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="18 20 320 104"><defs><linearGradient id="mainBeamDark" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#22D3EE" /><stop offset="100%" stop-color="#10B981" /></linearGradient><linearGradient id="ambientDark" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#6366F1" stop-opacity="0.25" /><stop offset="100%" stop-color="#22D3EE" stop-opacity="0.02" /></linearGradient><linearGradient id="monolithDark" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#818CF8" /><stop offset="100%" stop-color="#4F46E5" /></linearGradient></defs><g id="mark"><polygon points="50,75 148,34 148,116" fill="url(#ambientDark)" /><polygon points="50,73 50,77 146,84 146,66" fill="url(#mainBeamDark)" /><rect x="88" y="47" width="28" height="2" rx="1" fill="#334155" /><rect x="88" y="55" width="44" height="2" rx="1" fill="#334155" /><rect x="88" y="63" width="24" height="2" rx="1" fill="#334155" /><rect x="88" y="72.5" width="54" height="5" rx="2.5" fill="#FFFFFF" /><rect x="88" y="87" width="38" height="2" rx="1" fill="#334155" /><rect x="88" y="95" width="46" height="2" rx="1" fill="#334155" /><rect x="88" y="103" width="26" height="2" rx="1" fill="#334155" /><path d="M 26 116 L 26 34 C 26 28, 31 24, 37 25 L 46 27 C 49 28, 50 30, 50 33 L 50 69 L 44 69 C 41.8 69, 40 70.8, 40 73 L 40 77 C 40 79.2, 41.8 81, 44 81 L 50 81 L 50 116 Z" fill="url(#monolithDark)" /><rect x="43" y="73" width="7" height="4" rx="1" fill="#22D3EE" /><path d="M 26 116 L 34 116 L 34 26.5 L 30 25.5 C 27.5 27, 26 29.5, 26 34 Z" fill="#3730A3" opacity="0.6" /></g><text x="185" y="93" font-family="system-ui, -apple-system, 'Inter', 'Satoshi', sans-serif" font-size="56" font-weight="600" letter-spacing="-0.04em" fill="#F1F5F9">farol</text></svg></span>
+    </a>
+    <nav class="links" aria-label="Main">
+      <a class="hide-sm" href="#why">Why</a>
+      <a class="hide-sm" href="#report">The report</a>
+      <a class="hide-sm" href="#stacks">Stacks</a>
+      <a href="demo/backend.html">Live demo</a>
+      <a class="hide-xs" href="#start">Get started</a>
+      <a class="gh" href="https://github.com/winnin/farol"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+      <div>
+      <span class="eyebrow"><span class="dot"></span>Open source · MIT · TypeScript, Go and Python</span>
+      <h1>Know what a pull request <span class="beam">reaches</span> before you review it.</h1>
+      <p class="lede">farol reads a change the way your compiler does, follows it to every page, endpoint and job that runs it, and tells the reviewer how much attention the pull request needs and where to start.</p>
+      <div class="ctas">
+        <a class="btn primary" href="demo/backend.html">Open a live report <span aria-hidden="true">→</span></a>
+        <a class="btn ghost" href="#start">Get started</a>
+      </div>
+      <div>
+        <div class="cmd"><span class="prompt">$</span><code id="cmd-hero">npx @winninjs/farol routes</code><button class="copy" data-copy="cmd-hero" type="button">Copy</button></div>
+      </div>
+      <div class="facts">
+        <span>Runs in your CI</span><span>Never executes your code</span><span>Never blocks a merge</span><span>Same input, same report</span>
+      </div>
+      </div>
+      <aside class="pr-comment" aria-label="Example of the comment farol posts on a pull request">
+        <div class="pc-head"><span class="pc-avatar" aria-hidden="true"></span><b>github-actions</b><span class="pc-muted">commented on #1</span></div>
+        <div class="pc-body">
+          <div class="pc-title">farol · PR reading <span class="pc-muted">(shadow mode)</span></div>
+          <div class="pc-verdict">⚠ Careful review <span class="pc-score">72/100</span></div>
+          <ul>
+            <li><b>1 breaking contract change:</b> <code>GET /items/</code> lost <code>count</code></li>
+            <li><b>1 high-severity finding:</b> SQL built with an f-string</li>
+            <li><b>23 endpoints</b> reach the changed model</li>
+            <li><b>38% diff coverage</b> on the changed lines</li>
+          </ul>
+          <div class="pc-label">Start here</div>
+          <div class="pc-file"><code>api/routes/items.py</code><span class="pc-pts">38</span></div>
+          <div class="pc-file"><code>models.py</code><span class="pc-pts">21</span></div>
+          <a class="pc-link" href="demo/backend.html">📄 Full report (HTML) →</a>
+        </div>
+      </aside>
+      </div>
+
+      <figure class="shot" style="margin-left:0;margin-right:0">
+        <div class="bar"><i></i><i></i><i></i><span>farol report · single HTML file, works offline</span></div>
+        <a href="demo/backend.html" aria-label="Open the live report">
+          <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="images/report-overview-dark.png">
+            <img src="images/report-overview-light.png" alt="A farol report of an example pull request: careful review at 74/100, the two files to start with, and three breaking contract changes" width="1280" height="1110" loading="eager">
+          </picture>
+        </a>
+      </figure>
+      <p class="shot-caption">Every claim in the report comes with the chain of calls behind it. <a href="demo/backend.html">Explore a real one →</a></p>
+    </div>
+  </div>
+
+  <section id="why">
+    <div class="wrap">
+      <span class="kicker">Why farol</span>
+      <h2>Code got cheap to write. Reviewing it did not.</h2>
+      <p class="quote">An assistant writes a 1,500-line pull request in minutes; a person still has to approve it. Reading every line with the same care does not scale, and skimming is how <em>a one-line change to a shared hook breaks forty pages</em>.</p>
+      <p class="sub" style="margin-top:22px">farol does the triage before the reviewer opens the diff, so attention goes to the few files that can actually hurt.</p>
+
+      <div class="grid g4">
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg></div>
+          <h3>Effort where the risk is</h3>
+          <p>A forty-file pull request usually has two or three files that matter. farol ranks them, with their reach and diff coverage.</p>
+        </div>
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24"><path d="M5 12h4l3-8 3 16 3-8h1"/></svg></div>
+          <h3>Reach, not file names</h3>
+          <p>A declaration graph built with the real compilers: a change to <code>formatPrice</code> lists the pages that render it.</p>
+        </div>
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/><path d="M17 15l4 4M21 15l-4 4"/></svg></div>
+          <h3>Contracts before clients</h3>
+          <p>Removed response fields, new required parameters and changed types, per endpoint, in GraphQL, FastAPI, Go handlers and gRPC.</p>
+        </div>
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M12 9v4M12 16h.01"/></svg></div>
+          <h3>Fails closed</h3>
+          <p>When part of a change cannot be read, farol says <code>unknown</code> and asks for a careful review. It never calls something safe by default.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ai">
+    <div class="wrap">
+      <span class="kicker">Next to your AI reviewer</span>
+      <h2>Not another AI reviewer. The context it is missing.</h2>
+      <p class="sub">Keep your review agent: it is good at commenting on the lines in the diff. What it cannot tell you reliably is what those lines reach. farol answers that with static analysis, so both the human and the agent spend their attention where it counts.</p>
+      <div class="compare">
+        <div class="ai">
+          <h3>AI review agents</h3>
+          <ul>
+            <li>Read the diff, and whatever context fits in the prompt</li>
+            <li>Tell you what may be wrong in these lines</li>
+            <li>Answer differently on every run</li>
+            <li>May sound confident when unsure</li>
+          </ul>
+        </div>
+        <div class="farol">
+          <h3>farol</h3>
+          <ul>
+            <li>Reads the whole program at the base and the head, with the compilers</li>
+            <li>Tells you what these lines reach and how much review the merge needs</li>
+            <li>Same pull request, same report, with the call chain behind each claim</li>
+            <li>Says <code>unknown</code> and asks for a careful review</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="report">
+    <div class="wrap">
+      <span class="kicker">The report</span>
+      <h2>A review plan, not a wall of warnings.</h2>
+      <p class="sub">One comment on the pull request and a single-file HTML report, built for the person reviewing it.</p>
+      <div class="feat">
+        <div class="list">
+          <div class="item"><div class="badge b-red">⚠</div><div><b>Verdict and merge risk score</b><span>Fast track, quick review or careful review, with the reasons and what adds to the score.</span></div></div>
+          <div class="item"><div class="badge b-indigo">1</div><div><b>Start here</b><span>The riskiest files first, with inline diffs: untested lines marked ○, findings ⚠. Tick them as you go and watch the score drop.</span></div></div>
+          <div class="item"><div class="badge b-cyan">↳</div><div><b>Pages and endpoints reached</b><span>Every entry point the change runs, drawn as the chain of files that reaches it.</span></div></div>
+          <div class="item"><div class="badge b-amber">≠</div><div><b>Contract changes</b><span>Breaking, dangerous and safe changes to what each endpoint receives and returns.</span></div></div>
+          <div class="item"><div class="badge b-emerald">✓</div><div><b>Test plan</b><span>What to try by hand. It follows your review: items whose files you reviewed are marked.</span></div></div>
+          <div class="item"><div class="badge b-indigo">±</div><div><b>Since your last look</b><span>After a push, a second report with only the new commits, so a second round starts where the first ended.</span></div></div>
+        </div>
+        <div class="feat-media">
+          <img class="contracts-img" src="images/report-contracts.png" alt="The contract section of a farol report: GET /brands no longer returns response[].name" loading="lazy" width="1280" height="640">
+          <p class="shot-caption">Also in the report: suggested reviewers from git history, findings from your linters and audits, production traffic and errors from Datadog (optional), pages behind a feature flag, and a copyable record of the review.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="demo" id="demo">
+      <span class="kicker" style="color:#67e8f9">Live demo</span>
+      <h2>Open a real report.</h2>
+      <p class="sub">The reports farol wrote in CI for a pull request on the FastAPI full-stack template. Mark files as reviewed, flag a page, open the diffs. Nothing to install.</p>
+      <div class="demo-cards">
+        <a class="demo-card" href="demo/backend.html">
+          <div class="row"><h3>Backend · FastAPI</h3><span class="score">⚠ 72/100</span></div>
+          <ul>
+            <li>A breaking change: <code>GET /items/</code> no longer returns <code>count</code></li>
+            <li>SQL built with an f-string, flagged as high severity</li>
+            <li>A model change that reaches 23 endpoints</li>
+          </ul>
+          <span class="go">Open the backend report →</span>
+        </a>
+        <a class="demo-card" href="demo/frontend.html">
+          <div class="row"><h3>Frontend · React + TanStack Router</h3><span class="score">⚠ 77/100</span></div>
+          <ul>
+            <li>A new page, and four existing pages reached through the sidebar</li>
+            <li>A shared component with no test</li>
+            <li>A test plan that follows your review</li>
+          </ul>
+          <span class="go">Open the frontend report →</span>
+        </a>
+      </div>
+      <p class="note">The pull request was written for the demo: <a href="https://github.com/erich-oliveira-winnin/full-stack-fastapi-template/pull/1">see it on GitHub</a>, with farol's comments.</p>
+    </div>
+  </div>
+
+  <section id="stacks">
+    <div class="wrap">
+      <span class="kicker">Stacks</span>
+      <h2>Reads the frameworks you already use.</h2>
+      <p class="sub">Entry points come from your routes, operations and jobs. Diff coverage, lint and vulnerabilities come from the reports your CI already produces.</p>
+      <div class="grid g3">
+        <div class="card stack">
+          <h3>TypeScript &amp; React</h3>
+          <p>Pages and layouts, read with the TypeScript type checker, declaration by declaration.</p>
+          <div class="chips"><span class="chip">React Router</span><span class="chip">Next.js</span><span class="chip">TanStack Router</span><span class="chip">GraphQL</span><span class="chip">Fastify / Express</span></div>
+          <div class="tools">Vitest or Jest coverage · ESLint · npm/pnpm audit</div>
+        </div>
+        <div class="card stack">
+          <h3>Go</h3>
+          <p>Routes, RPC methods and binaries, read with <code>go/types</code>, offline. Interface calls reach their implementations.</p>
+          <div class="chips"><span class="chip">chi</span><span class="chip">gin</span><span class="chip">echo</span><span class="chip">net/http</span><span class="chip">gRPC</span></div>
+          <div class="tools">go test -coverprofile · golangci-lint + gosec · govulncheck</div>
+        </div>
+        <div class="card stack">
+          <h3>Python</h3>
+          <p>Routes, tools, tasks and workflows, read with Python's own parser. Nothing is imported.</p>
+          <div class="chips"><span class="chip">FastAPI</span><span class="chip">Flask</span><span class="chip">Django</span><span class="chip">Celery</span><span class="chip">Temporal</span><span class="chip">Prefect</span><span class="chip">MCP</span></div>
+          <div class="tools">pytest-cov · ruff (with bandit rules) · pip-audit</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <span class="kicker">How it works</span>
+      <h2>Static analysis, end to end.</h2>
+      <p class="sub">No model in the loop and nothing executed: the same pull request always gives the same report.</p>
+      <div class="steps">
+        <div class="step"><h3>Diff</h3><p>The merge-base against the head, with renames; whitespace-only lines are ignored.</p></div>
+        <div class="step"><h3>Read both trees</h3><p>The TypeScript compiler, <code>go/types</code> or Python's <code>ast</code> build a graph of which declaration uses which.</p></div>
+        <div class="step"><h3>Reach</h3><p>From each changed declaration to every entry point that runs it, keeping the shortest chain.</p></div>
+        <div class="step"><h3>Plan</h3><p>Class, risk score, verdict, files to start with and a test plan, in the PR comment and the HTML report.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap">
+      <span class="kicker">Get started</span>
+      <h2>One config line, then run it.</h2>
+      <div class="start">
+        <div>
+          <p class="sub" style="margin-bottom:12px">You need Node.js 22+ and git (plus Go or Python 3.11+ for those projects). Describe the project once, check what farol sees, then analyze a branch.</p>
+          <ul class="checks">
+            <li>Add your coverage, lint and audit reports to sharpen the score</li>
+            <li>Copy a ready workflow to get a comment on every pull request</li>
+            <li>Optional: production traffic and errors from Datadog</li>
+          </ul>
+          <p style="margin-top:22px"><a href="https://github.com/winnin/farol#recipes">Recipes per stack →</a> &nbsp;·&nbsp; <a href="https://github.com/winnin/farol/blob/main/examples/README.md">Every option →</a></p>
+        </div>
+        <div>
+          <div class="tabs" role="tablist" aria-label="Your stack">
+            <button class="tab" role="tab" aria-selected="true" data-config='{ "routes": { "file": "src/routes.tsx" } }'>React Router</button>
+            <button class="tab" role="tab" aria-selected="false" data-config='{ "routes": { "adapter": "next" } }'>Next.js</button>
+            <button class="tab" role="tab" aria-selected="false" data-config='{ "routes": { "adapter": "tanstack-router" } }'>TanStack</button>
+            <button class="tab" role="tab" aria-selected="false" data-config='{ "surface": "backend" }'>TS API</button>
+            <button class="tab" role="tab" aria-selected="false" data-config='{ "language": "go", "surface": "backend" }'>Go</button>
+            <button class="tab" role="tab" aria-selected="false" data-config='{ "language": "python", "surface": "backend" }'>Python</button>
+          </div>
+          <div class="codebox">
+            <button class="copy" data-copy="start-code" type="button">Copy</button>
+<pre class="code" id="start-code"><span class="c"># 1. describe the project</span>
+<span class="k">echo</span> <span class="s" id="config-line">'{ "routes": { "file": "src/routes.tsx" } }'</span> &gt; farol.config.json
+
+<span class="c"># 2. check the pages and endpoints farol sees</span>
+<span class="k">npx</span> @winninjs/farol routes
+
+<span class="c"># 3. analyze your branch and open the report</span>
+<span class="k">npx</span> @winninjs/farol analyze --base origin/main --head HEAD --out farol.json
+<span class="k">npx</span> @winninjs/farol html --in farol.json --out farol.html</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="trust" class="trust">
+    <div class="wrap">
+      <span class="kicker">Built to be trusted</span>
+      <h2>Your code stays yours.</h2>
+      <div class="grid g3">
+        <div class="card"><h3>Never runs your code</h3><p>Go and Python are read by small helpers that only parse, from the standard library. Your tests run in your own CI job.</p></div>
+        <div class="card"><h3>Never sends it anywhere</h3><p>Analysis is local or in your runner. Only the PR comment (GitHub) and the optional Datadog read use the network.</p></div>
+        <div class="card"><h3>Shadow mode</h3><p>farol informs. It never approves, requests changes or fails a check: reviewers decide.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>farol is open source under the MIT license.</span>
+    <nav aria-label="Footer">
+      <a href="https://github.com/winnin/farol">GitHub</a>
+      <a href="https://www.npmjs.com/package/@winninjs/farol">npm</a>
+      <a href="https://github.com/winnin/farol/blob/main/docs/reference.md">Reference</a>
+      <a href="https://github.com/winnin/farol/blob/main/docs/how-it-works.md">How it works</a>
+      <a href="demo/">Demo</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+(() => {
+  for (const button of document.querySelectorAll('button.copy')) {
+    button.addEventListener('click', async () => {
+      const text = document.getElementById(button.dataset.copy).innerText
+      try {
+        await navigator.clipboard.writeText(text)
+        const label = button.textContent
+        button.textContent = 'Copied'
+        setTimeout(() => { button.textContent = label }, 1400)
+      } catch {}
+    })
+  }
+  const line = document.getElementById('config-line')
+  const tabs = [...document.querySelectorAll('.tab')]
+  for (const tab of tabs) {
+    tab.addEventListener('click', () => {
+      for (const t of tabs) t.setAttribute('aria-selected', String(t === tab))
+      line.textContent = "'" + tab.dataset.config + "'"
+    })
+  }
+})()
+</script>
+</body>
+</html>

@@ -12,6 +12,13 @@
 </p>
 
 <p align="center">
+  <a href="https://winnin.github.io/farol/"><b>Website</b></a> ·
+  <a href="https://winnin.github.io/farol/demo/"><b>Live demo</b></a> ·
+  <a href="#get-started"><b>Get started</b></a> ·
+  <a href="docs/reference.md"><b>Reference</b></a>
+</p>
+
+<p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <img alt="Node.js 22+" src="https://img.shields.io/badge/node-22%2B-339933">
   <img alt="TypeScript · Go · Python" src="https://img.shields.io/badge/TypeScript%20·%20Go%20·%20Python-supported-6f42c1">
