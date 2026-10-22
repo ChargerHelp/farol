@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>farol live demo</title>
+<meta name="description" content="farol reports of a real pull request on the FastAPI full-stack template: backend and frontend.">
+<style>
+:root { --bg: #f6f7fb; --panel: #ffffff; --text: #18202e; --muted: #5b6577; --border: #e3e6ee; --accent: #4f46e5; --careful: #d9480f; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0f1420; --panel: #171e2c; --text: #e7ebf3; --muted: #9aa5b8; --border: #273044; --accent: #8b85ff; --careful: #ff8a4c; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 920px; margin: 0 auto; padding: 40px 16px 64px; }
+.logo { display: block; height: 56px; }
+.logo-dark { display: none; }
+@media (prefers-color-scheme: dark) { .logo-light { display: none; } .logo-dark { display: block; } }
+.logo-svg { height: 56px; width: auto; }
+h1 { font-size: 1.6rem; margin: 28px 0 8px; }
+p { color: var(--muted); margin: 0 0 12px; }
+a { color: var(--accent); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 28px 0; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-decoration: none; color: inherit; display: block; transition: border-color .15s, transform .15s; }
+.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.card h2 { margin: 0 0 6px; font-size: 1.15rem; }
+.verdict { color: var(--careful); font-weight: 600; }
+.card ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: .95rem; }
+.open { margin-top: 14px; font-weight: 600; color: var(--accent); }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+.panel ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+footer { margin-top: 40px; font-size: .9rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <a href="https://github.com/winnin/farol" aria-label="farol on GitHub">
+    <span class="logo logo-light"><svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="100%" height="100%">
+  <defs>
+    <linearGradient id="mainBeamTight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#22D3EE" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+
+    <linearGradient id="ambientTight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4F46E5" stop-opacity="0.10" />
+      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0.02" />
+    </linearGradient>
+
+    <linearGradient id="monolithGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="100%" stop-color="#3730A3" />
+    </linearGradient>
+  </defs>
+
+  <rect width="520" height="160" fill="#FFFFFF"/>
+
+  <g id="mark">
+    <polygon points="50,75 148,34 148,116" fill="url(#ambientTight)" />
+
+    <polygon points="50,73 50,77 146,84 146,66" fill="url(#mainBeamTight)" />
+
+    <rect x="88" y="47" width="28" height="2" rx="1" fill="#94A3B8" opacity="0.45" />
+    <rect x="88" y="55" width="44" height="2" rx="1" fill="#94A3B8" opacity="0.45" />
+    <rect x="88" y="63" width="24" height="2" rx="1" fill="#94A3B8" opacity="0.45" />
+
+    <rect x="88" y="72.5" width="54" height="5" rx="2.5" fill="#FFFFFF" />
+
+    <rect x="88" y="87" width="38" height="2" rx="1" fill="#94A3B8" opacity="0.45" />
+    <rect x="88" y="95" width="46" height="2" rx="1" fill="#94A3B8" opacity="0.45" />
+    <rect x="88" y="103" width="26" height="2" rx="1" fill="#94A3B8" opacity="0.45" />
+
+    <path d="M 26 116 L 26 34 C 26 28, 31 24, 37 25 L 46 27 C 49 28, 50 30, 50 33 L 50 69 L 44 69 C 41.8 69, 40 70.8, 40 73 L 40 77 C 40 79.2, 41.8 81, 44 81 L 50 81 L 50 116 Z" 
+          fill="url(#monolithGrad)" />
+    
+    <rect x="43" y="73" width="7" height="4" rx="1" fill="#22D3EE" />
+
+    <path d="M 26 116 L 34 116 L 34 26.5 L 30 25.5 C 27.5 27, 26 29.5, 26 34 Z" fill="#312E81" opacity="0.4" />
+  </g>
+
+  <text 
+    x="185" 
+    y="93" 
+    font-family="system-ui, -apple-system, 'Inter', 'Satoshi', sans-serif" 
+    font-size="56" 
+    font-weight="600" 
+    letter-spacing="-0.04em" 
+    fill="#0F172A">farol</text>
+</svg></span>
+    <span class="logo logo-dark"><svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="100%" height="100%">
+  <defs>
+    <linearGradient id="mainBeamDark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#22D3EE" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+
+    <linearGradient id="ambientDark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0.02" />
+    </linearGradient>
+
+    <linearGradient id="monolithDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8" />
+      <stop offset="100%" stop-color="#4F46E5" />
+    </linearGradient>
+  </defs>
+
+  <rect width="520" height="160" fill="#0F172A"/>
+
+  <g id="mark">
+    <polygon points="50,75 148,34 148,116" fill="url(#ambientDark)" />
+
+    <polygon points="50,73 50,77 146,84 146,66" fill="url(#mainBeamDark)" />
+
+    <rect x="88" y="47" width="28" height="2" rx="1" fill="#334155" />
+    <rect x="88" y="55" width="44" height="2" rx="1" fill="#334155" />
+    <rect x="88" y="63" width="24" height="2" rx="1" fill="#334155" />
+
+    <rect x="88" y="72.5" width="54" height="5" rx="2.5" fill="#FFFFFF" />
+
+    <rect x="88" y="87" width="38" height="2" rx="1" fill="#334155" />
+    <rect x="88" y="95" width="46" height="2" rx="1" fill="#334155" />
+    <rect x="88" y="103" width="26" height="2" rx="1" fill="#334155" />
+
+    <path d="M 26 116 L 26 34 C 26 28, 31 24, 37 25 L 46 27 C 49 28, 50 30, 50 33 L 50 69 L 44 69 C 41.8 69, 40 70.8, 40 73 L 40 77 C 40 79.2, 41.8 81, 44 81 L 50 81 L 50 116 Z" 
+          fill="url(#monolithDark)" />
+    
+    <rect x="43" y="73" width="7" height="4" rx="1" fill="#22D3EE" />
+
+    <path d="M 26 116 L 34 116 L 34 26.5 L 30 25.5 C 27.5 27, 26 29.5, 26 34 Z" fill="#3730A3" opacity="0.6" />
+  </g>
+
+  <text 
+    x="185" 
+    y="93" 
+    font-family="system-ui, -apple-system, 'Inter', 'Satoshi', sans-serif" 
+    font-size="56" 
+    font-weight="600" 
+    letter-spacing="-0.04em" 
+    fill="#F1F5F9">farol</text>
+</svg></span>
+  </a>
+  <h1>Live demo</h1>
+  <p>These are the reports farol produced in CI for a real pull request on the
+  <a href="https://github.com/fastapi/full-stack-fastapi-template">FastAPI full-stack template</a> (a FastAPI backend and a
+  React frontend with TanStack Router). The pull request,
+  <a href="https://github.com/erich-oliveira-winnin/full-stack-fastapi-template/pull/1">“Items: status, filter by status and an Insights page”</a>,
+  was written for this demo: a realistic feature with the problems a reviewer should catch.</p>
+  <p>Everything is interactive: mark files as reviewed, mark pages as behind a feature flag, open the inline diffs and copy the
+  review record from the Result tab. Your marks stay in your browser.</p>
+
+  <div class="cards">
+    <a class="card" href="backend.html">
+      <h2>Backend · FastAPI</h2>
+      <div class="verdict">⚠ Careful review · 72/100</div>
+      <ul>
+        <li>Breaking contract: <code>GET /items/</code> no longer returns <code>count</code></li>
+        <li>SQL built with an f-string in the new <code>/items/stats</code> (high-severity finding)</li>
+        <li>A model change reaching 23 endpoints; 38% diff coverage</li>
+      </ul>
+      <div class="open">Open the backend report →</div>
+    </a>
+    <a class="card" href="frontend.html">
+      <h2>Frontend · React + TanStack Router</h2>
+      <div class="verdict">⚠ Careful review · 77/100</div>
+      <ul>
+        <li>A new page, <code>/insights</code>, and 4 existing pages reached through the sidebar and the shared table</li>
+        <li>A central component with no test; 12% diff coverage</li>
+        <li>New dev dependencies (Vitest) in <code>package.json</code></li>
+      </ul>
+      <div class="open">Open the frontend report →</div>
+    </a>
+  </div>
+
+  <div class="panel">
+    <strong>How these were made</strong>
+    <ul>
+      <li>The pull request's workflow ran the project's tests with coverage, ruff and pip-audit, then farol on each side: no code of the pull request is run by farol itself.</li>
+      <li>The same reports are linked from the pull request comments, one per side, on every push.</li>
+      <li>Workflow and setup: <a href="https://github.com/winnin/farol/blob/main/examples/README.md">examples/README.md</a>.</li>
+    </ul>
+  </div>
+
+  <footer>farol · <a href="https://github.com/winnin/farol">github.com/winnin/farol</a> · <code>npx @winninjs/farol</code></footer>
+</main>
+</body>
+</html>

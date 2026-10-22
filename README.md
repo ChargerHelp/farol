@@ -46,6 +46,23 @@ anywhere.
   </picture>
 </p>
 
+## Live demo
+
+**[See farol on a real pull request →](https://winnin.github.io/farol/demo/)**
+
+The demo holds the reports farol produced in CI for a pull request on the
+[FastAPI full-stack template](https://github.com/fastapi/full-stack-fastapi-template): a FastAPI backend and a React
+frontend with TanStack Router. The pull request adds a status to items and an Insights page, with the kind of problems
+a reviewer should catch: a breaking API change, SQL built with an f-string, a shared component without tests.
+
+- [Backend report](https://winnin.github.io/farol/demo/backend.html): ⚠ careful review, a breaking contract change and a high-severity security finding.
+- [Frontend report](https://winnin.github.io/farol/demo/frontend.html): ⚠ careful review, a new page and the existing pages a shared component reaches.
+
+The reports are interactive: mark files as reviewed, mark a page as behind a feature flag, open the inline diffs,
+follow the test plan and copy the review record from the Result tab. They are the same files the pull request's
+comments link to ([the pull request](https://github.com/erich-oliveira-winnin/full-stack-fastapi-template/pull/1)); the
+copies live in [`docs/demo/`](docs/demo/).
+
 ## farol and AI code review
 
 | | AI review agents | farol |
@@ -72,6 +89,7 @@ checked. The agent's review is not enough exactly when a small change has a larg
 
 ## Contents
 
+- [Live demo](#live-demo)
 - [farol and AI code review](#farol-and-ai-code-review)
 - [Get started](#get-started)
 - [Recipes](#recipes): [React Router](#react-frontend-react-router) · [Next.js](#nextjs) · [TanStack Router](#tanstack-router) · [TypeScript API](#typescript-api-graphql-or-rest) · [Go](#go-service) · [Python](#python-service) · [Datadog](#add-datadog-traffic-and-errors)
