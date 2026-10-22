@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 — 2026-10-22
+
+- **npm:** published as `@winninjs/farol` (`npm install --global @winninjs/farol` or `npx @winninjs/farol`), with no runtime dependencies (they are bundled in `dist/cli.js`).
+
 ## 0.1.0 — 2026-10-21 (first public release)
 
 - **Roles:** each `roles` key left out keeps the default of the project's language (setting `roles.global` in a Python project no longer turns Python tests into code).

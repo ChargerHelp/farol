@@ -17,19 +17,18 @@ review; [how-it-works.md](how-it-works.md) explains how farol reads each languag
 
 ## Installation and requirements
 
-farol ships as one bundled file, `dist/cli.js`, committed to the repository: clone it and run it with Node.
+farol is published on npm as [`@winninjs/farol`](https://www.npmjs.com/package/@winninjs/farol), with no runtime
+dependencies: one bundled file plus the Go and Python helpers.
 
 ```sh
-git clone https://github.com/winnin/farol.git
-node farol/dist/cli.js --help
-```
-
-Or install it globally from the repository:
-
-```sh
-npm install --global github:winnin/farol
+npm install --global @winninjs/farol
 farol --help
+
+npx @winninjs/farol --help            # without installing
 ```
+
+The same bundle, `dist/cli.js`, is committed to the repository (the GitHub Action runs it): `git clone
+https://github.com/winnin/farol.git && node farol/dist/cli.js --help` works too.
 
 - **All projects:** Node.js 22 or later, git, and the full history of the branches you compare. In CI, use `fetch-depth: 0`.
 - **TypeScript:** the project's `node_modules` only matter for packages its `tsconfig` extends and for workspace packages. farol installs nothing.

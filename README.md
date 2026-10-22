@@ -85,8 +85,7 @@ checked. The agent's review is not enough exactly when a small change has a larg
 You need **Node.js 22+** and **git** (plus `go` for Go projects, `python3` 3.11+ for Python ones).
 
 ```sh
-git clone https://github.com/winnin/farol.git ~/farol
-alias farol="node ~/farol/dist/cli.js"
+npm install --global @winninjs/farol      # or run it without installing: npx @winninjs/farol <command>
 
 cd path/to/your/repo
 echo '{ "routes": { "file": "src/routes.tsx" } }' > farol.config.json   # pick yours from the recipes below

@@ -3,7 +3,7 @@
   "surface": "frontend",
   "tool": {
     "name": "farol",
-    "version": "0.1.0"
+    "version": "<version>"
   },
   "repo": null,
   "pr": null,

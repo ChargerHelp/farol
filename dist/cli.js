@@ -236650,8 +236650,8 @@ function loadConfig(projectDir, configPath) {
 
 // package.json
 var package_default = {
-  name: "farol",
-  version: "0.1.0",
+  name: "@winninjs/farol",
+  version: "0.1.1",
   description: "Tells code reviewers how much attention a pull request needs and where to look first: what the change reaches, a merge risk score and a review plan. TypeScript/React, Go and Python. Shadow mode: never blocks.",
   keywords: [
     "code-review",
@@ -236695,21 +236695,22 @@ var package_default = {
     test: "vitest run",
     "test:watch": "vitest"
   },
-  dependencies: {
-    commander: "15.0.0",
-    graphql: "16.11.0",
-    picomatch: "4.0.7",
-    typescript: "6.0.3",
-    zod: "4.6.7"
-  },
   devDependencies: {
     "@eslint/js": "10.0.1",
     "@types/node": "22.20.5",
     "@types/picomatch": "4.0.3",
+    commander: "15.0.0",
     eslint: "10.13.0",
+    graphql: "16.11.0",
+    picomatch: "4.0.7",
     tsup: "9.0.0",
+    typescript: "6.0.3",
     "typescript-eslint": "8.71.2",
-    vitest: "5.0.5"
+    vitest: "5.0.5",
+    zod: "4.6.7"
+  },
+  publishConfig: {
+    access: "public"
   }
 };
 

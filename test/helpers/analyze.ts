@@ -20,10 +20,10 @@ export async function analyzeScenario(scenario: string, options: Partial<Analyze
   return { ...result, repo, cleanup: () => { repo.cleanup(); } }
 }
 
-/** Replaces commit SHAs with placeholders so golden files survive fixture edits that do not change the result. */
+/** Replaces commit SHAs and farol's version with placeholders so golden files survive fixture edits and releases. */
 export function normalizeOutput(output: Output): Output {
   // Inline diffs repeat the fixtures' text: golden files keep the analysis only (diffs have their own tests).
-  const rest: Partial<Output> = { ...output }
+  const rest: Partial<Output> = { ...output, tool: { ...output.tool, version: '<version>' } }
   delete rest.diffs
   const json = JSON.stringify(rest)
   const shas = new Map<string, string>()

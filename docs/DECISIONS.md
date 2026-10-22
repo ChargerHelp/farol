@@ -799,3 +799,8 @@ Every decision not covered by `docs/SPEC.md`. One entry per decision: problem, o
 
 - **Choice:** each `roles` key left out of the configuration takes the default of the project's language. Before, the Go and Python defaults applied only when `roles` was left out entirely: setting `roles.global` in a Python project brought back the TypeScript test globs, so Python tests were read as code.
 - **Reason:** found while writing examples/README.md; user request to fix it.
+
+## 2026-10-22 — npm package `@winninjs/farol`, no runtime dependencies
+
+- **Choice:** the package is published publicly on npm as `@winninjs/farol` (scope of the publishing organization; the binary stays `farol`). Runtime libraries move to `devDependencies`: tsup already bundles all of them into `dist/cli.js`, so the published package has no dependencies to install. The tarball holds `dist/`, `go-helper/`, `py-helper/`, the README and the license. Version 0.1.1, since the git tag v0.1.0 predates the package name.
+- **Reason:** user request.

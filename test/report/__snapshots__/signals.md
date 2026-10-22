@@ -41,4 +41,4 @@ Signals computed on the lines this PR changes. farol only informs: it never appr
 
 </details>
 
-<sub>farol 0.1.0 · analyzed commit 0123456789ab · shadow mode</sub>
+<sub>farol &lt;version&gt; · analyzed commit 0123456789ab · shadow mode</sub>
