@@ -70,7 +70,7 @@ nav.links a:hover { color: var(--text); text-decoration: none; }
 }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--text-2); padding: 5px 12px 5px 8px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel); }
 .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--beam); }
-h1 { font-size: clamp(2.3rem, 5.2vw, 3.9rem); line-height: 1.06; letter-spacing: -.035em; margin: 22px 0 18px; max-width: 17ch; }
+h1 { font-size: clamp(2.3rem, 5.2vw, 3.9rem); line-height: 1.06; letter-spacing: -.035em; margin: 22px 0 18px; max-width: 20ch; text-wrap: balance; }
 h1 .beam { background: var(--beam); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .lede { font-size: clamp(1.05rem, 1.6vw, 1.22rem); color: var(--text-2); max-width: 60ch; margin: 0 0 30px; }
 .ctas { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
@@ -111,6 +111,20 @@ h1 .beam { background: var(--beam); -webkit-background-clip: text; background-cl
 .flow { margin-bottom: 8px; }
 .flow .step.is-farol { border-color: var(--indigo); background: linear-gradient(180deg, color-mix(in srgb, var(--indigo) 10%, var(--panel)), var(--panel)); }
 
+
+/* star CTAs */
+.star { width: 16px; height: 16px; fill: currentColor; flex: none; }
+.btn.star-btn { border-color: var(--border-strong); color: var(--text); background: var(--panel); }
+.btn.star-btn .star { color: #eab308; }
+.btn.primary .star { color: inherit; }
+.stars { font-variant-numeric: tabular-nums; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--bg-soft); border: 1px solid var(--border); font-size: .82rem; color: var(--text-2); }
+.btn.primary .stars { background: rgba(255, 255, 255, .18); border-color: transparent; color: inherit; }
+.closing { display: flex; flex-wrap: wrap; gap: 28px; align-items: center; justify-content: space-between; padding: 36px; border-radius: 20px; border: 1px solid var(--border); background: linear-gradient(135deg, color-mix(in srgb, var(--indigo) 8%, var(--panel)), var(--panel)); }
+.closing h2 { margin-top: 0; }
+.closing > div:first-child { flex: 1 1 380px; }
+.closing-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 640px) { .closing { padding: 24px 18px; } }
+
 /* screenshot */
 .shot { margin: 56px auto 0; border-radius: 18px; border: 1px solid var(--border-strong); background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
 .shot .bar { display: flex; align-items: center; gap: 7px; padding: 11px 14px; border-bottom: 1px solid var(--border); background: var(--panel-2); }
@@ -124,7 +138,7 @@ h1 .beam { background: var(--beam); -webkit-background-clip: text; background-cl
 /* sections */
 section { padding: 96px 0 0; }
 .kicker { color: var(--indigo); font-weight: 600; font-size: .9rem; letter-spacing: .02em; }
-h2 { font-size: clamp(1.7rem, 3.2vw, 2.4rem); letter-spacing: -.025em; line-height: 1.15; margin: 8px 0 14px; max-width: 24ch; }
+h2 { font-size: clamp(1.7rem, 3.2vw, 2.4rem); letter-spacing: -.025em; line-height: 1.15; margin: 8px 0 14px; max-width: 24ch; text-wrap: balance; }
 .sub { color: var(--text-2); max-width: 64ch; margin: 0 0 36px; font-size: 1.05rem; }
 .grid { display: grid; gap: 16px; }
 .g2 { grid-template-columns: repeat(2, 1fr); }
@@ -245,7 +259,7 @@ footer a { color: var(--text-2); }
       <a class="hide-sm" href="#stacks">Stacks</a>
       <a href="demo/backend.html">Live demo</a>
       <a class="hide-xs" href="#start">Get started</a>
-      <a class="gh" href="https://github.com/winnin/farol"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
+      <a class="gh" href="https://github.com/winnin/farol"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>Star <span class="stars" data-stars hidden></span></a>
     </nav>
   </div>
 </header>
@@ -261,6 +275,7 @@ footer a { color: var(--text-2); }
       <div class="ctas">
         <a class="btn primary" href="demo/backend.html">Open a live report <span aria-hidden="true">→</span></a>
         <a class="btn ghost" href="#start">Get started</a>
+        <a class="btn star-btn" href="https://github.com/winnin/farol"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z"/></svg>Star on GitHub <span class="stars" data-stars hidden></span></a>
       </div>
       <div>
         <div class="cmd"><span class="prompt">$</span><code id="cmd-hero">npx @winninjs/farol routes</code><button class="copy" data-copy="cmd-hero" type="button">Copy</button></div>
@@ -541,6 +556,21 @@ footer a { color: var(--text-2); }
       </div>
     </div>
   </section>
+  <section id="community">
+    <div class="wrap">
+      <div class="closing">
+        <div>
+          <h2>Built in the open.</h2>
+          <p class="sub" style="margin:0">farol is free and MIT-licensed. If it helps your reviews, a star helps other teams find it. Issues, ideas and pull requests are welcome, especially new frameworks and languages.</p>
+        </div>
+        <div class="closing-actions">
+          <a class="btn primary" href="https://github.com/winnin/farol"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z"/></svg>Star on GitHub <span class="stars" data-stars hidden></span></a>
+          <a class="btn ghost" href="https://github.com/winnin/farol/issues">Open an issue</a>
+          <a class="btn ghost" href="https://github.com/winnin/farol/blob/main/CONTRIBUTING.md">Contribute</a>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -557,6 +587,19 @@ footer a { color: var(--text-2); }
 </footer>
 
 <script>
+(() => {
+  // Star count from the public GitHub API; the buttons work without it.
+  fetch('https://api.github.com/repos/winnin/farol', { headers: { Accept: 'application/vnd.github+json' } })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((repo) => {
+      // A count only helps once there is one worth showing.
+      if (!repo || typeof repo.stargazers_count !== 'number' || repo.stargazers_count < 10) return
+      const n = repo.stargazers_count
+      const text = n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k' : String(n)
+      for (const el of document.querySelectorAll('[data-stars]')) { el.textContent = text; el.hidden = false }
+    })
+    .catch(() => {})
+})();
 (() => {
   for (const button of document.querySelectorAll('button.copy')) {
     button.addEventListener('click', async () => {
