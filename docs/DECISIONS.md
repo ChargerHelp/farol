@@ -804,3 +804,8 @@ Every decision not covered by `docs/SPEC.md`. One entry per decision: problem, o
 
 - **Choice:** the package is published publicly on npm as `@winninjs/farol` (scope of the publishing organization; the binary stays `farol`). Runtime libraries move to `devDependencies`: tsup already bundles all of them into `dist/cli.js`, so the published package has no dependencies to install. The tarball holds `dist/`, `go-helper/`, `py-helper/`, the README and the license. Version 0.1.1, since the git tag v0.1.0 predates the package name.
 - **Reason:** user request.
+
+## 2026-10-24 — The action at the repository root, for the GitHub Marketplace
+
+- **Choice:** `action.yml` at the root is the Marketplace entry ("farol PR risk review"); `action/action.yml` stays for `uses: winnin/farol/action@…`, which repositories already use. Both have the same inputs and steps and call the same `dist/cli.js`; only the name, the description and the path to `dist/` differ, and `test/e2e/action.test.ts` fails when they drift.
+- **Reason:** the Marketplace only lists an action whose `action.yml` is at the repository root; moving it would break the existing `action/` references.

@@ -9,11 +9,13 @@ import { createScenarioRepo, type ScenarioRepo } from '../helpers/repo.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const ACTION = readFileSync(join(ROOT, 'action', 'action.yml'), 'utf8')
+/** The GitHub Marketplace entry at the repository root: the same action, with dist/ next to it. */
+const ROOT_ACTION = readFileSync(join(ROOT, 'action.yml'), 'utf8')
 const WORKFLOW = readFileSync(join(ROOT, 'examples', 'workflow.yml'), 'utf8')
 
 /** The bash script of the composite step (the `run: |` block scalar). */
-function actionScript(): string {
-  const lines = ACTION.split('\n')
+function actionScript(source = ACTION): string {
+  const lines = source.split('\n')
   const start = lines.findIndex((l) => l.trim() === 'run: |')
   const indent = ' '.repeat((lines[start] ?? '').indexOf('run:') + 2)
   const body: string[] = []
@@ -40,9 +42,9 @@ afterAll(() => {
   rmSync(tmp, { recursive: true, force: true })
 })
 
-function runAction(env: Record<string, string>): { code: number | null; stderr: string; stdout: string } {
-  const r = spawnSync('bash', ['-c', actionScript()], {
-    env: { ...process.env, GITHUB_ACTION_PATH: join(ROOT, 'action'), RS_BASE: '', RS_HEAD: '', RS_COVERAGE: '', RS_ESLINT: '', RS_AUDIT: '', RS_OUT: 'farol.json', RS_IN: 'farol.json', RS_HTML_OUT: 'farol.html', RS_REPORT_URL: '', RS_SINCE: '', RS_USAGE: '', RS_DAYS: '', RS_REVIEWERS_FILE: '', RS_NEW_COMMENT: 'false', RS_SINCE_IN: '', RS_SINCE_REPORT_URL: '', RS_REVIEWERS: 'false', RS_PR: '', RS_REPO: '', RS_CONFIG: 'farol.config.json', RS_CWD: '', RS_VERBOSE: 'false', ...env },
+function runAction(env: Record<string, string>, source = ACTION, actionPath = join(ROOT, 'action')): { code: number | null; stderr: string; stdout: string } {
+  const r = spawnSync('bash', ['-c', actionScript(source)], {
+    env: { ...process.env, GITHUB_ACTION_PATH: actionPath, RS_BASE: '', RS_HEAD: '', RS_COVERAGE: '', RS_ESLINT: '', RS_AUDIT: '', RS_OUT: 'farol.json', RS_IN: 'farol.json', RS_HTML_OUT: 'farol.html', RS_REPORT_URL: '', RS_SINCE: '', RS_USAGE: '', RS_DAYS: '', RS_REVIEWERS_FILE: '', RS_NEW_COMMENT: 'false', RS_SINCE_IN: '', RS_SINCE_REPORT_URL: '', RS_REVIEWERS: 'false', RS_PR: '', RS_REPO: '', RS_CONFIG: 'farol.config.json', RS_CWD: '', RS_VERBOSE: 'false', ...env },
     encoding: 'utf8',
   })
   return { code: r.status, stderr: r.stderr, stdout: r.stdout }
@@ -76,6 +78,22 @@ describe('composite action', () => {
     const bad = runAction({ RS_COMMAND: 'deploy' })
     expect(bad.code).toBe(1)
     expect(bad.stdout).toContain("input 'command' must be 'analyze', 'html', 'comment', 'usage' or 'reviewers'")
+  })
+
+  it('keeps the Marketplace action at the root in sync with action/action.yml', () => {
+    // Same inputs and steps; only the name, the description, the header comment and the path to dist/ differ.
+    const body = (text: string): string => text.split('\n').filter((l) => !l.startsWith('#') && !l.startsWith('name: ') && !l.startsWith('description: ')).join('\n')
+    expect(body(ROOT_ACTION)).toBe(body(ACTION).replace('$GITHUB_ACTION_PATH/../dist/cli.js', '$GITHUB_ACTION_PATH/dist/cli.js'))
+    expect(ROOT_ACTION).toMatch(/^branding:\n {2}icon: \S+\n {2}color: \S+$/m)
+    const description = /^description: (.*)$/m.exec(ROOT_ACTION)?.[1] ?? ''
+    expect(description.length).toBeGreaterThan(0)
+    expect(description.length).toBeLessThanOrEqual(125)
+  })
+
+  it('runs the root action script against dist/cli.js', () => {
+    const r = runAction({ RS_COMMAND: 'html', RS_IN: join(tmp, 'farol.json'), RS_HTML_OUT: join(tmp, 'root.html') }, ROOT_ACTION, ROOT)
+    expect(r.code).toBe(0)
+    expect(readFileSync(join(tmp, 'root.html'), 'utf8')).toContain('id="plan"')
   })
 
   it('renders the HTML report from the JSON', () => {

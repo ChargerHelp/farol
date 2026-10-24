@@ -236651,7 +236651,7 @@ function loadConfig(projectDir, configPath) {
 // package.json
 var package_default = {
   name: "@winninjs/farol",
-  version: "0.1.1",
+  version: "0.1.2",
   description: "Tells code reviewers how much attention a pull request needs and where to look first: what the change reaches, a merge risk score and a review plan. TypeScript/React, Go and Python. Shadow mode: never blocks.",
   keywords: [
     "code-review",

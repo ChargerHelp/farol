@@ -1,0 +1,173 @@
+# The GitHub Marketplace entry of farol (the Marketplace reads action.yml at the repository root). action/action.yml
+# is the same action for `uses: winnin/farol/action@…`; a test keeps the two in sync.
+name: farol PR risk review
+description: Know the risk of merging a pull request and which files carry it. Free static analysis for TypeScript, Go and Python.
+branding:
+  icon: eye
+  color: blue
+inputs:
+  command:
+    description: "analyze, html, comment, usage or reviewers"
+    required: true
+  base:
+    description: "analyze: base ref or SHA (the PR target)"
+    required: false
+    default: ""
+  head:
+    description: "analyze: head ref or SHA (the PR tip)"
+    required: false
+    default: ""
+  coverage:
+    description: "analyze: Istanbul coverage-final.json (overrides signals.coverage)"
+    required: false
+    default: ""
+  eslint:
+    description: "analyze: eslint -f json report (overrides signals.eslint)"
+    required: false
+    default: ""
+  audit:
+    description: "analyze: npm/pnpm audit --json report (overrides signals.audit)"
+    required: false
+    default: ""
+  usage:
+    description: "analyze: traffic report written by the usage command (overrides signals.usage)"
+    required: false
+    default: ""
+  new-comment:
+    description: "comment: create a new comment instead of updating farol's comment (true/false)"
+    required: false
+    default: "false"
+  since-in:
+    description: "comment: incremental analyze JSON (analyze with since) summarized on top of the comment"
+    required: false
+    default: ""
+  since-report-url:
+    description: "comment: link to the HTML report of the incremental analysis"
+    required: false
+    default: ""
+  reviewers-file:
+    description: "html, comment: reviewers file written by the reviewers command (reviewers: where to write it)"
+    required: false
+    default: ""
+  days:
+    description: "usage: days of traffic up to now (default: datadog.days in the configuration)"
+    required: false
+    default: ""
+  since:
+    description: "analyze: incremental mode, only the changes since this commit (e.g. the head of the last review)"
+    required: false
+    default: ""
+  reviewers:
+    description: "analyze: suggest reviewers from CODEOWNERS and the git history of the changed files (true/false)"
+    required: false
+    default: "false"
+  out:
+    description: "analyze: output JSON file (usage: pass e.g. usage.json)"
+    required: false
+    default: "farol.json"
+  in:
+    description: "html, comment: analyze JSON to render or publish"
+    required: false
+    default: "farol.json"
+  html-out:
+    description: "html: output HTML file"
+    required: false
+    default: "farol.html"
+  report-url:
+    description: "comment: link to the HTML report (e.g. the artifact URL of the analyze job), shown at the top of the comment"
+    required: false
+    default: ""
+  pr:
+    description: "comment: pull request number (analyze: optional, for links to the PR diff; detected from the event by default)"
+    required: false
+    default: ""
+  repo:
+    description: "comment: owner/name (defaults to GITHUB_REPOSITORY)"
+    required: false
+    default: ""
+  config:
+    description: "configuration file, relative to cwd"
+    required: false
+    default: "farol.config.json"
+  cwd:
+    description: "project directory (where the configuration and tsconfig live)"
+    required: false
+    default: ""
+  verbose:
+    description: "print progress to the log"
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: farol ${{ inputs.command }}
+      shell: bash
+      # Inputs go through the environment, never interpolated into the script.
+      env:
+        RS_COMMAND: ${{ inputs.command }}
+        RS_BASE: ${{ inputs.base }}
+        RS_HEAD: ${{ inputs.head }}
+        RS_COVERAGE: ${{ inputs.coverage }}
+        RS_ESLINT: ${{ inputs.eslint }}
+        RS_AUDIT: ${{ inputs.audit }}
+        RS_OUT: ${{ inputs.out }}
+        RS_SINCE: ${{ inputs.since }}
+        RS_USAGE: ${{ inputs.usage }}
+        RS_DAYS: ${{ inputs.days }}
+        RS_REVIEWERS_FILE: ${{ inputs.reviewers-file }}
+        RS_NEW_COMMENT: ${{ inputs.new-comment }}
+        RS_SINCE_IN: ${{ inputs.since-in }}
+        RS_SINCE_REPORT_URL: ${{ inputs.since-report-url }}
+        RS_REVIEWERS: ${{ inputs.reviewers }}
+        RS_IN: ${{ inputs.in }}
+        RS_HTML_OUT: ${{ inputs.html-out }}
+        RS_REPORT_URL: ${{ inputs.report-url }}
+        RS_PR: ${{ inputs.pr }}
+        RS_REPO: ${{ inputs.repo }}
+        RS_CONFIG: ${{ inputs.config }}
+        RS_CWD: ${{ inputs.cwd }}
+        RS_VERBOSE: ${{ inputs.verbose }}
+      run: |
+        set -euo pipefail
+        args=(--config "$RS_CONFIG")
+        if [ -n "$RS_CWD" ]; then args+=(--cwd "$RS_CWD"); fi
+        if [ "$RS_VERBOSE" = "true" ]; then args+=(--verbose); fi
+        case "$RS_COMMAND" in
+          analyze)
+            args+=(analyze --base "$RS_BASE" --head "$RS_HEAD" --out "$RS_OUT")
+            if [ -n "$RS_COVERAGE" ]; then args+=(--coverage "$RS_COVERAGE"); fi
+            if [ -n "$RS_ESLINT" ]; then args+=(--eslint "$RS_ESLINT"); fi
+            if [ -n "$RS_AUDIT" ]; then args+=(--audit "$RS_AUDIT"); fi
+            if [ -n "$RS_USAGE" ]; then args+=(--usage "$RS_USAGE"); fi
+            if [ -n "$RS_PR" ]; then args+=(--pr "$RS_PR"); fi
+            if [ -n "$RS_SINCE" ]; then args+=(--since "$RS_SINCE"); fi
+            if [ "$RS_REVIEWERS" = "true" ]; then args+=(--reviewers); fi
+            ;;
+          html)
+            args+=(html --in "$RS_IN" --out "$RS_HTML_OUT")
+            if [ -n "$RS_REVIEWERS_FILE" ]; then args+=(--reviewers "$RS_REVIEWERS_FILE"); fi
+            if [ -n "$RS_PR" ]; then args+=(--pr "$RS_PR"); fi
+            if [ -n "$RS_REPO" ]; then args+=(--repo "$RS_REPO"); fi
+            ;;
+          comment)
+            args+=(comment --in "$RS_IN" --pr "$RS_PR")
+            if [ -n "$RS_REVIEWERS_FILE" ]; then args+=(--reviewers "$RS_REVIEWERS_FILE"); fi
+            if [ -n "$RS_REPO" ]; then args+=(--repo "$RS_REPO"); fi
+            if [ -n "$RS_REPORT_URL" ]; then args+=(--report-url "$RS_REPORT_URL"); fi
+            if [ "$RS_NEW_COMMENT" = "true" ]; then args+=(--new); fi
+            if [ -n "$RS_SINCE_IN" ]; then args+=(--since-in "$RS_SINCE_IN"); fi
+            if [ -n "$RS_SINCE_REPORT_URL" ]; then args+=(--since-report-url "$RS_SINCE_REPORT_URL"); fi
+            ;;
+          reviewers)
+            args+=(reviewers --in "$RS_IN" --out "${RS_REVIEWERS_FILE:-reviewers.json}")
+            ;;
+          usage)
+            args+=(usage --out "$RS_OUT")
+            if [ -n "$RS_DAYS" ]; then args+=(--days "$RS_DAYS"); fi
+            ;;
+          *)
+            echo "::error::farol: input 'command' must be 'analyze', 'html', 'comment', 'usage' or 'reviewers', got '$RS_COMMAND'"
+            exit 1
+            ;;
+        esac
+        node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}"

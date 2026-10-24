@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 — 2026-10-24
+
+- **GitHub Marketplace:** `action.yml` at the repository root (the Marketplace reads it there), the same action as `action/action.yml`, which keeps working for `uses: winnin/farol/action@…`.
+- **Website and live demo:** https://winnin.github.io/farol/ (the package's homepage), with the CI reports of a demo pull request.
+
 ## 0.1.1 — 2026-10-22
 
 - **npm:** published as `@winninjs/farol` (`npm install --global @winninjs/farol` or `npx @winninjs/farol`), with no runtime dependencies (they are bundled in `dist/cli.js`).
