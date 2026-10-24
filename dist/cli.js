@@ -236651,7 +236651,7 @@ function loadConfig(projectDir, configPath) {
 // package.json
 var package_default = {
   name: "@winninjs/farol",
-  version: "0.1.2",
+  version: "0.1.3",
   description: "Tells code reviewers how much attention a pull request needs and where to look first: what the change reaches, a merge risk score and a review plan. TypeScript/React, Go and Python. Shadow mode: never blocks.",
   keywords: [
     "code-review",
@@ -236682,7 +236682,8 @@ var package_default = {
   files: [
     "dist",
     "go-helper",
-    "py-helper"
+    "py-helper",
+    "!**/__pycache__"
   ],
   engines: {
     node: ">=22"

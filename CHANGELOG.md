@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 — 2026-10-24
+
+- **npm package:** leaves out Python bytecode (`__pycache__`), which earlier packages carried by mistake. 0.1.3 is the first version on npm; 0.1.1 and 0.1.2 were unpublished.
+
 ## 0.1.2 — 2026-10-24
 
 - **GitHub Marketplace:** `action.yml` at the repository root (the Marketplace reads it there), the same action as `action/action.yml`, which keeps working for `uses: winnin/farol/action@…`.
