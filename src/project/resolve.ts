@@ -94,17 +94,21 @@ export function isProjectSpecifier(specifier: string, project: ResolverContext):
   return false
 }
 
-/** Folders a `workspace:` dependency of `<dir>/package.json` may name, read from the manifest (working tree). */
+/**
+ * Whether `<dir>/package.json` declares a `workspace:` dependency `name` (an unreadable or invalid one declares every
+ * name), read from the manifest alone: the working tree has no list of the packages, so no folder is named.
+ */
 function manifestCandidates(project: ResolverContext, dir: string, name: string): readonly string[] | undefined {
   const manifest = `${dir}/package.json`
-  const { workspace, invalid } = readManifest(manifest, project.fs.readFile(manifest) ?? '')
-  return invalid || workspace.includes(name) ? [] : undefined
+  const text = project.fs.readFile(manifest)
+  const read = text === undefined ? undefined : readManifest(manifest, text)
+  return read === undefined || read.invalid || read.workspace.includes(name) ? [] : undefined
 }
 
 /**
  * A bare specifier that names a package of the repository: the folder its `node_modules` link points to (the first
  * one up from the importer, as Node.js looks), or, for a `workspace:` dependency of the importer's manifest that
- * links nowhere, every folder with that package name (none when no folder has it). Undefined for other packages.
+ * links nowhere, the folders it may name (`workspaceCandidates`; none on the working tree). Undefined for other packages.
  */
 function workspacePackages(project: ResolverContext, repoRoot: string, containingFile: string, specifier: string): { packages: string[] } | undefined {
   const name = packageName(specifier)

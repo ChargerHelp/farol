@@ -28,7 +28,7 @@ export function isProjectPath(root: string, path: string): boolean {
   return isInside(toPosix(root), p) && !p.includes('/node_modules/')
 }
 
-/** `dir` and the directories above it, up to `root` (absolute); empty when `dir` is outside `root`. */
+/** `dir` and the directories above it, up to `root` (absolute, without a trailing `/`); empty when `dir` is outside `root`. */
 export function ancestors(dir: string, root: string): string[] {
   const out: string[] = []
   for (let d = dir; isInside(root, d); d = posix.dirname(d)) {
@@ -127,10 +127,10 @@ export function createTreeFileSystem(options: {
    */
   const treeDirectory = (rel: string): { files: ReadonlySet<string>; directories: ReadonlySet<string> } | undefined => {
     const committed = children.get(rel)
-    if (committed) return committed
     const source = sourceOf(rel)
     const mirrored = source === undefined ? undefined : children.get(source)
-    return mirrored && { files: new Set(), directories: mirrored.directories }
+    if (!mirrored) return committed
+    return { files: committed?.files ?? new Set(), directories: new Set([...(committed?.directories ?? []), ...mirrored.directories]) }
   }
   const modulesEntries = (l: { rel: string; path: string }): { files: string[]; directories: string[] } => {
     const installed = options.fallback.getEntries(l.path)

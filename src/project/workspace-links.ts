@@ -18,8 +18,9 @@ export function packageName(specifier: string): string | undefined {
  */
 export interface WorkspaceLinks {
   /**
-   * Folders a `workspace:` dependency `name` of `<dir>/package.json` may point to: one when it links, none or several
-   * when it does not. Undefined when the manifest does not declare it; an invalid manifest declares every name.
+   * Folders a `workspace:` dependency `name` of `<dir>/package.json` may point to: one when it links; when it does not,
+   * every folder with that name plus every folder whose manifest is invalid (its name is unknown). Undefined when the
+   * manifest does not declare it; an invalid manifest declares every name.
    */
   candidates(dir: string, name: string): readonly string[] | undefined
   /** Whether a folder is the target of a link. */
@@ -69,13 +70,15 @@ export function readWorkspaceLinks(files: Iterable<string>, read: (file: string)
     if (manifest.name !== undefined) folders.set(manifest.name, [...(folders.get(manifest.name) ?? []), dir])
     if (manifest.workspace.length > 0) declared.set(dir, new Set(manifest.workspace))
   }
-  const candidates = (dir: string, name: string): readonly string[] | undefined => {
-    if (invalid.has(dir)) return []
-    return declared.get(dir)?.has(name) ? (folders.get(name) ?? []) : undefined
-  }
   const target = (dir: string, name: string): string | undefined => {
-    const found = candidates(dir, name)
-    return found?.length === 1 ? found[0] : undefined
+    const named = folders.get(name)
+    return declared.get(dir)?.has(name) && named?.length === 1 ? named[0] : undefined
+  }
+  const candidates = (dir: string, name: string): readonly string[] | undefined => {
+    if (!invalid.has(dir) && !declared.get(dir)?.has(name)) return undefined
+    const linked = target(dir, name)
+    if (linked !== undefined) return [linked]
+    return [...(folders.get(name) ?? []), ...[...invalid].filter((d) => d !== dir)].sort()
   }
   const entries = new Map<string, Set<string>>()
   const linked = new Set<string>()

@@ -177,6 +177,20 @@ describe('workspace packages that export only their build output', () => {
     expect(unresolved(o)).toEqual([PACKAGE_UNRESOLVED])
   }, 60_000)
 
+  it('an invalid manifest of the app is unknown when the package changes', async () => {
+    const setup = (r: TestRepo): void => { r.write('apps/a/package.json', `${r.read('apps/a/package.json')}}`) }
+    const o = await analyzeApp(workspace(changeThing, { setup }))
+    expect(o.classification).toBe('unknown')
+    expect(unresolved(o)).toEqual([PACKAGE_UNRESOLVED])
+  }, 60_000)
+
+  it('an invalid manifest of the package is unknown when the package changes', async () => {
+    const setup = (r: TestRepo): void => { r.write('packages/lib/package.json', '{ "name": "lib", ') }
+    const o = await analyzeApp(workspace(changeThing, { setup }))
+    expect(o.classification).toBe('unknown')
+    expect(unresolved(o)).toEqual([PACKAGE_UNRESOLVED])
+  }, 60_000)
+
   it('with preserveSymlinks a package source change is unknown, never isolated', async () => {
     const o = await analyzeApp(workspace(changeThing, { compilerOptions: { preserveSymlinks: true } }))
     expect(o.classification).toBe('unknown')

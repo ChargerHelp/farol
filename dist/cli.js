@@ -237510,13 +237510,15 @@ function readWorkspaceLinks(files, read) {
     if (manifest.name !== void 0) folders.set(manifest.name, [...folders.get(manifest.name) ?? [], dir]);
     if (manifest.workspace.length > 0) declared.set(dir, new Set(manifest.workspace));
   }
-  const candidates = (dir, name) => {
-    if (invalid.has(dir)) return [];
-    return declared.get(dir)?.has(name) ? folders.get(name) ?? [] : void 0;
-  };
   const target = (dir, name) => {
-    const found = candidates(dir, name);
-    return found?.length === 1 ? found[0] : void 0;
+    const named = folders.get(name);
+    return declared.get(dir)?.has(name) && named?.length === 1 ? named[0] : void 0;
+  };
+  const candidates = (dir, name) => {
+    if (!invalid.has(dir) && !declared.get(dir)?.has(name)) return void 0;
+    const linked2 = target(dir, name);
+    if (linked2 !== void 0) return [linked2];
+    return [...folders.get(name) ?? [], ...[...invalid].filter((d) => d !== dir)].sort();
   };
   const entries = /* @__PURE__ */ new Map();
   const linked = /* @__PURE__ */ new Set();
@@ -238554,10 +238556,10 @@ function createTreeFileSystem(options) {
   };
   const treeDirectory = (rel) => {
     const committed = children.get(rel);
-    if (committed) return committed;
     const source = sourceOf(rel);
     const mirrored = source === void 0 ? void 0 : children.get(source);
-    return mirrored && { files: /* @__PURE__ */ new Set(), directories: mirrored.directories };
+    if (!mirrored) return committed;
+    return { files: committed?.files ?? /* @__PURE__ */ new Set(), directories: /* @__PURE__ */ new Set([...committed?.directories ?? [], ...mirrored.directories]) };
   };
   const modulesEntries = (l) => {
     const installed = options.fallback.getEntries(l.path);
@@ -238676,8 +238678,9 @@ function isProjectSpecifier(specifier, project) {
 }
 function manifestCandidates(project, dir, name) {
   const manifest = `${dir}/package.json`;
-  const { workspace, invalid } = readManifest(manifest, project.fs.readFile(manifest) ?? "");
-  return invalid || workspace.includes(name) ? [] : void 0;
+  const text = project.fs.readFile(manifest);
+  const read = text === void 0 ? void 0 : readManifest(manifest, text);
+  return read === void 0 || read.invalid || read.workspace.includes(name) ? [] : void 0;
 }
 function workspacePackages(project, repoRoot2, containingFile, specifier) {
   const name = packageName(specifier);
