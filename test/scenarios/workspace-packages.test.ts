@@ -34,6 +34,8 @@ interface WorkspaceShape {
   extraImports?: string[]
   /** Import of the settings page. */
   settingsImport?: string
+  /** More files of the base commit. */
+  setup?: (repo: TestRepo) => void
 }
 
 /**
@@ -89,6 +91,7 @@ function workspace(change: (repo: TestRepo) => void, shape: WorkspaceShape = {})
       '',
     ].join('\n'),
   )
+  shape.setup?.(repo)
   repo.commit('base')
   repo.git('checkout', '-q', '-b', 'feature')
   change(repo)
@@ -165,6 +168,13 @@ describe('workspace packages that export only their build output', () => {
     const o = await analyzeApp(workspace(changeAboutPage, { extraDependencies: { gone: 'workspace:*' }, extraImports: ["import 'gone'"] }))
     expect(o.classification).toBe('unknown')
     expect(unresolved(o)).toEqual([['apps/a/src/pages/AboutPage.tsx', 'line 3: cannot resolve "gone"']])
+  }, 60_000)
+
+  it('a package name two folders share is unknown when one of them changes', async () => {
+    const setup = (r: TestRepo): void => { r.write('templates/lib/package.json', JSON.stringify({ name: 'lib', version: '0.0.0' })) }
+    const o = await analyzeApp(workspace(changeThing, { setup }))
+    expect(o.classification).toBe('unknown')
+    expect(unresolved(o)).toEqual([PACKAGE_UNRESOLVED])
   }, 60_000)
 
   it('with preserveSymlinks a package source change is unknown, never isolated', async () => {

@@ -1,6 +1,15 @@
 import ts from 'typescript'
 import { posix } from 'node:path'
-import { DEPENDENCY_SECTIONS } from '../classify/dependencies.js'
+
+export const DEPENDENCY_SECTIONS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'] as const
+
+/** `x` or `@scope/x` of a bare specifier (or of the start of a path under `node_modules`); undefined for `node:` built-ins. */
+export function packageName(specifier: string): string | undefined {
+  if (specifier.startsWith('node:')) return undefined
+  const [first = '', second] = specifier.split('/')
+  if (!first.startsWith('@')) return first
+  return second === undefined ? undefined : `${first}/${second}`
+}
 
 /**
  * The `node_modules` links a pnpm install makes for workspace packages, read from the committed manifests: a
@@ -8,25 +17,32 @@ import { DEPENDENCY_SECTIONS } from '../classify/dependencies.js'
  * folder of the package named `<name>`. Directories are repo-relative ('' for the repository root).
  */
 export interface WorkspaceLinks {
-  /** Folder of the package `<dir>/node_modules/<name>` links to; undefined without such a link. */
-  target(dir: string, name: string): string | undefined
-  /** Whether `<dir>/package.json` declares `name` with the `workspace:` protocol. */
-  declares(dir: string, name: string): boolean
-  /** Names a link adds directly inside a `node_modules` (or `node_modules/@scope`) directory. */
-  entries(dir: string): readonly string[]
+  /**
+   * Folders a `workspace:` dependency `name` of `<dir>/package.json` may point to: one when it links, none or several
+   * when it does not. Undefined when the manifest does not declare it; an invalid manifest declares every name.
+   */
+  candidates(dir: string, name: string): readonly string[] | undefined
   /** Whether a folder is the target of a link. */
   isLinked(folder: string): boolean
+  /**
+   * A repo-relative path with every link followed: a path of the tree, a `node_modules` (or `node_modules/@scope`)
+   * directory, which links and installed packages share, or undefined for an installed package.
+   */
+  follow(rel: string): { kind: 'tree' | 'modules'; rel: string } | undefined
+  /** Names links add directly inside a `node_modules` (or `node_modules/@scope`) directory. */
+  entries(dir: string): readonly string[]
 }
 
 export interface Manifest {
   name?: string
   workspace: string[]
+  invalid: boolean
 }
 
-/** Name and `workspace:` dependencies of a package.json. An invalid one has neither, so imports of it stay unresolved. */
+/** Name and `workspace:` dependencies of a package.json. */
 export function readManifest(path: string, text: string): Manifest {
-  const { config } = ts.parseConfigFileTextToJson(path, text) as { config?: unknown }
-  if (typeof config !== 'object' || config === null) return { workspace: [] }
+  const { config, error } = ts.parseConfigFileTextToJson(path, text) as { config?: unknown; error?: unknown }
+  if (error !== undefined || typeof config !== 'object' || config === null || Array.isArray(config)) return { workspace: [], invalid: true }
   const json = config as Record<string, unknown>
   const workspace: string[] = []
   for (const section of DEPENDENCY_SECTIONS) {
@@ -34,7 +50,7 @@ export function readManifest(path: string, text: string): Manifest {
     if (typeof deps !== 'object' || deps === null) continue
     for (const [name, spec] of Object.entries(deps as Record<string, unknown>)) if (typeof spec === 'string' && spec.startsWith('workspace:')) workspace.push(name)
   }
-  return { ...(typeof json.name === 'string' ? { name: json.name } : {}), workspace }
+  return { ...(typeof json.name === 'string' ? { name: json.name } : {}), workspace, invalid: false }
 }
 
 const dirOf = (file: string): string => (posix.dirname(file) === '.' ? '' : posix.dirname(file))
@@ -42,16 +58,25 @@ const join = (dir: string, path: string): string => (dir === '' ? path : `${dir}
 
 /** Links of every committed package.json outside `node_modules`. A name two folders share links nowhere. */
 export function readWorkspaceLinks(files: Iterable<string>, read: (file: string) => string): WorkspaceLinks {
-  const folders = new Map<string, string | null>()
+  const folders = new Map<string, string[]>()
   const declared = new Map<string, Set<string>>()
+  const invalid = new Set<string>()
   for (const file of files) {
     if (posix.basename(file) !== 'package.json' || file.split('/').includes('node_modules')) continue
     const manifest = readManifest(file, read(file))
     const dir = dirOf(file)
-    if (manifest.name !== undefined) folders.set(manifest.name, folders.has(manifest.name) ? null : dir)
+    if (manifest.invalid) invalid.add(dir)
+    if (manifest.name !== undefined) folders.set(manifest.name, [...(folders.get(manifest.name) ?? []), dir])
     if (manifest.workspace.length > 0) declared.set(dir, new Set(manifest.workspace))
   }
-  const target = (dir: string, name: string): string | undefined => (declared.get(dir)?.has(name) ? (folders.get(name) ?? undefined) : undefined)
+  const candidates = (dir: string, name: string): readonly string[] | undefined => {
+    if (invalid.has(dir)) return []
+    return declared.get(dir)?.has(name) ? (folders.get(name) ?? []) : undefined
+  }
+  const target = (dir: string, name: string): string | undefined => {
+    const found = candidates(dir, name)
+    return found?.length === 1 ? found[0] : undefined
+  }
   const entries = new Map<string, Set<string>>()
   const linked = new Set<string>()
   const add = (dir: string, name: string): void => {
@@ -70,10 +95,23 @@ export function readWorkspaceLinks(files: Iterable<string>, read: (file: string)
       if (rest !== undefined) add(`${modules}/${first}`, rest)
     }
   }
+  // Each pass replaces one `node_modules/<name>` with a folder of the tree, which has no `node_modules` segment.
+  const follow = (rel: string): { kind: 'tree' | 'modules'; rel: string } | undefined => {
+    let segments = rel === '' ? [] : rel.split('/')
+    for (;;) {
+      const i = segments.indexOf('node_modules')
+      if (i === -1) return { kind: 'tree', rel: segments.join('/') }
+      const name = packageName(segments.slice(i + 1).join('/'))
+      if (name === undefined || name === '') return { kind: 'modules', rel: segments.join('/') }
+      const folder = target(segments.slice(0, i).join('/'), name)
+      if (folder === undefined) return undefined
+      segments = [...(folder === '' ? [] : folder.split('/')), ...segments.slice(i + 1 + name.split('/').length)]
+    }
+  }
   return {
-    target,
-    declares: (dir, name) => declared.get(dir)?.has(name) ?? false,
-    entries: (dir) => [...(entries.get(dir) ?? [])],
+    candidates,
     isLinked: (folder) => linked.has(folder),
+    follow,
+    entries: (dir) => [...(entries.get(dir) ?? [])],
   }
 }

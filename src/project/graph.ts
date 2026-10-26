@@ -1,7 +1,7 @@
 import ts from 'typescript'
 import { posix } from 'node:path'
 import { compareStrings } from '../output/order.js'
-import { toPosix } from './fs.js'
+import { isProjectPath, toPosix } from './fs.js'
 import type { ProjectProgram } from './program.js'
 import { isTypeOnlyImport } from './parse.js'
 import { resolveSpecifier, specifierTarget, type Resolution } from './resolve.js'
@@ -31,8 +31,8 @@ export interface UnresolvedImport {
   reason: 'not-found' | 'non-literal'
   /** Repo-relative path the specifier points to (no extension probing), when it points into the repository. */
   target?: string
-  /** Repo-relative folder of the workspace package a bare specifier names, when the package is in the repository. */
-  package?: string
+  /** Repo-relative folders of the workspace package a bare specifier names, when it is in the repository. */
+  packages?: string[]
 }
 
 export interface ParseError {
@@ -83,8 +83,7 @@ class GraphBuilder {
   }
 
   isProjectFile(file: string): boolean {
-    const p = toPosix(file)
-    return p.startsWith(`${this.options.repoRoot}/`) && !p.includes('/node_modules/')
+    return isProjectPath(this.options.repoRoot, file)
   }
 
   addEdge(from: string, to: string, kind: EdgeKind): void {
@@ -105,7 +104,7 @@ class GraphBuilder {
       const entry: UnresolvedImport = { file: from, specifier: literal.text, line: lineOf(sf, literal), reason: 'not-found' }
       const target = specifierTarget(this.project, toPosix(sf.fileName), literal.text)
       if (target !== undefined && this.isProjectFile(target)) entry.target = this.rel(target)
-      if (r.package !== undefined) entry.package = this.rel(r.package)
+      if (r.packages !== undefined) entry.packages = r.packages.map((p) => this.rel(p))
       this.unresolved.push(entry)
       return undefined
     }

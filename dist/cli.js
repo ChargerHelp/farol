@@ -237125,7 +237125,7 @@ import { readFileSync as readFileSync4 } from "fs";
 import { posix as posix16, resolve as resolve3 } from "path";
 
 // src/classify/classify.ts
-import { posix as posix2 } from "path";
+import { posix as posix3 } from "path";
 
 // src/routes/paths.ts
 var KEY_SEPARATOR = " > ";
@@ -237473,7 +237473,90 @@ function computeRisk(input2) {
 
 // src/classify/dependencies.ts
 import { isDeepStrictEqual as isDeepStrictEqual2 } from "util";
+
+// src/project/workspace-links.ts
+var import_typescript3 = __toESM(require_typescript(), 1);
+import { posix } from "path";
 var DEPENDENCY_SECTIONS = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"];
+function packageName(specifier) {
+  if (specifier.startsWith("node:")) return void 0;
+  const [first = "", second] = specifier.split("/");
+  if (!first.startsWith("@")) return first;
+  return second === void 0 ? void 0 : `${first}/${second}`;
+}
+function readManifest(path3, text) {
+  const { config: config2, error: error62 } = import_typescript3.default.parseConfigFileTextToJson(path3, text);
+  if (error62 !== void 0 || typeof config2 !== "object" || config2 === null || Array.isArray(config2)) return { workspace: [], invalid: true };
+  const json3 = config2;
+  const workspace = [];
+  for (const section2 of DEPENDENCY_SECTIONS) {
+    const deps = json3[section2];
+    if (typeof deps !== "object" || deps === null) continue;
+    for (const [name, spec] of Object.entries(deps)) if (typeof spec === "string" && spec.startsWith("workspace:")) workspace.push(name);
+  }
+  return { ...typeof json3.name === "string" ? { name: json3.name } : {}, workspace, invalid: false };
+}
+var dirOf = (file2) => posix.dirname(file2) === "." ? "" : posix.dirname(file2);
+var join2 = (dir, path3) => dir === "" ? path3 : `${dir}/${path3}`;
+function readWorkspaceLinks(files, read) {
+  const folders = /* @__PURE__ */ new Map();
+  const declared = /* @__PURE__ */ new Map();
+  const invalid = /* @__PURE__ */ new Set();
+  for (const file2 of files) {
+    if (posix.basename(file2) !== "package.json" || file2.split("/").includes("node_modules")) continue;
+    const manifest = readManifest(file2, read(file2));
+    const dir = dirOf(file2);
+    if (manifest.invalid) invalid.add(dir);
+    if (manifest.name !== void 0) folders.set(manifest.name, [...folders.get(manifest.name) ?? [], dir]);
+    if (manifest.workspace.length > 0) declared.set(dir, new Set(manifest.workspace));
+  }
+  const candidates = (dir, name) => {
+    if (invalid.has(dir)) return [];
+    return declared.get(dir)?.has(name) ? folders.get(name) ?? [] : void 0;
+  };
+  const target = (dir, name) => {
+    const found = candidates(dir, name);
+    return found?.length === 1 ? found[0] : void 0;
+  };
+  const entries = /* @__PURE__ */ new Map();
+  const linked = /* @__PURE__ */ new Set();
+  const add = (dir, name) => {
+    let set2 = entries.get(dir);
+    if (!set2) entries.set(dir, set2 = /* @__PURE__ */ new Set());
+    set2.add(name);
+  };
+  for (const [dir, names] of declared) {
+    for (const name of names) {
+      const folder = target(dir, name);
+      if (folder === void 0) continue;
+      linked.add(folder);
+      const modules = join2(dir, "node_modules");
+      const [first = name, rest] = name.split("/");
+      add(modules, first);
+      if (rest !== void 0) add(`${modules}/${first}`, rest);
+    }
+  }
+  const follow = (rel) => {
+    let segments = rel === "" ? [] : rel.split("/");
+    for (; ; ) {
+      const i = segments.indexOf("node_modules");
+      if (i === -1) return { kind: "tree", rel: segments.join("/") };
+      const name = packageName(segments.slice(i + 1).join("/"));
+      if (name === void 0 || name === "") return { kind: "modules", rel: segments.join("/") };
+      const folder = target(segments.slice(0, i).join("/"), name);
+      if (folder === void 0) return void 0;
+      segments = [...folder === "" ? [] : folder.split("/"), ...segments.slice(i + 1 + name.split("/").length)];
+    }
+  };
+  return {
+    candidates,
+    isLinked: (folder) => linked.has(folder),
+    follow,
+    entries: (dir) => [...entries.get(dir) ?? []]
+  };
+}
+
+// src/classify/dependencies.ts
 var LOCKFILES = /* @__PURE__ */ new Set(["package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb", "go.sum", "uv.lock", "poetry.lock", "Pipfile.lock", "pdm.lock"]);
 var MANIFESTS = /* @__PURE__ */ new Set(["package.json", "go.mod", "pyproject.toml", "requirements.txt"]);
 var ECOSYSTEM_FILES = {
@@ -237584,7 +237667,7 @@ function describeChange(c) {
 }
 
 // src/classify/lockfile.ts
-import { posix } from "path";
+import { posix as posix2 } from "path";
 function manifestsWithDependencyChanges(manifests) {
   return sortedUnique(manifests.filter((m) => !("error" in m) && m.changes.length > 0).map((m) => m.manifest));
 }
@@ -237594,8 +237677,8 @@ function unreadable(manifests) {
 }
 var SHARED_LOCKFILES = new Set([...ECOSYSTEM_FILES.typescript].filter((name) => LOCKFILES.has(name)));
 function covers(lockfile, manifest) {
-  if (!SHARED_LOCKFILES.has(posix.basename(lockfile))) return false;
-  const dir = posix.dirname(lockfile);
+  if (!SHARED_LOCKFILES.has(posix2.basename(lockfile))) return false;
+  const dir = posix2.dirname(lockfile);
   return dir === "." || manifest.startsWith(`${dir}/`);
 }
 function lockfileReason(file2, manifests, otherManifests) {
@@ -237609,11 +237692,11 @@ function lockfileReason(file2, manifests, otherManifests) {
 
 // src/classify/classify.ts
 function withoutExtension(path3) {
-  const ext = posix2.extname(path3);
+  const ext = posix3.extname(path3);
   return ext === "" ? path3 : path3.slice(0, -ext.length);
 }
 function targetsRemoved(target, removed) {
-  return removed.some((r) => r === target || withoutExtension(r) === target || posix2.dirname(r) === target && posix2.basename(r).startsWith("index."));
+  return removed.some((r) => r === target || withoutExtension(r) === target || posix3.dirname(r) === target && posix3.basename(r).startsWith("index."));
 }
 var AffectedCollector = class {
   byKey = /* @__PURE__ */ new Map();
@@ -237684,10 +237767,10 @@ function classify(input2) {
     }
   }
   const unresolvedPackages = /* @__PURE__ */ new Map();
-  for (const u of graph.unresolved) if (u.package !== void 0 && !unresolvedPackages.has(u.package)) unresolvedPackages.set(u.package, u);
+  for (const u of graph.unresolved) for (const folder of u.packages ?? []) if (!unresolvedPackages.has(folder)) unresolvedPackages.set(folder, u);
   for (const file2 of changed) {
     for (const [folder, u] of unresolvedPackages) {
-      if (file2.startsWith(`${folder}/`)) reasons.push(reason("unresolved-import", `cannot resolve "${u.specifier}" (workspace package ${folder}), imported at ${u.file} line ${u.line}`, file2));
+      if (folder === "" || file2.startsWith(`${folder}/`)) reasons.push(reason("unresolved-import", `cannot resolve "${u.specifier}" (workspace package ${folder === "" ? "." : folder}), imported at ${u.file} line ${u.line}`, file2));
     }
   }
   const tableChanges = input2.baseRoutes ? compareRouteTables(input2.baseRoutes, headRoutes) : [];
@@ -237897,7 +237980,7 @@ function classify(input2) {
 }
 
 // src/cli/reviewers.ts
-import { posix as posix3 } from "path";
+import { posix as posix4 } from "path";
 
 // src/review/reviewers.ts
 var import_picomatch = __toESM(require_picomatch2(), 1);
@@ -237958,7 +238041,7 @@ async function suggestReviewers(ctx, files, roleOf, mergeBaseSha, headSha) {
     history.set(f.path, await logAuthors(ctx.repoRoot, mergeBaseSha, { path: f.oldPath ?? f.path, max: MAX_COMMITS, since: "12 months ago" }));
   }
   for (const f of code2.filter((x) => x.status === "added").slice(0, MAX_FILES)) {
-    const dir = posix3.dirname(f.path);
+    const dir = posix4.dirname(f.path);
     if (dir !== ".") history.set(f.path, await logAuthors(ctx.repoRoot, mergeBaseSha, { path: dir, max: MAX_COMMITS, since: "12 months ago" }));
   }
   return rankReviewers(code2.map((f) => f.path), rules, history, prAuthors);
@@ -238243,7 +238326,7 @@ var SignalsSchema = external_exports.object({
   security: SecuritySignalSchema,
   vulnerabilities: VulnerabilitiesSignalSchema
 }).strict();
-var UnresolvedImportSchema = external_exports.object({ file: path2, specifier: external_exports.string(), line, reason: external_exports.enum(["not-found", "non-literal"]), target: path2.optional(), package: path2.optional() }).strict();
+var UnresolvedImportSchema = external_exports.object({ file: path2, specifier: external_exports.string(), line, reason: external_exports.enum(["not-found", "non-literal"]), target: path2.optional(), packages: external_exports.array(external_exports.string()).optional() }).strict();
 var DynamicRouteSchema = external_exports.object({ file: path2, line, detail: external_exports.string() }).strict();
 var DependencyChangeSchema = external_exports.object({
   manifest: path2,
@@ -238393,70 +238476,26 @@ function writeTextFile(path3, text) {
 
 // src/project/fs.ts
 import { posix as posix5 } from "path";
-
-// src/project/workspace-links.ts
-var import_typescript3 = __toESM(require_typescript(), 1);
-import { posix as posix4 } from "path";
-function readManifest(path3, text) {
-  const { config: config2 } = import_typescript3.default.parseConfigFileTextToJson(path3, text);
-  if (typeof config2 !== "object" || config2 === null) return { workspace: [] };
-  const json3 = config2;
-  const workspace = [];
-  for (const section2 of DEPENDENCY_SECTIONS) {
-    const deps = json3[section2];
-    if (typeof deps !== "object" || deps === null) continue;
-    for (const [name, spec] of Object.entries(deps)) if (typeof spec === "string" && spec.startsWith("workspace:")) workspace.push(name);
-  }
-  return { ...typeof json3.name === "string" ? { name: json3.name } : {}, workspace };
-}
-var dirOf = (file2) => posix4.dirname(file2) === "." ? "" : posix4.dirname(file2);
-var join2 = (dir, path3) => dir === "" ? path3 : `${dir}/${path3}`;
-function readWorkspaceLinks(files, read) {
-  const folders = /* @__PURE__ */ new Map();
-  const declared = /* @__PURE__ */ new Map();
-  for (const file2 of files) {
-    if (posix4.basename(file2) !== "package.json" || file2.split("/").includes("node_modules")) continue;
-    const manifest = readManifest(file2, read(file2));
-    const dir = dirOf(file2);
-    if (manifest.name !== void 0) folders.set(manifest.name, folders.has(manifest.name) ? null : dir);
-    if (manifest.workspace.length > 0) declared.set(dir, new Set(manifest.workspace));
-  }
-  const target = (dir, name) => declared.get(dir)?.has(name) ? folders.get(name) ?? void 0 : void 0;
-  const entries = /* @__PURE__ */ new Map();
-  const linked = /* @__PURE__ */ new Set();
-  const add = (dir, name) => {
-    let set2 = entries.get(dir);
-    if (!set2) entries.set(dir, set2 = /* @__PURE__ */ new Set());
-    set2.add(name);
-  };
-  for (const [dir, names] of declared) {
-    for (const name of names) {
-      const folder = target(dir, name);
-      if (folder === void 0) continue;
-      linked.add(folder);
-      const modules = join2(dir, "node_modules");
-      const [first = name, rest] = name.split("/");
-      add(modules, first);
-      if (rest !== void 0) add(`${modules}/${first}`, rest);
-    }
-  }
-  return {
-    target,
-    declares: (dir, name) => declared.get(dir)?.has(name) ?? false,
-    entries: (dir) => [...entries.get(dir) ?? []],
-    isLinked: (folder) => linked.has(folder)
-  };
-}
-
-// src/project/fs.ts
 function toPosix(path3) {
   return path3.replaceAll("\\", "/");
 }
 function isInside(root, path3) {
   return path3 === root || path3.startsWith(root.endsWith("/") ? root : `${root}/`);
 }
+function isProjectPath(root, path3) {
+  const p = toPosix(path3);
+  return isInside(toPosix(root), p) && !p.includes("/node_modules/");
+}
+function ancestors(dir, root) {
+  const out = [];
+  for (let d = dir; isInside(root, d); d = posix5.dirname(d)) {
+    out.push(d);
+    if (d === root || posix5.dirname(d) === d) break;
+  }
+  return out;
+}
 var OUTPUT_EXTENSIONS = [".d.mts", ".d.cts", ".d.ts", ".mjs", ".cjs", ".js", ".jsx"];
-var SOURCE_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts"];
+var TS_SOURCE_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts"];
 function createTreeFileSystem(options) {
   const root = toPosix(options.repoRoot);
   const files = new Set(options.files);
@@ -238490,26 +238529,18 @@ function createTreeFileSystem(options) {
   };
   const links = readWorkspaceLinks(files, content);
   const abs = (rel) => rel === "" ? root : `${root}/${rel}`;
+  const relOf = (path3) => isInside(root, path3) ? path3 === root ? "" : path3.slice(root.length + 1) : void 0;
   const locate = (path3) => {
     const p = toPosix(path3);
-    if (!isInside(root, p)) return { kind: "fallback", path: p };
-    let segments = p === root ? [] : p.slice(root.length + 1).split("/");
-    for (; ; ) {
-      const i = segments.indexOf("node_modules");
-      if (i === -1) return { kind: "tree", rel: segments.join("/") };
-      const nameEnd = i + (segments[i + 1]?.startsWith("@") === true ? 3 : 2);
-      if (segments.length < nameEnd) return { kind: "modules", rel: segments.join("/") };
-      const folder = links.target(segments.slice(0, i).join("/"), segments.slice(i + 1, nameEnd).join("/"));
-      if (folder === void 0) return { kind: "fallback", path: abs(segments.join("/")) };
-      segments = [...folder === "" ? [] : folder.split("/"), ...segments.slice(nameEnd)];
-    }
+    const rel = relOf(p);
+    const followed = rel === void 0 ? void 0 : links.follow(rel);
+    if (followed === void 0) return { kind: "fallback", path: p };
+    return followed.kind === "tree" ? { kind: "tree", rel: followed.rel } : { kind: "modules", rel: followed.rel, path: abs(followed.rel) };
   };
   const sourceOf = (rel) => {
     const segments = rel.split("/");
     for (let i = 0; i < segments.length; i++) {
-      if (segments[i] !== "dist") continue;
-      const pkg = segments.slice(0, i).join("/");
-      if (links.isLinked(pkg)) return [...segments.slice(0, i), "src", ...segments.slice(i + 1)].join("/");
+      if (segments[i] === "dist" && links.isLinked(segments.slice(0, i).join("/"))) return [...segments.slice(0, i), "src", ...segments.slice(i + 1)].join("/");
     }
     return void 0;
   };
@@ -238519,51 +238550,54 @@ function createTreeFileSystem(options) {
     const ext = source === void 0 ? void 0 : OUTPUT_EXTENSIONS.find((e) => source.endsWith(e));
     if (source === void 0 || ext === void 0) return void 0;
     const stem2 = source.slice(0, -ext.length);
-    return SOURCE_EXTENSIONS.map((e) => stem2 + e).find((f) => files.has(f));
+    return TS_SOURCE_EXTENSIONS.map((e) => stem2 + e).find((f) => files.has(f));
   };
   const treeDirectory = (rel) => {
-    if (children.has(rel)) return true;
+    const committed = children.get(rel);
+    if (committed) return committed;
     const source = sourceOf(rel);
-    return source !== void 0 && children.has(source);
+    const mirrored = source === void 0 ? void 0 : children.get(source);
+    return mirrored && { files: /* @__PURE__ */ new Set(), directories: mirrored.directories };
   };
-  const merged = (path3, rel) => {
-    const disk = options.fallback.getEntries(path3);
-    return { files: disk.files, directories: [.../* @__PURE__ */ new Set([...disk.directories, ...links.entries(rel)])] };
+  const modulesEntries = (l) => {
+    const installed = options.fallback.getEntries(l.path);
+    return { files: installed.files, directories: [.../* @__PURE__ */ new Set([...installed.directories, ...links.entries(l.rel)])] };
   };
   return {
     fileExists: (path3) => {
       const l = locate(path3);
-      return l.kind === "tree" ? treeFile(l.rel) !== void 0 : options.fallback.fileExists(l.kind === "modules" ? abs(l.rel) : l.path);
+      return l.kind === "tree" ? treeFile(l.rel) !== void 0 : options.fallback.fileExists(l.path);
     },
     readFile: (path3) => {
       const l = locate(path3);
-      if (l.kind !== "tree") return options.fallback.readFile(l.kind === "modules" ? abs(l.rel) : l.path);
+      if (l.kind !== "tree") return options.fallback.readFile(l.path);
       const file2 = treeFile(l.rel);
       return file2 === void 0 ? void 0 : content(file2);
     },
     directoryExists: (path3) => {
       const l = locate(path3);
-      if (l.kind === "tree") return treeDirectory(l.rel);
-      if (l.kind === "modules") return links.entries(l.rel).length > 0 || options.fallback.directoryExists(abs(l.rel));
-      return options.fallback.directoryExists(l.path);
+      if (l.kind === "tree") return treeDirectory(l.rel) !== void 0;
+      return l.kind === "modules" && links.entries(l.rel).length > 0 || options.fallback.directoryExists(l.path);
     },
     getDirectories: (path3) => {
       const l = locate(path3);
-      if (l.kind === "tree") return [...children.get(l.rel)?.directories ?? []];
-      if (l.kind === "modules") return merged(abs(l.rel), l.rel).directories;
-      return options.fallback.getDirectories(l.path);
+      if (l.kind === "tree") return [...treeDirectory(l.rel)?.directories ?? []];
+      return l.kind === "modules" ? modulesEntries(l).directories : options.fallback.getDirectories(l.path);
     },
     getEntries: (path3) => {
       const l = locate(path3);
-      if (l.kind === "modules") return merged(abs(l.rel), l.rel);
+      if (l.kind === "modules") return modulesEntries(l);
       if (l.kind === "fallback") return options.fallback.getEntries(l.path);
-      const e = children.get(l.rel);
+      const e = treeDirectory(l.rel);
       return { files: [...e?.files ?? []], directories: [...e?.directories ?? []] };
     },
     realpath: (path3) => {
       const l = locate(path3);
-      if (l.kind === "tree") return abs(treeFile(l.rel) ?? l.rel);
-      return toPosix(options.fallback.realpath(l.kind === "modules" ? abs(l.rel) : l.path));
+      return l.kind === "tree" ? abs(treeFile(l.rel) ?? l.rel) : toPosix(options.fallback.realpath(l.path));
+    },
+    workspaceCandidates: (dir, name) => {
+      const rel = relOf(toPosix(dir));
+      return rel === void 0 ? void 0 : links.candidates(rel, name)?.map(abs);
     }
   };
 }
@@ -238640,34 +238674,25 @@ function isProjectSpecifier(specifier, project) {
   }
   return false;
 }
-function isInRepo(file2, repoRoot2) {
-  return file2.startsWith(`${repoRoot2}/`) && !file2.includes("/node_modules/");
+function manifestCandidates(project, dir, name) {
+  const manifest = `${dir}/package.json`;
+  const { workspace, invalid } = readManifest(manifest, project.fs.readFile(manifest) ?? "");
+  return invalid || workspace.includes(name) ? [] : void 0;
 }
-function packageName(specifier) {
-  if (specifier.startsWith("node:")) return void 0;
-  const [first = "", second] = specifier.split("/");
-  if (!first.startsWith("@")) return first;
-  return second === void 0 ? void 0 : `${first}/${second}`;
-}
-function declaresWorkspace(project, repoRoot2, dir, name) {
-  for (let d = dir; d === repoRoot2 || d.startsWith(`${repoRoot2}/`); d = posix6.dirname(d)) {
-    const manifest = `${d}/package.json`;
-    const text = project.fs.readFile(manifest);
-    if (text !== void 0) return readManifest(manifest, text).workspace.includes(name);
-  }
-  return false;
-}
-function workspacePackage(project, repoRoot2, containingFile, specifier) {
+function workspacePackages(project, repoRoot2, containingFile, specifier) {
   const name = packageName(specifier);
   if (name === void 0) return void 0;
-  const importerDir = posix6.dirname(containingFile);
-  for (let dir = importerDir; dir === repoRoot2 || dir.startsWith(`${repoRoot2}/`); dir = posix6.dirname(dir)) {
+  const dirs = ancestors(posix6.dirname(containingFile), repoRoot2);
+  for (const dir of dirs) {
     const link2 = `${dir}/node_modules/${name}`;
     if (!project.fs.directoryExists(link2)) continue;
     const folder = toPosix(project.fs.realpath(link2));
-    return isInRepo(folder, repoRoot2) ? { package: folder } : void 0;
+    return isProjectPath(repoRoot2, folder) ? { packages: [folder] } : void 0;
   }
-  return declaresWorkspace(project, repoRoot2, importerDir, name) ? {} : void 0;
+  const manifestDir = dirs.find((d) => project.fs.fileExists(`${d}/package.json`));
+  if (manifestDir === void 0) return void 0;
+  const candidates = project.fs.workspaceCandidates ? project.fs.workspaceCandidates(manifestDir, name) : manifestCandidates(project, manifestDir, name);
+  return candidates === void 0 ? void 0 : { packages: [...candidates] };
 }
 function resolveSpecifier(project, repoRoot2, containingFile, specifier, mode) {
   const cleaned = specifier.split("?")[0]?.split("#")[0] ?? specifier;
@@ -238675,8 +238700,9 @@ function resolveSpecifier(project, repoRoot2, containingFile, specifier, mode) {
   const resolved = result.resolvedModule;
   if (resolved) {
     const file2 = toPosix(project.fs.realpath(resolved.resolvedFileName));
-    if (!isInRepo(file2, repoRoot2)) return { kind: "external" };
-    if (project.options.preserveSymlinks === true && toPosix(resolved.resolvedFileName).includes("/node_modules/")) return { kind: "unresolved", ...workspacePackage(project, repoRoot2, containingFile, cleaned) };
+    if (!isProjectPath(repoRoot2, file2)) return { kind: "external" };
+    const heldUnderNodeModules = project.options.preserveSymlinks === true && toPosix(resolved.resolvedFileName).includes("/node_modules/");
+    if (heldUnderNodeModules) return { kind: "unresolved", ...workspacePackages(project, repoRoot2, containingFile, cleaned) };
     return { kind: "module", file: file2 };
   }
   const ext = posix6.extname(cleaned);
@@ -238689,12 +238715,12 @@ function resolveSpecifier(project, repoRoot2, containingFile, specifier, mode) {
     for (const candidate of candidates) {
       if (project.fs.fileExists(candidate)) {
         const file2 = toPosix(project.fs.realpath(candidate));
-        return isInRepo(file2, repoRoot2) ? { kind: "asset", file: file2 } : { kind: "external" };
+        return isProjectPath(repoRoot2, file2) ? { kind: "asset", file: file2 } : { kind: "external" };
       }
     }
   }
   if (isProjectSpecifier(cleaned, project)) return { kind: "unresolved" };
-  const workspace = workspacePackage(project, repoRoot2, containingFile, cleaned);
+  const workspace = workspacePackages(project, repoRoot2, containingFile, cleaned);
   return workspace === void 0 ? { kind: "external" } : { kind: "unresolved", ...workspace };
 }
 
@@ -242648,15 +242674,15 @@ function visit2(root, visitor, visitorKeys = QueryDocumentKeys) {
   let key = void 0;
   let parent = void 0;
   const path3 = [];
-  const ancestors = [];
+  const ancestors2 = [];
   do {
     index++;
     const isLeaving = index === keys.length;
     const isEdited = isLeaving && edits.length !== 0;
     if (isLeaving) {
-      key = ancestors.length === 0 ? void 0 : path3[path3.length - 1];
+      key = ancestors2.length === 0 ? void 0 : path3[path3.length - 1];
       node2 = parent;
-      parent = ancestors.pop();
+      parent = ancestors2.pop();
       if (isEdited) {
         if (inArray) {
           node2 = node2.slice();
@@ -242695,7 +242721,7 @@ function visit2(root, visitor, visitorKeys = QueryDocumentKeys) {
       var _enterLeaveMap$get, _enterLeaveMap$get2;
       isNode(node2) || devAssert(false, `Invalid AST Node: ${inspect(node2)}.`);
       const visitFn = isLeaving ? (_enterLeaveMap$get = enterLeaveMap.get(node2.kind)) === null || _enterLeaveMap$get === void 0 ? void 0 : _enterLeaveMap$get.leave : (_enterLeaveMap$get2 = enterLeaveMap.get(node2.kind)) === null || _enterLeaveMap$get2 === void 0 ? void 0 : _enterLeaveMap$get2.enter;
-      result = visitFn === null || visitFn === void 0 ? void 0 : visitFn.call(visitor, node2, key, parent, path3, ancestors);
+      result = visitFn === null || visitFn === void 0 ? void 0 : visitFn.call(visitor, node2, key, parent, path3, ancestors2);
       if (result === BREAK) {
         break;
       }
@@ -242735,7 +242761,7 @@ function visit2(root, visitor, visitorKeys = QueryDocumentKeys) {
       index = -1;
       edits = [];
       if (parent) {
-        ancestors.push(parent);
+        ancestors2.push(parent);
       }
       parent = node2;
     }
@@ -245130,7 +245156,7 @@ function KnownDirectivesRule(context) {
     }
   }
   return {
-    Directive(node2, _key, _parent, _path, ancestors) {
+    Directive(node2, _key, _parent, _path, ancestors2) {
       const name = node2.name.value;
       const locations = locationsMap[name];
       if (!locations) {
@@ -245141,7 +245167,7 @@ function KnownDirectivesRule(context) {
         );
         return;
       }
-      const candidateLocation = getDirectiveLocationForASTPath(ancestors);
+      const candidateLocation = getDirectiveLocationForASTPath(ancestors2);
       if (candidateLocation && !locations.includes(candidateLocation)) {
         context.reportError(
           new GraphQLError(
@@ -245155,8 +245181,8 @@ function KnownDirectivesRule(context) {
     }
   };
 }
-function getDirectiveLocationForASTPath(ancestors) {
-  const appliedTo = ancestors[ancestors.length - 1];
+function getDirectiveLocationForASTPath(ancestors2) {
+  const appliedTo = ancestors2[ancestors2.length - 1];
   "kind" in appliedTo || invariant(false);
   switch (appliedTo.kind) {
     case Kind.OPERATION_DEFINITION:
@@ -245197,7 +245223,7 @@ function getDirectiveLocationForASTPath(ancestors) {
     case Kind.INPUT_OBJECT_TYPE_EXTENSION:
       return DirectiveLocation.INPUT_OBJECT;
     case Kind.INPUT_VALUE_DEFINITION: {
-      const parentNode = ancestors[ancestors.length - 3];
+      const parentNode = ancestors2[ancestors2.length - 3];
       "kind" in parentNode || invariant(false);
       return parentNode.kind === Kind.INPUT_OBJECT_TYPE_DEFINITION ? DirectiveLocation.INPUT_FIELD_DEFINITION : DirectiveLocation.ARGUMENT_DEFINITION;
     }
@@ -245250,11 +245276,11 @@ function KnownTypeNamesRule(context) {
     ...Object.keys(definedTypes)
   ];
   return {
-    NamedType(node2, _1, parent, _2, ancestors) {
+    NamedType(node2, _1, parent, _2, ancestors2) {
       const typeName = node2.name.value;
       if (!existingTypesMap[typeName] && !definedTypes[typeName]) {
         var _ancestors$;
-        const definitionNode = (_ancestors$ = ancestors[2]) !== null && _ancestors$ !== void 0 ? _ancestors$ : parent;
+        const definitionNode = (_ancestors$ = ancestors2[2]) !== null && _ancestors$ !== void 0 ? _ancestors$ : parent;
         const isSDL = definitionNode != null && isSDLNode(definitionNode);
         if (isSDL && standardTypeNames.includes(typeName)) {
           return;
@@ -249588,10 +249614,7 @@ var import_picomatch2 = __toESM(require_picomatch2(), 1);
 function buildBackendTable(input2) {
   const root = input2.repoRoot.replaceAll("\\", "/");
   const rel = (fileName) => posix9.relative(root, fileName.replaceAll("\\", "/"));
-  const isProjectFile = (fileName) => {
-    const p = fileName.replaceAll("\\", "/");
-    return p.startsWith(`${root}/`) && !p.includes("/node_modules/");
-  };
+  const isProjectFile = (fileName) => isProjectPath(root, fileName);
   const programFiles = input2.project.program.getSourceFiles().filter((sf) => isProjectFile(sf.fileName) && !sf.isDeclarationFile && input2.isOrigin(rel(sf.fileName)));
   const problems = [];
   const docs = [];
@@ -249758,8 +249781,7 @@ var GraphBuilder = class {
     return posix10.relative(this.options.repoRoot, toPosix(file2));
   }
   isProjectFile(file2) {
-    const p = toPosix(file2);
-    return p.startsWith(`${this.options.repoRoot}/`) && !p.includes("/node_modules/");
+    return isProjectPath(this.options.repoRoot, file2);
   }
   addEdge(from, to, kind) {
     if (from === to) return;
@@ -249777,7 +249799,7 @@ var GraphBuilder = class {
       const entry = { file: from, specifier: literal3.text, line: lineOf(sf, literal3), reason: "not-found" };
       const target = specifierTarget(this.project, toPosix(sf.fileName), literal3.text);
       if (target !== void 0 && this.isProjectFile(target)) entry.target = this.rel(target);
-      if (r.package !== void 0) entry.package = this.rel(r.package);
+      if (r.packages !== void 0) entry.packages = r.packages.map((p) => this.rel(p));
       this.unresolved.push(entry);
       return void 0;
     }
@@ -250822,7 +250844,7 @@ function getRouteAdapter(name) {
 }
 
 // src/cli/workspace.ts
-var SOURCE_EXTENSIONS2 = /* @__PURE__ */ new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs", ".json", ".graphql", ".gql"]);
+var SOURCE_EXTENSIONS = /* @__PURE__ */ new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs", ".json", ".graphql", ".gql"]);
 function createRepoRoleOf(ctx) {
   const roleOf = createRoleMatcher(ctx.config);
   const isInfra = createInfraMatcher(ctx.config);
@@ -250875,7 +250897,7 @@ async function createFileSystem(ctx, ref) {
   const disk = createDiskFileSystem();
   if (ref === void 0) return { fs: disk };
   const treeFiles = await listFiles(ctx.repoRoot, ref);
-  const wanted = treeFiles.filter((f) => SOURCE_EXTENSIONS2.has(posix14.extname(f)));
+  const wanted = treeFiles.filter((f) => SOURCE_EXTENSIONS.has(posix14.extname(f)));
   const contents = await readFiles(ctx.repoRoot, ref, wanted);
   return { fs: createTreeFileSystem({ repoRoot: ctx.repoRoot, files: treeFiles, contents, fallback: disk }), treeFiles };
 }
@@ -250996,7 +251018,7 @@ function loadBackendWorkspace(ctx, fs2, treeFiles, lap) {
   const files = (treeFiles ?? diskFiles(projectDir, repoRoot2)).filter((f) => ctx.projectPrefix === "" || f.startsWith(`${ctx.projectPrefix}/`));
   const backend = buildBackendTable({ project, repoRoot: repoRoot2, files, read: (f) => fs2.readFile(posix14.join(repoRoot2, f)), isOrigin, graphql: ctx.config.backend.graphql, rest: ctx.config.backend.rest, context: projectGlobs(ctx, ctx.config.backend.context) });
   const rel = (fileName) => posix14.relative(repoRoot2, toPosix(fileName));
-  const isProjectFile = (fileName) => toPosix(fileName).startsWith(`${repoRoot2}/`) && !toPosix(fileName).includes("/node_modules/");
+  const isProjectFile = (fileName) => isProjectPath(repoRoot2, fileName);
   const extra = globalUses(project, backend.globals, rel, isProjectFile);
   if (extra.length > 0) {
     const nodes = new Set(graph.nodes);
@@ -251352,7 +251374,7 @@ function baseDecls(file2, code2) {
 function tsDeclGraph(input2) {
   const root = input2.repoRoot.replaceAll("\\", "/");
   const rel = (f) => posix15.relative(root, f.replaceAll("\\", "/"));
-  const isProject = (f) => f.replaceAll("\\", "/").startsWith(`${root}/`) && !f.includes("/node_modules/") && input2.isOrigin(rel(f));
+  const isProject = (f) => isProjectPath(root, f) && input2.isOrigin(rel(f));
   const checker = input2.project.program.getTypeChecker();
   const decls = [];
   const nodes = [];
@@ -251475,7 +251497,7 @@ async function baseRouteTable(ctx, ws, mergeBaseSha, basePath) {
   const files = await listFiles(ctx.repoRoot, mergeBaseSha);
   const routeFiles = ws.routesFromDirectory ? filesUnder(files, basePath) : [];
   if (ws.routesFromDirectory ? routeFiles.length === 0 : !files.includes(basePath)) return { routes: [], dynamic: [], sources: [] };
-  const contents = await readFiles(ctx.repoRoot, mergeBaseSha, files.filter((f) => SOURCE_EXTENSIONS2.has(posix16.extname(f)) || f === basePath));
+  const contents = await readFiles(ctx.repoRoot, mergeBaseSha, files.filter((f) => SOURCE_EXTENSIONS.has(posix16.extname(f)) || f === basePath));
   const code2 = ws.routesFromDirectory ? "" : contents.get(basePath);
   if (code2 === void 0) throw new Error(`internal: base content of ${basePath} was not read`);
   const fs2 = createTreeFileSystem({ repoRoot: ctx.repoRoot, files, contents, fallback: createDiskFileSystem() });

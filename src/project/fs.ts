@@ -10,6 +10,8 @@ export interface ProjectFileSystem {
   /** Files and directories directly inside a directory (names, not paths). */
   getEntries(path: string): { files: string[]; directories: string[] }
   realpath(path: string): string
+  /** Folders a `workspace:` dependency of `<dir>/package.json` may name (see `WorkspaceLinks.candidates`); git trees only. */
+  workspaceCandidates?(dir: string, name: string): readonly string[] | undefined
 }
 
 export function toPosix(path: string): string {
@@ -20,13 +22,29 @@ function isInside(root: string, path: string): boolean {
   return path === root || path.startsWith(root.endsWith('/') ? root : `${root}/`)
 }
 
-/** Build outputs a workspace package ships, and the source extensions they come from, in lookup order. */
+/** Whether an absolute path belongs to the repository's own code: inside it and not in an installed package. */
+export function isProjectPath(root: string, path: string): boolean {
+  const p = toPosix(path)
+  return isInside(toPosix(root), p) && !p.includes('/node_modules/')
+}
+
+/** `dir` and the directories above it, up to `root` (absolute); empty when `dir` is outside `root`. */
+export function ancestors(dir: string, root: string): string[] {
+  const out: string[] = []
+  for (let d = dir; isInside(root, d); d = posix.dirname(d)) {
+    out.push(d)
+    if (d === root || posix.dirname(d) === d) break
+  }
+  return out
+}
+
+/** Build outputs a workspace package ships, and the TypeScript sources they come from, in lookup order. */
 const OUTPUT_EXTENSIONS = ['.d.mts', '.d.cts', '.d.ts', '.mjs', '.cjs', '.js', '.jsx']
-const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts']
+const TS_SOURCE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts']
 
 type Location =
   | { kind: 'tree'; rel: string } // repo-relative path in the tree, after following workspace links
-  | { kind: 'modules'; rel: string } // a `node_modules` or `node_modules/@scope` directory: links plus installed packages
+  | { kind: 'modules'; rel: string; path: string } // a `node_modules` or `node_modules/@scope` directory: links plus installed packages
   | { kind: 'fallback'; path: string }
 
 /**
@@ -76,29 +94,21 @@ export function createTreeFileSystem(options: {
   }
   const links = readWorkspaceLinks(files, content)
   const abs = (rel: string): string => (rel === '' ? root : `${root}/${rel}`)
+  const relOf = (path: string): string | undefined => (isInside(root, path) ? (path === root ? '' : path.slice(root.length + 1)) : undefined)
 
   const locate = (path: string): Location => {
     const p = toPosix(path)
-    if (!isInside(root, p)) return { kind: 'fallback', path: p }
-    let segments = p === root ? [] : p.slice(root.length + 1).split('/')
-    for (;;) {
-      const i = segments.indexOf('node_modules')
-      if (i === -1) return { kind: 'tree', rel: segments.join('/') }
-      const nameEnd = i + (segments[i + 1]?.startsWith('@') === true ? 3 : 2)
-      if (segments.length < nameEnd) return { kind: 'modules', rel: segments.join('/') }
-      const folder = links.target(segments.slice(0, i).join('/'), segments.slice(i + 1, nameEnd).join('/'))
-      if (folder === undefined) return { kind: 'fallback', path: abs(segments.join('/')) }
-      segments = [...(folder === '' ? [] : folder.split('/')), ...segments.slice(nameEnd)]
-    }
+    const rel = relOf(p)
+    const followed = rel === undefined ? undefined : links.follow(rel)
+    if (followed === undefined) return { kind: 'fallback', path: p }
+    return followed.kind === 'tree' ? { kind: 'tree', rel: followed.rel } : { kind: 'modules', rel: followed.rel, path: abs(followed.rel) }
   }
 
   /** `<package>/src/<sub>` for a `<package>/dist/<sub>` path of a linked package; undefined otherwise. */
   const sourceOf = (rel: string): string | undefined => {
     const segments = rel.split('/')
     for (let i = 0; i < segments.length; i++) {
-      if (segments[i] !== 'dist') continue
-      const pkg = segments.slice(0, i).join('/')
-      if (links.isLinked(pkg)) return [...segments.slice(0, i), 'src', ...segments.slice(i + 1)].join('/')
+      if (segments[i] === 'dist' && links.isLinked(segments.slice(0, i).join('/'))) return [...segments.slice(0, i), 'src', ...segments.slice(i + 1)].join('/')
     }
     return undefined
   }
@@ -109,52 +119,59 @@ export function createTreeFileSystem(options: {
     const ext = source === undefined ? undefined : OUTPUT_EXTENSIONS.find((e) => source.endsWith(e))
     if (source === undefined || ext === undefined) return undefined
     const stem = source.slice(0, -ext.length)
-    return SOURCE_EXTENSIONS.map((e) => stem + e).find((f) => files.has(f))
+    return TS_SOURCE_EXTENSIONS.map((e) => stem + e).find((f) => files.has(f))
   }
-  const treeDirectory = (rel: string): boolean => {
-    if (children.has(rel)) return true
+  /**
+   * The committed directory, or a missing output directory of a linked package, with the subdirectories of the source
+   * directory it mirrors (output file names are only known when asked for, so none are listed).
+   */
+  const treeDirectory = (rel: string): { files: ReadonlySet<string>; directories: ReadonlySet<string> } | undefined => {
+    const committed = children.get(rel)
+    if (committed) return committed
     const source = sourceOf(rel)
-    return source !== undefined && children.has(source)
+    const mirrored = source === undefined ? undefined : children.get(source)
+    return mirrored && { files: new Set(), directories: mirrored.directories }
   }
-  const merged = (path: string, rel: string): { files: string[]; directories: string[] } => {
-    const disk = options.fallback.getEntries(path)
-    return { files: disk.files, directories: [...new Set([...disk.directories, ...links.entries(rel)])] }
+  const modulesEntries = (l: { rel: string; path: string }): { files: string[]; directories: string[] } => {
+    const installed = options.fallback.getEntries(l.path)
+    return { files: installed.files, directories: [...new Set([...installed.directories, ...links.entries(l.rel)])] }
   }
 
   return {
     fileExists: (path) => {
       const l = locate(path)
-      return l.kind === 'tree' ? treeFile(l.rel) !== undefined : options.fallback.fileExists(l.kind === 'modules' ? abs(l.rel) : l.path)
+      return l.kind === 'tree' ? treeFile(l.rel) !== undefined : options.fallback.fileExists(l.path)
     },
     readFile: (path) => {
       const l = locate(path)
-      if (l.kind !== 'tree') return options.fallback.readFile(l.kind === 'modules' ? abs(l.rel) : l.path)
+      if (l.kind !== 'tree') return options.fallback.readFile(l.path)
       const file = treeFile(l.rel)
       return file === undefined ? undefined : content(file)
     },
     directoryExists: (path) => {
       const l = locate(path)
-      if (l.kind === 'tree') return treeDirectory(l.rel)
-      if (l.kind === 'modules') return links.entries(l.rel).length > 0 || options.fallback.directoryExists(abs(l.rel))
-      return options.fallback.directoryExists(l.path)
+      if (l.kind === 'tree') return treeDirectory(l.rel) !== undefined
+      return (l.kind === 'modules' && links.entries(l.rel).length > 0) || options.fallback.directoryExists(l.path)
     },
     getDirectories: (path) => {
       const l = locate(path)
-      if (l.kind === 'tree') return [...(children.get(l.rel)?.directories ?? [])]
-      if (l.kind === 'modules') return merged(abs(l.rel), l.rel).directories
-      return options.fallback.getDirectories(l.path)
+      if (l.kind === 'tree') return [...(treeDirectory(l.rel)?.directories ?? [])]
+      return l.kind === 'modules' ? modulesEntries(l).directories : options.fallback.getDirectories(l.path)
     },
     getEntries: (path) => {
       const l = locate(path)
-      if (l.kind === 'modules') return merged(abs(l.rel), l.rel)
+      if (l.kind === 'modules') return modulesEntries(l)
       if (l.kind === 'fallback') return options.fallback.getEntries(l.path)
-      const e = children.get(l.rel)
+      const e = treeDirectory(l.rel)
       return { files: [...(e?.files ?? [])], directories: [...(e?.directories ?? [])] }
     },
     realpath: (path) => {
       const l = locate(path)
-      if (l.kind === 'tree') return abs(treeFile(l.rel) ?? l.rel)
-      return toPosix(options.fallback.realpath(l.kind === 'modules' ? abs(l.rel) : l.path))
+      return l.kind === 'tree' ? abs(treeFile(l.rel) ?? l.rel) : toPosix(options.fallback.realpath(l.path))
+    },
+    workspaceCandidates: (dir, name) => {
+      const rel = relOf(toPosix(dir))
+      return rel === undefined ? undefined : links.candidates(rel, name)?.map(abs)
     },
   }
 }

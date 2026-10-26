@@ -145,10 +145,10 @@ export function classify(input: ClassifyInput): ClassifyResult {
   }
   // A workspace package whose entry does not resolve: what its changed files reach is unknown.
   const unresolvedPackages = new Map<string, (typeof graph.unresolved)[number]>()
-  for (const u of graph.unresolved) if (u.package !== undefined && !unresolvedPackages.has(u.package)) unresolvedPackages.set(u.package, u)
+  for (const u of graph.unresolved) for (const folder of u.packages ?? []) if (!unresolvedPackages.has(folder)) unresolvedPackages.set(folder, u)
   for (const file of changed) {
     for (const [folder, u] of unresolvedPackages) {
-      if (file.startsWith(`${folder}/`)) reasons.push(reason('unresolved-import', `cannot resolve "${u.specifier}" (workspace package ${folder}), imported at ${u.file} line ${u.line}`, file))
+      if (folder === '' || file.startsWith(`${folder}/`)) reasons.push(reason('unresolved-import', `cannot resolve "${u.specifier}" (workspace package ${folder === '' ? '.' : folder}), imported at ${u.file} line ${u.line}`, file))
     }
   }
 
