@@ -46,6 +46,9 @@ export interface ManifestDiff {
   otherFields: string[]
 }
 
+/** A manifest's dependency diff, or why it could not be read. */
+export type ManifestResult = ManifestDiff | { manifest: string; error: string }
+
 export class ManifestParseError extends Error {}
 
 interface Version {

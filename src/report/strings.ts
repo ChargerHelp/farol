@@ -297,6 +297,7 @@ export const FINDINGS_TEXT = {
   otherDependenciesDetail: (list: string) => `Patch/minor bumps, range-only changes or new packages: ${list}.`,
   lockfileOnly: 'Lockfile changed without any manifest change',
   lockfileOnlyDetail: 'Resolved versions of direct or transitive dependencies may have changed.',
+  lockfileElsewhere: "Shared lockfile changed by another project's dependencies",
   manifestChanged: (n: number) => `${plural(n, 'package manifest', 'package manifests')} changed beyond dependencies`,
   globalFiles: (n: number) => `${plural(n, 'global file', 'global files')} changed`,
   globalDetail: 'Configuration or app entry: the change may affect everything.',

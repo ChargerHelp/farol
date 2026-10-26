@@ -7,6 +7,8 @@ import { BASE_APP_DIR, createRepo, createScenarioRepo, type TestRepo } from '../
 import { loadContext } from '../../src/cli/context.js'
 import { runAnalyze } from '../../src/cli/analyze.js'
 import { mergeScore } from '../../src/report/merge-score.js'
+import { computeVerdict } from '../../src/report/verdict.js'
+import type { Output } from '../../src/output/schema.js'
 import { FIXED_DATE } from '../helpers/analyze.js'
 
 const cleanups: (() => void)[] = []
@@ -86,34 +88,41 @@ describe('monorepo lockfile', () => {
     repo.write(manifest, JSON.stringify({ ...pkg, dependencies: { ...pkg.dependencies, [name]: '^1.0.0' } }, null, 2))
   }
 
-  async function analyzeApp(repo: TestRepo, app: string) {
+  /** App b gains a dependency; the shared lockfile follows. */
+  const bumpAppB = (r: TestRepo): void => {
+    addDependency(r, 'apps/b/package.json', 'left-pad')
+    r.write('pnpm-lock.yaml', `${LOCK}  # left-pad\n`)
+  }
+  const relockOnly = (r: TestRepo): void => { r.write('pnpm-lock.yaml', `${LOCK}  # resolved again\n`) }
+  const codes = (o: Output): string[] => o.reasons.map((r) => r.code)
+
+  async function analyzeApp(repo: TestRepo, app: string): Promise<Output> {
     const ctx = await loadContext({ config: 'farol.config.json', cwd: `${repo.dir}/${app}`, verbose: false })
     return (await runAnalyze(ctx, { base: 'main', head: 'feature' }, { now: () => FIXED_DATE, clock: () => 0, env: {} })).output
   }
 
   it("a lockfile change caused by another project's dependency change touches existing code, not everything", async () => {
-    const repo = monorepo((r) => {
-      addDependency(r, 'apps/b/package.json', 'left-pad')
-      r.write('pnpm-lock.yaml', `${LOCK}  # left-pad\n`)
-    })
-    const a = await analyzeApp(repo, 'apps/a')
+    const a = await analyzeApp(monorepo(bumpAppB), 'apps/a')
     expect(a.classification).toBe('touches-existing')
-    expect(a.reasons.map((r) => r.code)).not.toContain('lockfile-only-change')
+    expect(codes(a)).not.toContain('lockfile-only-change')
     const elsewhere = a.reasons.find((r) => r.code === 'lockfile-changed-elsewhere')
     expect(elsewhere?.file).toBe('pnpm-lock.yaml')
     expect(elsewhere?.detail).toContain('apps/b/package.json')
-    const b = await analyzeApp(repo, 'apps/b')
-    expect(b.reasons.map((r) => r.code)).toEqual(expect.arrayContaining(['dependency-changed', 'lockfile-changed']))
-    expect(b.reasons.map((r) => r.code)).not.toContain('lockfile-changed-elsewhere')
   }, 60_000)
 
-  it("adds a small weight to the merge risk score for the other project's lockfile change", async () => {
-    const repo = monorepo((r) => {
-      addDependency(r, 'apps/b/package.json', 'left-pad')
-      r.write('pnpm-lock.yaml', `${LOCK}  # left-pad\n`)
-    })
-    const { items } = mergeScore(await analyzeApp(repo, 'apps/a'))
-    expect(items.filter((i) => i.file === 'pnpm-lock.yaml').map((i) => [i.kind, i.weight])).toEqual([['dependency', 0.05]])
+  it('the project whose manifest changed sees its own dependency change with the lockfile', async () => {
+    const b = await analyzeApp(monorepo(bumpAppB), 'apps/b')
+    expect(codes(b)).toEqual(expect.arrayContaining(['dependency-changed', 'lockfile-changed']))
+    expect(codes(b)).not.toContain('lockfile-changed-elsewhere')
+  }, 60_000)
+
+  it("adds a small weight to the merge risk score and asks for a look at the lockfile, not at existing code", async () => {
+    const a = await analyzeApp(monorepo(bumpAppB), 'apps/a')
+    expect(mergeScore(a).items.filter((i) => i.file === 'pnpm-lock.yaml').map((i) => [i.kind, i.weight])).toEqual([['dependency', 0.05]])
+    const verdict = computeVerdict(a)
+    expect(verdict.level).toBe('quick')
+    expect(verdict.reasons.join('\n')).toContain('apps/b/package.json')
+    expect(verdict.reasons.join('\n')).not.toContain('existing code changed')
   }, 60_000)
 
   it("a lockfile change with dependency changes in the project's own manifest follows them, whatever else changed", async () => {
@@ -122,9 +131,9 @@ describe('monorepo lockfile', () => {
       addDependency(r, 'apps/b/package.json', 'is-odd')
       r.write('pnpm-lock.yaml', `${LOCK}  # left-pad, is-odd\n`)
     })
-    const codes = (await analyzeApp(repo, 'apps/a')).reasons.map((r) => r.code)
-    expect(codes).toContain('lockfile-changed')
-    expect(codes).not.toContain('lockfile-changed-elsewhere')
+    const a = await analyzeApp(repo, 'apps/a')
+    expect(codes(a)).toContain('lockfile-changed')
+    expect(codes(a)).not.toContain('lockfile-changed-elsewhere')
   }, 60_000)
 
   it('names every other manifest that explains the lockfile change, in path order', async () => {
@@ -140,19 +149,8 @@ describe('monorepo lockfile', () => {
     expect(a.reasons.find((r) => r.code === 'lockfile-changed-elsewhere')?.detail).toContain('apps/b/package.json, apps/c/package.json')
   }, 60_000)
 
-  it('another manifest that cannot be read does not explain the lockfile change', async () => {
-    const repo = monorepo((r) => {
-      r.write('apps/b/package.json', '{ "dependencies": ')
-      r.write('pnpm-lock.yaml', `${LOCK}  # resolved again\n`)
-    })
-    const a = await analyzeApp(repo, 'apps/a')
-    expect(a.classification).toBe('global')
-    expect(a.reasons.map((r) => r.code)).toContain('lockfile-only-change')
-  }, 60_000)
-
   it('a lockfile change without a dependency change in any manifest stays global', async () => {
-    const repo = monorepo((r) => { r.write('pnpm-lock.yaml', `${LOCK}  # resolved again\n`) })
-    const a = await analyzeApp(repo, 'apps/a')
+    const a = await analyzeApp(monorepo(relockOnly), 'apps/a')
     expect(a.classification).toBe('global')
     expect(a.reasons[0]).toMatchObject({ code: 'lockfile-only-change', file: 'pnpm-lock.yaml' })
   }, 60_000)
@@ -161,12 +159,32 @@ describe('monorepo lockfile', () => {
     const repo = monorepo((r) => {
       const pkg = JSON.parse(r.read('apps/b/package.json')) as Record<string, unknown>
       r.write('apps/b/package.json', JSON.stringify({ ...pkg, scripts: { build: 'vite build' } }, null, 2))
-      r.write('pnpm-lock.yaml', `${LOCK}  # resolved again\n`)
+      relockOnly(r)
     })
     const a = await analyzeApp(repo, 'apps/a')
     expect(a.classification).toBe('global')
-    expect(a.reasons.map((r) => r.code)).toContain('lockfile-only-change')
-    expect(a.reasons.map((r) => r.code)).not.toContain('lockfile-changed-elsewhere')
+    expect(codes(a)).toContain('lockfile-only-change')
+    expect(codes(a)).not.toContain('lockfile-changed-elsewhere')
+  }, 60_000)
+
+  it('another manifest that cannot be read does not explain the lockfile change, and is named', async () => {
+    const repo = monorepo((r) => {
+      r.write('apps/b/package.json', '{ "dependencies": ')
+      relockOnly(r)
+    })
+    const a = await analyzeApp(repo, 'apps/a')
+    expect(a.classification).toBe('global')
+    expect(a.reasons.find((r) => r.code === 'lockfile-only-change')?.detail).toContain('could not read apps/b/package.json')
+  }, 60_000)
+
+  it("the project's own manifest that cannot be read is not explained away by another project's change", async () => {
+    const repo = monorepo((r) => {
+      bumpAppB(r)
+      r.write('apps/a/package.json', '{ "dependencies": ')
+    })
+    const a = await analyzeApp(repo, 'apps/a')
+    expect(codes(a)).toContain('lockfile-only-change')
+    expect(codes(a)).not.toContain('lockfile-changed-elsewhere')
   }, 60_000)
 
   it('the manifest of a workspace package the project imports is a manifest of the project', async () => {
@@ -184,8 +202,8 @@ describe('monorepo lockfile', () => {
     const a = await analyzeApp(repo, 'apps/a')
     expect(a.files).toContainEqual(expect.objectContaining({ path: 'packages/lib/package.json', role: 'manifest' }))
     expect(a.reasons).toContainEqual(expect.objectContaining({ code: 'dependency-changed', file: 'packages/lib/package.json' }))
-    expect(a.reasons.map((r) => r.code)).toContain('lockfile-changed')
-    expect(a.reasons.map((r) => r.code)).not.toContain('lockfile-changed-elsewhere')
+    expect(codes(a)).toContain('lockfile-changed')
+    expect(codes(a)).not.toContain('lockfile-changed-elsewhere')
   }, 60_000)
 })
 

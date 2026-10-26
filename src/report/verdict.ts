@@ -129,8 +129,9 @@ export function computeVerdict(o: Output): Verdict {
   if (dangerous.length > 0) quick.push(`${dangerous.length} endpoint(s) with contract changes that may affect clients`)
   if (score >= QUICK_SCORE && score < CAREFUL_SCORE) quick.push(`merge risk score ${score}/100`)
   const affected = o.routes.affected.filter((r) => !r.hasChildren).length
-  const codeChanged = o.reasons.some((r) => REASONS[r.code] === 'touches-existing' && r.code !== 'infra-file-changed')
+  const codeChanged = o.reasons.some((r) => REASONS[r.code] === 'touches-existing' && r.code !== 'infra-file-changed' && r.code !== 'lockfile-changed-elsewhere')
   if (codeChanged) quick.push(`existing code changed: ${affected} existing ${o.surface === 'backend' ? 'operation' : 'page'}(s) run it`)
+  for (const r of o.reasons) if (r.code === 'lockfile-changed-elsewhere') quick.push(`shared ${r.detail}`)
   if (infra.length > 0) quick.push(`${infra.length} environment, infrastructure or CI file(s) changed: check them for every environment`)
   const total = o.signals.coverage.total
   const ratio = total && total.changedExecutableLines > 0 ? total.coveredLines / total.changedExecutableLines : null

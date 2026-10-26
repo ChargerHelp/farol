@@ -17,6 +17,7 @@ function run(partial: Partial<ClassifyInput>): ReturnType<typeof classify> {
     roleOf: (p) => (p.startsWith('../') || p.startsWith('other/') ? 'outside' : p.endsWith('.test.ts') ? 'test' : p.startsWith('src/mocks/') ? 'excluded' : p.endsWith('.json') ? 'i18n' : 'source'),
     graph: { ...emptyGraph, nodes: ['src/Home.tsx', 'other/shared.ts'], edges: [{ from: 'src/Home.tsx', to: 'other/shared.ts', kind: 'static' }] },
     manifests: [],
+    otherManifests: [],
     routesFile: 'src/routes.tsx',
     headRoutes: table,
     baseRoutes: null,

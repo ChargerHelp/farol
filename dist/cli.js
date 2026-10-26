@@ -237584,14 +237584,18 @@ function describeChange(c) {
 }
 
 // src/classify/lockfile.ts
-function withDependencyChanges(manifests) {
+function manifestsWithDependencyChanges(manifests) {
   return sortedUnique(manifests.filter((m) => !("error" in m) && m.changes.length > 0).map((m) => m.manifest));
 }
+function unreadable(manifests) {
+  const paths = sortedUnique(manifests.filter((m) => "error" in m).map((m) => m.manifest));
+  return paths.length === 0 ? "" : `; could not read ${paths.join(", ")}`;
+}
 function lockfileReason(file2, manifests, otherManifests) {
-  if (withDependencyChanges(manifests).length > 0) return reason("lockfile-changed", `lockfile ${file2.status} together with dependency changes`, file2.path);
-  const others = withDependencyChanges(otherManifests);
-  if (others.length > 0) return reason("lockfile-changed-elsewhere", `lockfile ${file2.status} by dependency changes in ${others.join(", ")}: resolved versions this project loads may differ`, file2.path);
-  return reason("lockfile-only-change", `lockfile ${file2.status} without any dependency change in the manifests: resolved versions may differ`, file2.path);
+  if (manifestsWithDependencyChanges(manifests).length > 0) return reason("lockfile-changed", `lockfile ${file2.status} together with dependency changes`, file2.path);
+  const others = manifestsWithDependencyChanges(otherManifests);
+  if (others.length > 0 && !manifests.some((m) => "error" in m)) return reason("lockfile-changed-elsewhere", `lockfile ${file2.status} by dependency changes in ${others.join(", ")}: resolved versions this project loads may differ${unreadable(otherManifests)}`, file2.path);
+  return reason("lockfile-only-change", `lockfile ${file2.status} without any dependency change in the manifests: resolved versions may differ${unreadable([...manifests, ...otherManifests])}`, file2.path);
 }
 
 // src/classify/classify.ts
@@ -237713,7 +237717,7 @@ function classify(input2) {
       continue;
     }
     if (role === "lockfile") {
-      reasons.push(lockfileReason(file2, input2.manifests, input2.otherManifests ?? []));
+      reasons.push(lockfileReason(file2, input2.manifests, input2.otherManifests));
       continue;
     }
     if (role === "global") {
@@ -251351,7 +251355,10 @@ async function manifestDiffs(ctx, files, select, baseSha, headSha) {
 }
 async function projectAndOtherManifests(ctx, files, roleOf, baseSha, headSha) {
   const ecosystem = ECOSYSTEM_FILES[ctx.config.language];
-  const isOther = (path3) => roleOf(path3) === "outside" && MANIFESTS.has(posix14.basename(path3)) && ecosystem.has(posix14.basename(path3));
+  const isOther = (path3) => {
+    const name = posix14.basename(path3);
+    return roleOf(path3) === "outside" && MANIFESTS.has(name) && ecosystem.has(name);
+  };
   const [manifests, otherManifests] = await Promise.all([manifestDiffs(ctx, files, (p) => roleOf(p) === "manifest", baseSha, headSha), manifestDiffs(ctx, files, isOther, baseSha, headSha)]);
   return { manifests, otherManifests };
 }
@@ -251708,8 +251715,9 @@ function computeVerdict(o) {
   if (dangerous.length > 0) quick.push(`${dangerous.length} endpoint(s) with contract changes that may affect clients`);
   if (score >= QUICK_SCORE && score < CAREFUL_SCORE) quick.push(`merge risk score ${score}/100`);
   const affected = o.routes.affected.filter((r) => !r.hasChildren).length;
-  const codeChanged = o.reasons.some((r) => REASONS[r.code] === "touches-existing" && r.code !== "infra-file-changed");
+  const codeChanged = o.reasons.some((r) => REASONS[r.code] === "touches-existing" && r.code !== "infra-file-changed" && r.code !== "lockfile-changed-elsewhere");
   if (codeChanged) quick.push(`existing code changed: ${affected} existing ${o.surface === "backend" ? "operation" : "page"}(s) run it`);
+  for (const r of o.reasons) if (r.code === "lockfile-changed-elsewhere") quick.push(`shared ${r.detail}`);
   if (infra.length > 0) quick.push(`${infra.length} environment, infrastructure or CI file(s) changed: check them for every environment`);
   const total = o.signals.coverage.total;
   const ratio = total && total.changedExecutableLines > 0 ? total.coveredLines / total.changedExecutableLines : null;

@@ -20,7 +20,7 @@ import { diffPyproject, diffRequirementsTxt } from '../python/pyproject.js'
 import { UsageError } from '../config/load.js'
 import { EXIT_FAILURE, EXIT_OK, writeStdout } from './run.js'
 import { createAnalysisRoleOf, createIgnoreOf, extractRoutes, filesUnder, loadWorkspace, SOURCE_EXTENSIONS, type Workspace } from './workspace.js'
-import { diffManifest, ECOSYSTEM_FILES, MANIFESTS, ManifestParseError, type ManifestDiff } from '../classify/dependencies.js'
+import { diffManifest, ECOSYSTEM_FILES, MANIFESTS, ManifestParseError, type ManifestResult } from '../classify/dependencies.js'
 import { isTypeOnlyModule } from '../classify/additive.js'
 import { isDeclarationsOnlyModule, isScriptFile } from '../classify/declarations-only.js'
 import { contractsSection, helperContractChanges } from '../contracts/entries.js'
@@ -123,7 +123,7 @@ async function baseRouteTable(ctx: Context, ws: Workspace, mergeBaseSha: string,
 }
 
 /** Dependency diff of every selected changed manifest, from its base and head contents. */
-async function manifestDiffs(ctx: Context, files: readonly ChangedFile[], select: (path: string) => boolean, baseSha: string, headSha: string): Promise<(ManifestDiff | { manifest: string; error: string })[]> {
+async function manifestDiffs(ctx: Context, files: readonly ChangedFile[], select: (path: string) => boolean, baseSha: string, headSha: string): Promise<ManifestResult[]> {
   const manifests = files.filter((f) => select(f.path))
   const base = await readFiles(ctx.repoRoot, baseSha, manifests.map((f) => f.oldPath ?? f.path))
   const head = await readFiles(ctx.repoRoot, headSha, manifests.map((f) => f.path))
@@ -146,9 +146,12 @@ async function manifestDiffs(ctx: Context, files: readonly ChangedFile[], select
  * Diffs of the project's manifests, and of the changed manifests of its ecosystem outside it (other projects of a
  * monorepo): those explain a shared lockfile change without making this project's own dependencies change.
  */
-async function projectAndOtherManifests(ctx: Context, files: readonly ChangedFile[], roleOf: (path: string) => AnalysisRole | 'outside', baseSha: string, headSha: string) {
+async function projectAndOtherManifests(ctx: Context, files: readonly ChangedFile[], roleOf: (path: string) => AnalysisRole | 'outside', baseSha: string, headSha: string): Promise<{ manifests: ManifestResult[]; otherManifests: ManifestResult[] }> {
   const ecosystem = ECOSYSTEM_FILES[ctx.config.language]
-  const isOther = (path: string): boolean => roleOf(path) === 'outside' && MANIFESTS.has(posix.basename(path)) && ecosystem.has(posix.basename(path))
+  const isOther = (path: string): boolean => {
+    const name = posix.basename(path)
+    return roleOf(path) === 'outside' && MANIFESTS.has(name) && ecosystem.has(name)
+  }
   const [manifests, otherManifests] = await Promise.all([manifestDiffs(ctx, files, (p) => roleOf(p) === 'manifest', baseSha, headSha), manifestDiffs(ctx, files, isOther, baseSha, headSha)])
   return { manifests, otherManifests }
 }

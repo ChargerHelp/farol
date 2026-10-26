@@ -27,7 +27,7 @@ export const MEDIUM_SCORE = 30
 export const GLOBAL_WEIGHT = 0.3
 /**
  * A shared lockfile changed by another project's dependencies (monorepo): resolved versions this project loads may
- * differ through hoisting or deduplication, rarely. A heuristic, not calibrated yet (2026-10-26).
+ * differ through hoisting or deduplication, rarely. A heuristic, not calibrated.
  */
 export const LOCKFILE_ELSEWHERE_WEIGHT = 0.05
 /** All environment, infrastructure and CI files of a PR together (a deploy-time risk, not a code path). */

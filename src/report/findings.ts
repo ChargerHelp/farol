@@ -39,6 +39,8 @@ function dependencyFindings(o: Output, out: Finding[]): void {
   if (manifests.length > 0) out.push({ severity: 'high', title: F.manifestChanged(manifests.length), detail: o.reasons.filter((r) => r.code === 'manifest-changed').map((r) => r.detail).join('; '), files: manifests, section: 'dependencies' })
   const lockOnly = filesOf(o, 'lockfile-only-change')
   if (lockOnly.length > 0) out.push({ severity: 'high', title: F.lockfileOnly, detail: F.lockfileOnlyDetail, files: lockOnly, section: 'dependencies' })
+  const elsewhere = o.reasons.filter((r) => r.code === 'lockfile-changed-elsewhere')
+  if (elsewhere.length > 0) out.push({ severity: 'low', title: F.lockfileElsewhere, detail: elsewhere.map((r) => r.detail).join('; '), files: filesOf(o, 'lockfile-changed-elsewhere'), section: 'dependencies' })
   if (other.length > 0) out.push({ severity: 'low', title: F.otherDependencies(other.length), detail: F.otherDependenciesDetail(other.slice(0, 8).map(label).join(', ')), files: sortedUnique(other.map((c) => c.manifest)), section: 'dependencies' })
 }
 
