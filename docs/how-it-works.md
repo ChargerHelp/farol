@@ -225,7 +225,8 @@ dependency changes only in other projects' manifests is `lockfile-changed-elsewh
 0.05. With hoisting or deduplication, another project's new dependency can still change the versions this project
 loads, so it is never `isolated`; it is not `global` either, or every dependency PR would be `global` in every project.
 Only manifests in the lockfile's directory or below count: a lockfile inside the project is the project's own, and
-another project's dependency change does not explain it.
+another project's dependency change does not explain it. A root lockfile also covers a project below it that has its
+own lockfile: farol does not read lockfiles, so it cannot tell which one that project installs from.
 
 ## Signals
 

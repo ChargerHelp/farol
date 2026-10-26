@@ -27,8 +27,8 @@ function covers(lockfile: string, manifest: string): boolean {
  */
 export function lockfileReason(file: ChangedFile, manifests: readonly ManifestResult[], otherManifests: readonly ManifestResult[]): Reason {
   if (manifestsWithDependencyChanges(manifests).length > 0) return reason('lockfile-changed', `lockfile ${file.status} together with dependency changes`, file.path)
-  const covered = otherManifests.filter((m) => covers(file.path, m.manifest))
-  const others = manifestsWithDependencyChanges(covered)
-  if (others.length > 0 && !manifests.some((m) => 'error' in m)) return reason('lockfile-changed-elsewhere', `lockfile ${file.status} by dependency changes in ${others.join(', ')}: resolved versions this project loads may differ${unreadable(covered)}`, file.path)
-  return reason('lockfile-only-change', `lockfile ${file.status} without any dependency change in the manifests: resolved versions may differ${unreadable([...manifests, ...covered])}`, file.path)
+  const coveredOthers = otherManifests.filter((m) => covers(file.path, m.manifest))
+  const explaining = manifestsWithDependencyChanges(coveredOthers)
+  if (explaining.length > 0 && !manifests.some((m) => 'error' in m)) return reason('lockfile-changed-elsewhere', `lockfile ${file.status} by dependency changes in ${explaining.join(', ')}: resolved versions this project loads may differ${unreadable(coveredOthers)}`, file.path)
+  return reason('lockfile-only-change', `lockfile ${file.status} without any dependency change in the manifests: resolved versions may differ${unreadable([...manifests, ...coveredOthers])}`, file.path)
 }

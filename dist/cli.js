@@ -237598,10 +237598,10 @@ function covers(lockfile, manifest) {
 }
 function lockfileReason(file2, manifests, otherManifests) {
   if (manifestsWithDependencyChanges(manifests).length > 0) return reason("lockfile-changed", `lockfile ${file2.status} together with dependency changes`, file2.path);
-  const covered = otherManifests.filter((m) => covers(file2.path, m.manifest));
-  const others = manifestsWithDependencyChanges(covered);
-  if (others.length > 0 && !manifests.some((m) => "error" in m)) return reason("lockfile-changed-elsewhere", `lockfile ${file2.status} by dependency changes in ${others.join(", ")}: resolved versions this project loads may differ${unreadable(covered)}`, file2.path);
-  return reason("lockfile-only-change", `lockfile ${file2.status} without any dependency change in the manifests: resolved versions may differ${unreadable([...manifests, ...covered])}`, file2.path);
+  const coveredOthers = otherManifests.filter((m) => covers(file2.path, m.manifest));
+  const explaining = manifestsWithDependencyChanges(coveredOthers);
+  if (explaining.length > 0 && !manifests.some((m) => "error" in m)) return reason("lockfile-changed-elsewhere", `lockfile ${file2.status} by dependency changes in ${explaining.join(", ")}: resolved versions this project loads may differ${unreadable(coveredOthers)}`, file2.path);
+  return reason("lockfile-only-change", `lockfile ${file2.status} without any dependency change in the manifests: resolved versions may differ${unreadable([...manifests, ...coveredOthers])}`, file2.path);
 }
 
 // src/classify/classify.ts

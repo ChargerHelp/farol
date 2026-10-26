@@ -144,7 +144,7 @@ async function manifestDiffs(ctx: Context, files: readonly ChangedFile[], select
 
 /**
  * Diffs of the project's manifests, and of the changed manifests of its ecosystem outside it (other projects of a
- * monorepo): those explain a shared lockfile change without making this project's own dependencies change.
+ * monorepo): those a lockfile covers explain its change without making this project's own dependencies change.
  */
 async function projectAndOtherManifests(ctx: Context, files: readonly ChangedFile[], roleOf: (path: string) => AnalysisRole | 'outside', baseSha: string, headSha: string): Promise<{ manifests: ManifestResult[]; otherManifests: ManifestResult[] }> {
   const ecosystem = ECOSYSTEM_FILES[ctx.config.language]

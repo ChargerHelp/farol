@@ -171,7 +171,7 @@ describe('monorepo lockfile', () => {
     const repo = monorepo(
       (r) => {
         addDependency(r, 'apps/b/package.json', 'left-pad')
-        r.write('apps/a/package-lock.json', '{ "lockfileVersion": 3, "packages": { "": {} }, "resolved": "again" }\n')
+        r.write('apps/a/package-lock.json', '{ "lockfileVersion": 3, "packages": { "": {} }, "relocked": true }\n')
       },
       (r) => { r.write('apps/a/package-lock.json', '{ "lockfileVersion": 3, "packages": { "": {} } }\n') },
     )
