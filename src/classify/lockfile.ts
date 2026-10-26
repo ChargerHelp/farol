@@ -1,7 +1,7 @@
 import { posix } from 'node:path'
 import type { ChangedFile } from '../git/types.js'
 import { sortedUnique } from '../output/order.js'
-import type { ManifestResult } from './dependencies.js'
+import { ECOSYSTEM_FILES, LOCKFILES, type ManifestResult } from './dependencies.js'
 import { reason, type Reason } from './reasons.js'
 
 function manifestsWithDependencyChanges(manifests: readonly ManifestResult[]): string[] {
@@ -13,8 +13,15 @@ function unreadable(manifests: readonly ManifestResult[]): string {
   return paths.length === 0 ? '' : `; could not read ${paths.join(', ')}`
 }
 
-/** A lockfile covers the manifests in its directory and below: only those can explain its changes. */
+/**
+ * JavaScript lockfiles, which a workspace shares between its projects. A Go module or Python project below another
+ * has its own lockfile, so its dependency changes do not explain the one above.
+ */
+const SHARED_LOCKFILES: ReadonlySet<string> = new Set([...ECOSYSTEM_FILES.typescript].filter((name) => LOCKFILES.has(name)))
+
+/** A shared lockfile covers the manifests in its directory and below: only those can explain its changes. */
 function covers(lockfile: string, manifest: string): boolean {
+  if (!SHARED_LOCKFILES.has(posix.basename(lockfile))) return false
   const dir = posix.dirname(lockfile)
   return dir === '.' || manifest.startsWith(`${dir}/`)
 }

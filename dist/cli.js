@@ -237592,7 +237592,9 @@ function unreadable(manifests) {
   const paths = sortedUnique(manifests.filter((m) => "error" in m).map((m) => m.manifest));
   return paths.length === 0 ? "" : `; could not read ${paths.join(", ")}`;
 }
+var SHARED_LOCKFILES = new Set([...ECOSYSTEM_FILES.typescript].filter((name) => LOCKFILES.has(name)));
 function covers(lockfile, manifest) {
+  if (!SHARED_LOCKFILES.has(posix.basename(lockfile))) return false;
   const dir = posix.dirname(lockfile);
   return dir === "." || manifest.startsWith(`${dir}/`);
 }

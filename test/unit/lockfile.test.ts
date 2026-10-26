@@ -20,6 +20,12 @@ describe('lockfileReason', () => {
     expect(lockfileReason(lockfile('apps/package-lock.json'), [], [withDependencyChange('apps/ab/package.json')]).code).toBe('lockfile-changed-elsewhere')
   })
 
+  it("another project's dependency change explains only JavaScript lockfiles, which workspaces share", () => {
+    expect(lockfileReason(lockfile('go.sum'), [], [withDependencyChange('tools/gen/go.mod')]).code).toBe('lockfile-only-change')
+    expect(lockfileReason(lockfile('poetry.lock'), [], [withDependencyChange('libs/b/pyproject.toml')]).code).toBe('lockfile-only-change')
+    expect(lockfileReason(lockfile('yarn.lock'), [], [withDependencyChange('apps/b/package.json')]).code).toBe('lockfile-changed-elsewhere')
+  })
+
   it("another project's dependency change does not explain a shared lockfile that was deleted, added or renamed", () => {
     for (const status of ['deleted', 'added', 'renamed'] as const) {
       const r = lockfileReason(lockfile('pnpm-lock.yaml', status), [], [withDependencyChange('apps/b/package.json')])
