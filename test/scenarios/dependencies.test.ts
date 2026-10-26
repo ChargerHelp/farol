@@ -167,6 +167,20 @@ describe('monorepo lockfile', () => {
     expect(codes(a)).not.toContain('lockfile-changed-elsewhere')
   }, 60_000)
 
+  it("another project's dependency change does not explain a lockfile only this project installs from", async () => {
+    const repo = monorepo(
+      (r) => {
+        addDependency(r, 'apps/b/package.json', 'left-pad')
+        r.write('apps/a/package-lock.json', '{ "lockfileVersion": 3, "packages": { "": {} }, "resolved": "again" }\n')
+      },
+      (r) => { r.write('apps/a/package-lock.json', '{ "lockfileVersion": 3, "packages": { "": {} } }\n') },
+    )
+    const a = await analyzeApp(repo, 'apps/a')
+    expect(a.classification).toBe('global')
+    expect(a.reasons).toContainEqual(expect.objectContaining({ code: 'lockfile-only-change', file: 'apps/a/package-lock.json' }))
+    expect(codes(a)).not.toContain('lockfile-changed-elsewhere')
+  }, 60_000)
+
   it('another manifest that cannot be read does not explain the lockfile change, and is named', async () => {
     const repo = monorepo((r) => {
       r.write('apps/b/package.json', '{ "dependencies": ')

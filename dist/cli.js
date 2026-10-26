@@ -212704,9 +212704,9 @@ var require_parse = __commonJS({
                 const idx = prev.value.lastIndexOf("[");
                 const pre = prev.value.slice(0, idx);
                 const rest2 = prev.value.slice(idx + 2);
-                const posix18 = POSIX_REGEX_SOURCE[rest2];
-                if (posix18) {
-                  prev.value = pre + posix18;
+                const posix19 = POSIX_REGEX_SOURCE[rest2];
+                if (posix19) {
+                  prev.value = pre + posix19;
                   state.backtrack = true;
                   advance();
                   if (!bos.output && tokens2.indexOf(prev) === 1) {
@@ -213223,7 +213223,7 @@ var require_picomatch = __commonJS({
         throw new TypeError("Expected pattern to be a non-empty string");
       }
       const opts = options || {};
-      const posix18 = opts.windows;
+      const posix19 = opts.windows;
       const regex = isState ? picomatch4.compileRe(glob, options) : picomatch4.makeRe(glob, options, false, true);
       const state = regex.state;
       delete regex.state;
@@ -213233,8 +213233,8 @@ var require_picomatch = __commonJS({
         isIgnored = picomatch4(opts.ignore, ignoreOpts, returnState);
       }
       const matcher2 = (input2, returnObject = false) => {
-        const { isMatch, match, output: output2 } = picomatch4.test(input2, regex, options, { glob, posix: posix18 });
-        const result = { glob, state, regex, posix: posix18, input: input2, output: output2, match, isMatch };
+        const { isMatch, match, output: output2 } = picomatch4.test(input2, regex, options, { glob, posix: posix19 });
+        const result = { glob, state, regex, posix: posix19, input: input2, output: output2, match, isMatch };
         if (typeof opts.onResult === "function") {
           opts.onResult(result);
         }
@@ -213259,7 +213259,7 @@ var require_picomatch = __commonJS({
       }
       return matcher2;
     };
-    picomatch4.test = (input2, regex, options, { glob, posix: posix18 } = {}) => {
+    picomatch4.test = (input2, regex, options, { glob, posix: posix19 } = {}) => {
       if (typeof input2 !== "string") {
         throw new TypeError("Expected input to be a string");
       }
@@ -213267,7 +213267,7 @@ var require_picomatch = __commonJS({
         return { isMatch: false, output: "" };
       }
       const opts = options || {};
-      const format = opts.format || (posix18 ? utils.toPosixSlashes : null);
+      const format = opts.format || (posix19 ? utils.toPosixSlashes : null);
       let match = input2 === glob;
       let output2 = match && format ? format(input2) : input2;
       if (match === false) {
@@ -213276,16 +213276,16 @@ var require_picomatch = __commonJS({
       }
       if (match === false || opts.capture === true) {
         if (opts.matchBase === true || opts.basename === true) {
-          match = picomatch4.matchBase(input2, regex, options, posix18);
+          match = picomatch4.matchBase(input2, regex, options, posix19);
         } else {
           match = regex.exec(output2);
         }
       }
       return { isMatch: Boolean(match), match, output: output2 };
     };
-    picomatch4.matchBase = (input2, glob, options, posix18 = options && options.windows) => {
+    picomatch4.matchBase = (input2, glob, options, posix19 = options && options.windows) => {
       const regex = glob instanceof RegExp ? glob : picomatch4.makeRe(glob, options);
-      return regex.test(utils.basename(input2, { windows: posix18 }));
+      return regex.test(utils.basename(input2, { windows: posix19 }));
     };
     picomatch4.isMatch = (str2, patterns, options) => picomatch4(patterns, options)(str2);
     picomatch4.parse = (pattern, options) => {
@@ -237122,10 +237122,10 @@ async function loadContext(options) {
 
 // src/cli/analyze.ts
 import { readFileSync as readFileSync4 } from "fs";
-import { posix as posix14, resolve as resolve3 } from "path";
+import { posix as posix15, resolve as resolve3 } from "path";
 
 // src/classify/classify.ts
-import { posix } from "path";
+import { posix as posix2 } from "path";
 
 // src/routes/paths.ts
 var KEY_SEPARATOR = " > ";
@@ -237584,6 +237584,7 @@ function describeChange(c) {
 }
 
 // src/classify/lockfile.ts
+import { posix } from "path";
 function manifestsWithDependencyChanges(manifests) {
   return sortedUnique(manifests.filter((m) => !("error" in m) && m.changes.length > 0).map((m) => m.manifest));
 }
@@ -237591,20 +237592,25 @@ function unreadable(manifests) {
   const paths = sortedUnique(manifests.filter((m) => "error" in m).map((m) => m.manifest));
   return paths.length === 0 ? "" : `; could not read ${paths.join(", ")}`;
 }
+function covers(lockfile, manifest) {
+  const dir = posix.dirname(lockfile);
+  return dir === "." || manifest.startsWith(`${dir}/`);
+}
 function lockfileReason(file2, manifests, otherManifests) {
   if (manifestsWithDependencyChanges(manifests).length > 0) return reason("lockfile-changed", `lockfile ${file2.status} together with dependency changes`, file2.path);
-  const others = manifestsWithDependencyChanges(otherManifests);
-  if (others.length > 0 && !manifests.some((m) => "error" in m)) return reason("lockfile-changed-elsewhere", `lockfile ${file2.status} by dependency changes in ${others.join(", ")}: resolved versions this project loads may differ${unreadable(otherManifests)}`, file2.path);
-  return reason("lockfile-only-change", `lockfile ${file2.status} without any dependency change in the manifests: resolved versions may differ${unreadable([...manifests, ...otherManifests])}`, file2.path);
+  const covered = otherManifests.filter((m) => covers(file2.path, m.manifest));
+  const others = manifestsWithDependencyChanges(covered);
+  if (others.length > 0 && !manifests.some((m) => "error" in m)) return reason("lockfile-changed-elsewhere", `lockfile ${file2.status} by dependency changes in ${others.join(", ")}: resolved versions this project loads may differ${unreadable(covered)}`, file2.path);
+  return reason("lockfile-only-change", `lockfile ${file2.status} without any dependency change in the manifests: resolved versions may differ${unreadable([...manifests, ...covered])}`, file2.path);
 }
 
 // src/classify/classify.ts
 function withoutExtension(path3) {
-  const ext = posix.extname(path3);
+  const ext = posix2.extname(path3);
   return ext === "" ? path3 : path3.slice(0, -ext.length);
 }
 function targetsRemoved(target, removed) {
-  return removed.some((r) => r === target || withoutExtension(r) === target || posix.dirname(r) === target && posix.basename(r).startsWith("index."));
+  return removed.some((r) => r === target || withoutExtension(r) === target || posix2.dirname(r) === target && posix2.basename(r).startsWith("index."));
 }
 var AffectedCollector = class {
   byKey = /* @__PURE__ */ new Map();
@@ -237881,7 +237887,7 @@ function classify(input2) {
 }
 
 // src/cli/reviewers.ts
-import { posix as posix2 } from "path";
+import { posix as posix3 } from "path";
 
 // src/review/reviewers.ts
 var import_picomatch = __toESM(require_picomatch2(), 1);
@@ -237942,7 +237948,7 @@ async function suggestReviewers(ctx, files, roleOf, mergeBaseSha, headSha) {
     history.set(f.path, await logAuthors(ctx.repoRoot, mergeBaseSha, { path: f.oldPath ?? f.path, max: MAX_COMMITS, since: "12 months ago" }));
   }
   for (const f of code2.filter((x) => x.status === "added").slice(0, MAX_FILES)) {
-    const dir = posix2.dirname(f.path);
+    const dir = posix3.dirname(f.path);
     if (dir !== ".") history.set(f.path, await logAuthors(ctx.repoRoot, mergeBaseSha, { path: dir, max: MAX_COMMITS, since: "12 months ago" }));
   }
   return rankReviewers(code2.map((f) => f.path), rules, history, prAuthors);
@@ -238376,7 +238382,7 @@ function writeTextFile(path3, text) {
 }
 
 // src/project/fs.ts
-import { posix as posix3 } from "path";
+import { posix as posix4 } from "path";
 function toPosix(path3) {
   return path3.replaceAll("\\", "/");
 }
@@ -238397,13 +238403,13 @@ function createTreeFileSystem(options) {
   };
   entry("");
   for (const file2 of files) {
-    let dir = posix3.dirname(file2);
-    let name = posix3.basename(file2);
+    let dir = posix4.dirname(file2);
+    let name = posix4.basename(file2);
     if (dir === ".") dir = "";
     entry(dir).files.add(name);
     while (dir !== "") {
-      name = posix3.basename(dir);
-      let parent = posix3.dirname(dir);
+      name = posix4.basename(dir);
+      let parent = posix4.dirname(dir);
       if (parent === ".") parent = "";
       entry(parent).directories.add(name);
       dir = parent;
@@ -238454,7 +238460,7 @@ function createTreeFileSystem(options) {
 
 // src/project/resolve.ts
 var import_typescript3 = __toESM(require_typescript(), 1);
-import { posix as posix4 } from "path";
+import { posix as posix5 } from "path";
 function createResolverContext(input2) {
   const fs2 = input2.fs;
   const resolutionHost = {
@@ -238483,7 +238489,7 @@ function pathsBase(options, configPath) {
   if (typeof base === "string") return toPosix(base);
   const baseUrl = getBaseUrl(options);
   if (baseUrl !== void 0) return toPosix(baseUrl);
-  return posix4.dirname(toPosix(configPath));
+  return posix5.dirname(toPosix(configPath));
 }
 function pathMappingCandidates(specifier, options, configPath) {
   const paths = options.paths;
@@ -238506,11 +238512,11 @@ function pathMappingCandidates(specifier, options, configPath) {
   }
   if (!best) return void 0;
   const base = pathsBase(options, configPath);
-  return (paths[best.pattern] ?? []).map((target) => posix4.resolve(base, target.replace("*", best.star)));
+  return (paths[best.pattern] ?? []).map((target) => posix5.resolve(base, target.replace("*", best.star)));
 }
 function specifierTarget(project, containingFile, specifier) {
   const cleaned = specifier.split("?")[0]?.split("#")[0] ?? specifier;
-  if (isRelative(cleaned)) return posix4.resolve(posix4.dirname(containingFile), cleaned);
+  if (isRelative(cleaned)) return posix5.resolve(posix5.dirname(containingFile), cleaned);
   return pathMappingCandidates(cleaned, project.options, project.configPath)?.[0];
 }
 function isProjectSpecifier(specifier, project) {
@@ -238519,7 +238525,7 @@ function isProjectSpecifier(specifier, project) {
   const baseUrl = getBaseUrl(project.options);
   if (baseUrl !== void 0) {
     const first = specifier.split("/")[0] ?? "";
-    const candidate = posix4.resolve(toPosix(baseUrl), first);
+    const candidate = posix5.resolve(toPosix(baseUrl), first);
     return project.fs.directoryExists(candidate) || project.fs.fileExists(candidate);
   }
   return false;
@@ -238535,13 +238541,13 @@ function resolveSpecifier(project, repoRoot2, containingFile, specifier, mode) {
     const file2 = toPosix(project.fs.realpath(resolved.resolvedFileName));
     return isInRepo(file2, repoRoot2) ? { kind: "module", file: file2 } : { kind: "external" };
   }
-  const ext = posix4.extname(cleaned);
+  const ext = posix5.extname(cleaned);
   if (!TS_LIKE.has(ext)) {
     const candidates = [];
-    if (isRelative(cleaned)) candidates.push(posix4.resolve(posix4.dirname(containingFile), cleaned));
+    if (isRelative(cleaned)) candidates.push(posix5.resolve(posix5.dirname(containingFile), cleaned));
     candidates.push(...pathMappingCandidates(cleaned, project.options, project.configPath) ?? []);
     const baseUrl = getBaseUrl(project.options);
-    if (baseUrl !== void 0 && !isRelative(cleaned)) candidates.push(posix4.resolve(toPosix(baseUrl), cleaned));
+    if (baseUrl !== void 0 && !isRelative(cleaned)) candidates.push(posix5.resolve(toPosix(baseUrl), cleaned));
     for (const candidate of candidates) {
       if (project.fs.fileExists(candidate)) {
         const file2 = toPosix(project.fs.realpath(candidate));
@@ -238557,10 +238563,10 @@ import { existsSync as existsSync2, readFileSync as readFileSync2, realpathSync 
 import { isAbsolute as isAbsolute3 } from "path";
 
 // src/signals/paths.ts
-import { isAbsolute as isAbsolute2, posix as posix5 } from "path";
+import { isAbsolute as isAbsolute2, posix as posix6 } from "path";
 var CODE_EXTENSIONS = /* @__PURE__ */ new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs", ".go", ".py"]);
 function isCodeFile(path3) {
-  return CODE_EXTENSIONS.has(posix5.extname(path3)) && !path3.endsWith(".d.ts");
+  return CODE_EXTENSIONS.has(posix6.extname(path3)) && !path3.endsWith(".d.ts");
 }
 function reportPathToRepo(raw, repoRoot2, projectPrefix, canonical2 = (x) => x) {
   const p = canonical2(raw).replaceAll("\\", "/");
@@ -238569,7 +238575,7 @@ function reportPathToRepo(raw, repoRoot2, projectPrefix, canonical2 = (x) => x) 
     if (!p.startsWith(`${root}/`)) return void 0;
     return p.slice(root.length + 1);
   }
-  return posix5.normalize(posix5.join(projectPrefix, p));
+  return posix6.normalize(posix6.join(projectPrefix, p));
 }
 function toRanges(lines) {
   const ranges = [];
@@ -238740,7 +238746,7 @@ function pythonSuppressions(files, comments) {
 }
 
 // src/signals/go.ts
-import { posix as posix6 } from "path";
+import { posix as posix7 } from "path";
 function parseGoCoverProfile(text, module, projectPrefix) {
   const lines = text.split("\n").filter((l) => l.trim() !== "");
   if (!lines[0]?.startsWith("mode:")) throw new ReportError("the coverage report is neither Istanbul JSON nor a Go coverprofile (go test -coverprofile)");
@@ -238751,7 +238757,7 @@ function parseGoCoverProfile(text, module, projectPrefix) {
     const [, file2 = "", start = "0", end = "0", count2 = "0"] = m;
     const rel = module !== "" && file2.startsWith(`${module}/`) ? file2.slice(module.length + 1) : void 0;
     if (rel === void 0) continue;
-    const path3 = posix6.join(projectPrefix, rel);
+    const path3 = posix7.join(projectPrefix, rel);
     const perFile = blocks.get(path3) ?? /* @__PURE__ */ new Map();
     const key = `${start}:${end}:${line3.slice(file2.length).split(" ")[0] ?? ""}`;
     const previous = perFile.get(key);
@@ -249403,10 +249409,10 @@ function writeStdout(text) {
 
 // src/cli/workspace.ts
 import { readdirSync as readdirSync3 } from "fs";
-import { posix as posix12 } from "path";
+import { posix as posix13 } from "path";
 
 // src/backend/entrypoints.ts
-import { posix as posix7 } from "path";
+import { posix as posix8 } from "path";
 
 // src/backend/globals.ts
 var import_typescript10 = __toESM(require_typescript(), 1);
@@ -249441,7 +249447,7 @@ function usesGlobal(sf, name, checker) {
 var import_picomatch2 = __toESM(require_picomatch2(), 1);
 function buildBackendTable(input2) {
   const root = input2.repoRoot.replaceAll("\\", "/");
-  const rel = (fileName) => posix7.relative(root, fileName.replaceAll("\\", "/"));
+  const rel = (fileName) => posix8.relative(root, fileName.replaceAll("\\", "/"));
   const isProjectFile = (fileName) => {
     const p = fileName.replaceAll("\\", "/");
     return p.startsWith(`${root}/`) && !p.includes("/node_modules/");
@@ -249589,7 +249595,7 @@ function createIgnoreMatcher(globs3) {
 
 // src/project/graph.ts
 var import_typescript11 = __toESM(require_typescript(), 1);
-import { posix as posix8 } from "path";
+import { posix as posix9 } from "path";
 function lineOf(sf, node2) {
   return sf.getLineAndCharacterOfPosition(node2.getStart(sf)).line + 1;
 }
@@ -249609,7 +249615,7 @@ var GraphBuilder = class {
   unresolved = [];
   checker;
   rel(file2) {
-    return posix8.relative(this.options.repoRoot, toPosix(file2));
+    return posix9.relative(this.options.repoRoot, toPosix(file2));
   }
   isProjectFile(file2) {
     const p = toPosix(file2);
@@ -249749,7 +249755,7 @@ function buildImportGraph(project, options) {
 
 // src/project/program.ts
 var import_typescript12 = __toESM(require_typescript(), 1);
-import { posix as posix9 } from "path";
+import { posix as posix10 } from "path";
 var ProjectError = class extends Error {
   constructor(message) {
     super(message);
@@ -249785,7 +249791,7 @@ function selectConfig(rootConfig, anchorFile, fs2, cwd) {
   const parsed = parseTsconfig(rootConfig, fs2, cwd);
   if (anchorFile === void 0 || parsed.fileNames.includes(anchorFile) || !parsed.projectReferences?.length) return { parsed, configPath: rootConfig };
   for (const ref of parsed.projectReferences) {
-    const refPath = fs2.directoryExists(ref.path) ? posix9.join(ref.path, "tsconfig.json") : ref.path;
+    const refPath = fs2.directoryExists(ref.path) ? posix10.join(ref.path, "tsconfig.json") : ref.path;
     const child = parseTsconfig(refPath, fs2, cwd);
     if (child.fileNames.includes(anchorFile)) return { parsed: child, configPath: refPath };
   }
@@ -249814,7 +249820,7 @@ function createProjectProgram(input2) {
   host.getCurrentDirectory = () => projectDir;
   host.useCaseSensitiveFileNames = () => true;
   host.getCanonicalFileName = (f) => f;
-  host.getDefaultLibFileName = () => posix9.join(projectDir, "__farol_no_lib__.d.ts");
+  host.getDefaultLibFileName = () => posix10.join(projectDir, "__farol_no_lib__.d.ts");
   host.writeFile = () => void 0;
   host.getSourceFile = (fileName, languageVersionOrOptions) => {
     const text = fs2.readFile(fileName);
@@ -249827,13 +249833,13 @@ function createProjectProgram(input2) {
 }
 
 // src/routes/next/index.ts
-import { posix as posix11 } from "path";
+import { posix as posix12 } from "path";
 
 // src/routes/files.ts
-import { posix as posix10 } from "path";
+import { posix as posix11 } from "path";
 var ROUTE_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js"];
 function isNonRouteFile(file2) {
-  const name = posix10.basename(file2);
+  const name = posix11.basename(file2);
   if (name.endsWith(".d.ts") || /\.(test|spec|stories)\.[cm]?[jt]sx?$/.test(name)) return true;
   return file2.split("/").some((part) => part === "__tests__" || part === "__mocks__");
 }
@@ -249941,7 +249947,7 @@ function extract(input2) {
   const middleware = ["middleware", "proxy"].map((n) => moduleIn(fileSet, root, n)).filter((m) => m !== null);
   const routes = [...pagesRoutes(root, input2.files, fileSet, middleware), ...appRoutes(root, input2.files, fileSet, middleware)];
   const dynamic = [];
-  if (routes.length === 0) dynamic.push({ file: root === "" ? "." : root, line: 1, detail: `no Next.js route found: expected modules under ${posix11.join(root, "pages")} or page/route modules under ${posix11.join(root, "app")}` });
+  if (routes.length === 0) dynamic.push({ file: root === "" ? "." : root, line: 1, detail: `no Next.js route found: expected modules under ${posix12.join(root, "pages")} or page/route modules under ${posix12.join(root, "app")}` });
   return routeTable(routes, dynamic, routes.flatMap((r) => [...r.entry === null ? [] : [r.entry], ...r.modules, ...r.layouts]));
 }
 var nextAdapter = { name: "next", source: "directory", extract };
@@ -250680,7 +250686,7 @@ function createRepoRoleOf(ctx) {
   const roleOf = createRoleMatcher(ctx.config);
   const isInfra = createInfraMatcher(ctx.config);
   return (repoPath) => {
-    const rel = ctx.projectPrefix === "" ? repoPath : posix12.relative(ctx.projectPrefix, repoPath);
+    const rel = ctx.projectPrefix === "" ? repoPath : posix13.relative(ctx.projectPrefix, repoPath);
     if (rel.startsWith("../") || rel === "..") {
       if (roleOf(rel) === "global") return "global";
       return isInfra(repoPath) ? "infra" : "outside";
@@ -250690,7 +250696,7 @@ function createRepoRoleOf(ctx) {
   };
 }
 function projectRelative(ctx, repoPath) {
-  return ctx.projectPrefix === "" ? repoPath : posix12.relative(ctx.projectPrefix, repoPath);
+  return ctx.projectPrefix === "" ? repoPath : posix13.relative(ctx.projectPrefix, repoPath);
 }
 function createIgnoreOf(ctx, extra, base = ctx.config.ignore) {
   const ignored = createIgnoreMatcher([...base, ...extra]);
@@ -250706,10 +250712,10 @@ function createAnalysisRoleOf(ctx, graphNodes, backend) {
   };
   const prefix = ctx.projectPrefix;
   const nodeDirs = /* @__PURE__ */ new Set();
-  for (const node2 of graphNodes) for (let d = posix12.dirname(node2); d !== "." && !nodeDirs.has(d); d = posix12.dirname(d)) nodeDirs.add(d);
+  for (const node2 of graphNodes) for (let d = posix13.dirname(node2); d !== "." && !nodeDirs.has(d); d = posix13.dirname(d)) nodeDirs.add(d);
   return (repoPath) => {
-    const name = posix12.basename(repoPath);
-    const dir = posix12.dirname(repoPath) === "." ? "" : posix12.dirname(repoPath);
+    const name = posix13.basename(repoPath);
+    const dir = posix13.dirname(repoPath) === "." ? "" : posix13.dirname(repoPath);
     const inside = prefix === "" || dir === prefix || dir.startsWith(`${prefix}/`);
     const aboveOrSelf = dir === "" || dir === prefix || prefix.startsWith(`${dir}/`);
     const ours = inside || ECOSYSTEM_FILES[ctx.config.language].has(name);
@@ -250719,24 +250725,24 @@ function createAnalysisRoleOf(ctx, graphNodes, backend) {
   };
 }
 function toRepoPath(ctx, absolute) {
-  return posix12.relative(toPosix(ctx.repoRoot), toPosix(absolute));
+  return posix13.relative(toPosix(ctx.repoRoot), toPosix(absolute));
 }
 function projectToRepoPath(ctx, projectPath) {
-  return posix12.normalize(posix12.join(ctx.projectPrefix, toPosix(projectPath)));
+  return posix13.normalize(posix13.join(ctx.projectPrefix, toPosix(projectPath)));
 }
 async function createFileSystem(ctx, ref) {
   const disk = createDiskFileSystem();
   if (ref === void 0) return { fs: disk };
   const treeFiles = await listFiles(ctx.repoRoot, ref);
-  const wanted = treeFiles.filter((f) => SOURCE_EXTENSIONS.has(posix12.extname(f)));
+  const wanted = treeFiles.filter((f) => SOURCE_EXTENSIONS.has(posix13.extname(f)));
   const contents = await readFiles(ctx.repoRoot, ref, wanted);
   return { fs: createTreeFileSystem({ repoRoot: ctx.repoRoot, files: treeFiles, contents, fallback: disk }), treeFiles };
 }
 function moduleResolver(ctx, resolver) {
   const repoRoot2 = toPosix(ctx.repoRoot);
   return (specifier, fromFile) => {
-    const r = resolveSpecifier(resolver, repoRoot2, posix12.join(repoRoot2, fromFile), specifier, void 0);
-    if (r.kind === "module" || r.kind === "asset") return { kind: "module", file: posix12.relative(repoRoot2, r.file) };
+    const r = resolveSpecifier(resolver, repoRoot2, posix13.join(repoRoot2, fromFile), specifier, void 0);
+    if (r.kind === "module" || r.kind === "asset") return { kind: "module", file: posix13.relative(repoRoot2, r.file) };
     if (r.kind === "external") return { kind: "external", specifier };
     return { kind: "unresolved" };
   };
@@ -250748,14 +250754,14 @@ function extractRoutes(ctx, resolver, routesFile, code2, files = []) {
     code: code2,
     files,
     resolve: moduleResolver(ctx, resolver),
-    read: (file2) => resolver.fs.readFile(posix12.join(repoRoot2, file2))
+    read: (file2) => resolver.fs.readFile(posix13.join(repoRoot2, file2))
   });
 }
 function routesFromDirectory(ctx) {
   return getRouteAdapter(ctx.config.routes.adapter).source === "directory";
 }
 function routesDirectory(ctx) {
-  const dir = posix12.normalize(posix12.join(ctx.projectPrefix, ctx.config.routes.dir ?? ""));
+  const dir = posix13.normalize(posix13.join(ctx.projectPrefix, ctx.config.routes.dir ?? ""));
   return dir === "." ? "" : dir;
 }
 function filesUnder(files, dir) {
@@ -250780,10 +250786,10 @@ async function loadWorkspace(ctx, ref, timings, now = () => performance.now()) {
   const projectDir = toPosix(ctx.projectDir);
   if (ctx.config.surface === "backend") return loadBackendWorkspace(ctx, fs2, treeFiles, lap);
   if (routesFromDirectory(ctx)) return loadDirectoryRoutesWorkspace(ctx, fs2, treeFiles, lap);
-  const routesAbs = posix12.join(projectDir, ctx.config.routes.file);
+  const routesAbs = posix13.join(projectDir, ctx.config.routes.file);
   const routesCode = fs2.readFile(routesAbs);
   if (routesCode === void 0) throw new RoutesFileMissingError(ctx.config.routes.file, ref);
-  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix12.join(projectDir, ctx.config.tsconfig), anchorFile: routesAbs });
+  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix13.join(projectDir, ctx.config.tsconfig), anchorFile: routesAbs });
   lap("program");
   const roleOf = createRepoRoleOf(ctx);
   const graph = buildImportGraph(project, {
@@ -250803,7 +250809,7 @@ function loadDirectoryRoutesWorkspace(ctx, fs2, treeFiles, lap) {
   const repoRoot2 = toPosix(ctx.repoRoot);
   const dir = routesDirectory(ctx);
   const files = filesUnder(treeFiles ?? diskFiles(projectDir, repoRoot2), dir);
-  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix12.join(projectDir, ctx.config.tsconfig) });
+  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix13.join(projectDir, ctx.config.tsconfig) });
   lap("program");
   const roleOf = createRepoRoleOf(ctx);
   const graph = buildImportGraph(project, {
@@ -250823,9 +250829,9 @@ function diskFiles(dir, repoRoot2) {
   const walk = (d) => {
     for (const entry of readdirSync3(d, { withFileTypes: true })) {
       if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
-      const full = posix12.join(d, entry.name);
+      const full = posix13.join(d, entry.name);
       if (entry.isDirectory()) walk(full);
-      else out.push(posix12.relative(repoRoot2, full));
+      else out.push(posix13.relative(repoRoot2, full));
     }
   };
   walk(dir);
@@ -250837,7 +250843,7 @@ function projectGlobs(ctx, context) {
 function loadBackendWorkspace(ctx, fs2, treeFiles, lap) {
   const projectDir = toPosix(ctx.projectDir);
   const repoRoot2 = toPosix(ctx.repoRoot);
-  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix12.join(projectDir, ctx.config.tsconfig) });
+  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix13.join(projectDir, ctx.config.tsconfig) });
   lap("program");
   const roleOf = createRepoRoleOf(ctx);
   const isOrigin = (path3) => {
@@ -250847,8 +250853,8 @@ function loadBackendWorkspace(ctx, fs2, treeFiles, lap) {
   const graph = buildImportGraph(project, { repoRoot: ctx.repoRoot, isOrigin: (path3) => isOrigin(path3) || roleOf(path3) === "outside" });
   lap("graph");
   const files = (treeFiles ?? diskFiles(projectDir, repoRoot2)).filter((f) => ctx.projectPrefix === "" || f.startsWith(`${ctx.projectPrefix}/`));
-  const backend = buildBackendTable({ project, repoRoot: repoRoot2, files, read: (f) => fs2.readFile(posix12.join(repoRoot2, f)), isOrigin, graphql: ctx.config.backend.graphql, rest: ctx.config.backend.rest, context: projectGlobs(ctx, ctx.config.backend.context) });
-  const rel = (fileName) => posix12.relative(repoRoot2, toPosix(fileName));
+  const backend = buildBackendTable({ project, repoRoot: repoRoot2, files, read: (f) => fs2.readFile(posix13.join(repoRoot2, f)), isOrigin, graphql: ctx.config.backend.graphql, rest: ctx.config.backend.rest, context: projectGlobs(ctx, ctx.config.backend.context) });
+  const rel = (fileName) => posix13.relative(repoRoot2, toPosix(fileName));
   const isProjectFile = (fileName) => toPosix(fileName).startsWith(`${repoRoot2}/`) && !toPosix(fileName).includes("/node_modules/");
   const extra = globalUses(project, backend.globals, rel, isProjectFile);
   if (extra.length > 0) {
@@ -251139,7 +251145,7 @@ function diffGoMod(manifest, baseText, headText) {
 // src/project/decls.ts
 var import_typescript20 = __toESM(require_typescript(), 1);
 import { createHash as createHash2 } from "crypto";
-import { posix as posix13 } from "path";
+import { posix as posix14 } from "path";
 function tokenHash(sf, node2) {
   const text = sf.text.slice(node2.getStart(sf), node2.end);
   const scanner = import_typescript20.default.createScanner(import_typescript20.default.ScriptTarget.Latest, true, sf.languageVariant, text);
@@ -251204,7 +251210,7 @@ function baseDecls(file2, code2) {
 }
 function tsDeclGraph(input2) {
   const root = input2.repoRoot.replaceAll("\\", "/");
-  const rel = (f) => posix13.relative(root, f.replaceAll("\\", "/"));
+  const rel = (f) => posix14.relative(root, f.replaceAll("\\", "/"));
   const isProject = (f) => f.replaceAll("\\", "/").startsWith(`${root}/`) && !f.includes("/node_modules/") && input2.isOrigin(rel(f));
   const checker = input2.project.program.getTypeChecker();
   const decls = [];
@@ -251328,7 +251334,7 @@ async function baseRouteTable(ctx, ws, mergeBaseSha, basePath) {
   const files = await listFiles(ctx.repoRoot, mergeBaseSha);
   const routeFiles = ws.routesFromDirectory ? filesUnder(files, basePath) : [];
   if (ws.routesFromDirectory ? routeFiles.length === 0 : !files.includes(basePath)) return { routes: [], dynamic: [], sources: [] };
-  const contents = await readFiles(ctx.repoRoot, mergeBaseSha, files.filter((f) => SOURCE_EXTENSIONS.has(posix14.extname(f)) || f === basePath));
+  const contents = await readFiles(ctx.repoRoot, mergeBaseSha, files.filter((f) => SOURCE_EXTENSIONS.has(posix15.extname(f)) || f === basePath));
   const code2 = ws.routesFromDirectory ? "" : contents.get(basePath);
   if (code2 === void 0) throw new Error(`internal: base content of ${basePath} was not read`);
   const fs2 = createTreeFileSystem({ repoRoot: ctx.repoRoot, files, contents, fallback: createDiskFileSystem() });
@@ -251343,7 +251349,7 @@ async function manifestDiffs(ctx, files, select, baseSha, headSha) {
     try {
       const before = f.status === "added" ? null : base.get(f.oldPath ?? f.path) ?? null;
       const after = f.status === "deleted" ? null : head.get(f.path) ?? null;
-      const name = posix14.basename(f.path);
+      const name = posix15.basename(f.path);
       if (name === "pyproject.toml") return diffPyproject(f.path, before === null ? null : await parseToml(before), after === null ? null : await parseToml(after));
       if (name === "requirements.txt") return diffRequirementsTxt(f.path, before, after);
       return (name === "go.mod" ? diffGoMod : diffManifest)(f.path, before, after);
@@ -251356,7 +251362,7 @@ async function manifestDiffs(ctx, files, select, baseSha, headSha) {
 async function projectAndOtherManifests(ctx, files, roleOf, baseSha, headSha) {
   const ecosystem = ECOSYSTEM_FILES[ctx.config.language];
   const isOther = (path3) => {
-    const name = posix14.basename(path3);
+    const name = posix15.basename(path3);
     return roleOf(path3) === "outside" && MANIFESTS.has(name) && ecosystem.has(name);
   };
   const [manifests, otherManifests] = await Promise.all([manifestDiffs(ctx, files, (p) => roleOf(p) === "manifest", baseSha, headSha), manifestDiffs(ctx, files, isOther, baseSha, headSha)]);
@@ -251440,7 +251446,7 @@ async function runAnalyze(ctx, options, deps) {
       Object.assign(timings, wsTimings);
       t = deps.clock();
       roleOf = createAnalysisRoleOf(ctx, ws.graph.nodes, ws.backend);
-      readHead = (path3) => ws.fs.readFile(posix14.join(toPosix(ctx.repoRoot), path3));
+      readHead = (path3) => ws.fs.readFile(posix15.join(toPosix(ctx.repoRoot), path3));
       const compared = comparedFiles(files, roleOf);
       const baseText = await readFiles(ctx.repoRoot, mb, compared);
       const headText = await readFiles(ctx.repoRoot, meta3.head.sha, compared);
@@ -251636,7 +251642,7 @@ function scoreGroups(items) {
 }
 
 // src/report/verdict.ts
-import { posix as posix15 } from "path";
+import { posix as posix16 } from "path";
 var QUICK_SCORE = 25;
 var CAREFUL_SCORE = 60;
 var START_HERE_MAX = 7;
@@ -251657,7 +251663,7 @@ function computeVerdict(o) {
   for (const r of o.routes.affected) if (!r.hasChildren) for (const v of r.via) addEntry(v.file, r.path);
   for (const r of o.routes.added) if (r.entry !== null && !r.hasChildren) addEntry(r.entry, r.path);
   const count2 = (list2, path3) => list2.filter((x) => x.path === path3).length;
-  const isCode2 = (path3) => CODE2.has(posix15.extname(path3));
+  const isCode2 = (path3) => CODE2.has(posix16.extname(path3));
   const files = [];
   const other = [];
   const infra = [];
@@ -251707,7 +251713,7 @@ function computeVerdict(o) {
   const vulnerable = o.signals.vulnerabilities.related.filter((v) => v.severity === "critical" || v.severity === "high").length;
   if (vulnerable > 0) careful.push(`${vulnerable} serious vulnerabilit${vulnerable === 1 ? "y" : "ies"} in added or changed dependencies`);
   const untestedCentral = files.filter((f) => f.level === "high" && f.coverage?.ratio !== void 0 && f.coverage.ratio !== null && f.coverage.ratio < 0.5);
-  if (untestedCentral.length > 0) careful.push(`${untestedCentral.length} central file(s) with little or no diff coverage: ${untestedCentral.slice(0, 3).map((f) => posix15.basename(f.path)).join(", ")}`);
+  if (untestedCentral.length > 0) careful.push(`${untestedCentral.length} central file(s) with little or no diff coverage: ${untestedCentral.slice(0, 3).map((f) => posix16.basename(f.path)).join(", ")}`);
   const contracts = o.contracts?.entries ?? [];
   const breaking = contracts.filter((e) => e.level === "breaking");
   const dangerous = contracts.filter((e) => e.level === "dangerous");
@@ -252419,7 +252425,7 @@ function contractsSection2(o) {
 }
 
 // src/report/test-plan.ts
-import { posix as posix16 } from "path";
+import { posix as posix17 } from "path";
 function moduleOf(o, path3) {
   if (o.surface === "backend") {
     const parts = path3.split(" ");
@@ -252447,7 +252453,7 @@ function testPlan(o) {
   return [...groups.entries()].map(([label2, list2]) => ({ label: label2, items: list2.sort((a, b) => b.priority - a.priority || compareStrings(a.path, b.path)) })).sort((a, b) => Math.max(...b.items.map((i) => i.priority)) - Math.max(...a.items.map((i) => i.priority)) || compareStrings(a.label, b.label));
 }
 function shortFile(path3) {
-  return path3 === null ? "" : posix16.basename(path3);
+  return path3 === null ? "" : posix17.basename(path3);
 }
 
 // src/report/markdown.ts
@@ -254581,7 +254587,7 @@ async function usageCommand(ctx, options, env = process.env, now = /* @__PURE__ 
 }
 
 // src/cli/reviewers-run.ts
-import { posix as posix17, resolve as resolve9 } from "path";
+import { posix as posix18, resolve as resolve9 } from "path";
 
 // src/git/authors.ts
 function parseBlameAuthors(output2) {
@@ -254689,7 +254695,7 @@ async function runReviewers(ctx, options) {
   const files = await mapLimit(code2, BLAME_CONCURRENCY, async (f) => {
     const weight = Math.max(1, points.get(f.path) ?? 0);
     if (f.status === "added") {
-      const dir = posix17.dirname(f.path);
+      const dir = posix18.dirname(f.path);
       return { path: f.path, weight, whole: dir === "." ? /* @__PURE__ */ new Map() : await addedLinesByAuthor(ctx.repoRoot, base, dir, "12 months ago"), touched: null };
     }
     const basePath = f.oldPath ?? f.path;

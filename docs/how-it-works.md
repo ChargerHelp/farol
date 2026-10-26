@@ -224,6 +224,8 @@ Versions are compared on the lowest version each range allows.
 dependency changes only in other projects' manifests is `lockfile-changed-elsewhere`: class `touches-existing`, weight
 0.05. With hoisting or deduplication, another project's new dependency can still change the versions this project
 loads, so it is never `isolated`; it is not `global` either, or every dependency PR would be `global` in every project.
+Only manifests in the lockfile's directory or below count: a lockfile inside the project is the project's own, and
+another project's dependency change does not explain it.
 
 ## Signals
 
