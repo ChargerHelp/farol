@@ -25,6 +25,11 @@ export const MEDIUM_SCORE = 30
  * (mostly dependency bumps) were followed by a revert or fix no more often than other changes to existing code.
  */
 export const GLOBAL_WEIGHT = 0.3
+/**
+ * A shared lockfile changed by another project's dependencies (monorepo): resolved versions this project loads may
+ * differ through hoisting or deduplication, rarely. A heuristic, not calibrated.
+ */
+export const LOCKFILE_ELSEWHERE_WEIGHT = 0.05
 /** All environment, infrastructure and CI files of a PR together (a deploy-time risk, not a code path). */
 export const INFRA_WEIGHT = 0.12
 /** Each added file that only declares things (types, re-exports, static constants), and all of them together at most. */
@@ -144,6 +149,7 @@ export function scoreItems(o: Output): ScoreItem[] {
     // Critical dependencies already count per package.
     if (effect === 'global' && r.code !== 'dependency-critical') add(r.file ?? null, 'global', GLOBAL_WEIGHT, `${r.code}: ${r.detail}`)
     if (effect === 'unknown') add(r.file ?? null, 'unknown', 0.25, `${r.code}: ${r.detail}`)
+    if (r.code === 'lockfile-changed-elsewhere') add(r.file ?? null, 'dependency', LOCKFILE_ELSEWHERE_WEIGHT, r.detail)
   }
   return items.sort((a, b) => b.weight - a.weight || compareStrings(a.file ?? '', b.file ?? '') || compareStrings(a.title, b.title))
 }

@@ -26,6 +26,7 @@ export const REASONS = {
   'existing-file-renamed': 'touches-existing',
   'existing-file-deleted': 'touches-existing',
   'infra-file-changed': 'touches-existing',
+  'lockfile-changed-elsewhere': 'touches-existing',
   'new-file-reached-by-existing-route': 'touches-existing',
   'tests-modified': 'info',
   'type-only-change': 'info',

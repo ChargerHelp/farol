@@ -11,7 +11,8 @@ import { classificationFrom, reason, REASONS, sortReasons, type Classification, 
 import type { AnalysisRole } from './roles.js'
 import { computeRisk, type FileRisk } from './risk.js'
 import type { BackendFileImpact } from '../backend/impact.js'
-import { describeChange, sortChanges, type ManifestDiff } from './dependencies.js'
+import { describeChange, sortChanges, type ManifestResult } from './dependencies.js'
+import { lockfileReason } from './lockfile.js'
 
 export interface ClassifyInput {
   files: readonly ChangedFile[]
@@ -24,7 +25,9 @@ export interface ClassifyInput {
   /** TypeScript: declaration-level impact of changed source files (precise reach instead of the file graph). */
   declImpacts?: ReadonlyMap<string, BackendFileImpact>
   /** Dependency diff of every changed manifest (or why it could not be read). */
-  manifests: readonly (ManifestDiff | { manifest: string; error: string })[]
+  manifests: readonly ManifestResult[]
+  /** Dependency diff of changed manifests of the same ecosystem outside the project (monorepo siblings). */
+  otherManifests: readonly ManifestResult[]
   graph: ImportGraph
   routesFile: string
   /** File-system router: routes are their own modules, so route changes are reported against each route's module. */
@@ -189,8 +192,7 @@ export function classify(input: ClassifyInput): ClassifyResult {
       continue
     }
     if (role === 'lockfile') {
-      const withManifests = input.manifests.some((m) => !('error' in m) && m.changes.length > 0)
-      reasons.push(withManifests ? reason('lockfile-changed', `lockfile ${file.status} together with dependency changes`, file.path) : reason('lockfile-only-change', `lockfile ${file.status} without any dependency change in the manifests: resolved versions may differ`, file.path))
+      reasons.push(lockfileReason(file, input.manifests, input.otherManifests))
       continue
     }
     if (role === 'global') {
