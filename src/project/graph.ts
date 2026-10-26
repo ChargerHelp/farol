@@ -31,6 +31,8 @@ export interface UnresolvedImport {
   reason: 'not-found' | 'non-literal'
   /** Repo-relative path the specifier points to (no extension probing), when it points into the repository. */
   target?: string
+  /** Repo-relative folder of the workspace package a bare specifier names, when the package is in the repository. */
+  package?: string
 }
 
 export interface ParseError {
@@ -103,6 +105,7 @@ class GraphBuilder {
       const entry: UnresolvedImport = { file: from, specifier: literal.text, line: lineOf(sf, literal), reason: 'not-found' }
       const target = specifierTarget(this.project, toPosix(sf.fileName), literal.text)
       if (target !== undefined && this.isProjectFile(target)) entry.target = this.rel(target)
+      if (r.package !== undefined) entry.package = this.rel(r.package)
       this.unresolved.push(entry)
       return undefined
     }

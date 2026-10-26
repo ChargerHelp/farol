@@ -1,6 +1,7 @@
 import ts from 'typescript'
 import { posix } from 'node:path'
 import { toPosix } from './fs.js'
+import { readManifest } from './workspace-links.js'
 import { getBaseUrl } from './parse.js'
 import type { ProjectProgram } from './program.js'
 
@@ -32,7 +33,7 @@ export type Resolution =
   | { kind: 'module'; file: string } // a TypeScript/JavaScript/JSON file of the program
   | { kind: 'asset'; file: string } // a non-TS file (CSS, SVG, …): leaf node
   | { kind: 'external' } // a package outside the repository
-  | { kind: 'unresolved' }
+  | { kind: 'unresolved'; package?: string } // package: folder of the in-repo workspace package a bare specifier names
 
 const TS_LIKE = new Set(['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs', '.json', ''])
 
@@ -97,6 +98,42 @@ function isInRepo(file: string, repoRoot: string): boolean {
   return file.startsWith(`${repoRoot}/`) && !file.includes('/node_modules/')
 }
 
+/** `x` or `@scope/x` of a bare specifier; undefined for `node:` built-ins. */
+function packageName(specifier: string): string | undefined {
+  if (specifier.startsWith('node:')) return undefined
+  const [first = '', second] = specifier.split('/')
+  if (!first.startsWith('@')) return first
+  return second === undefined ? undefined : `${first}/${second}`
+}
+
+/** Whether the package.json nearest to `dir` declares `name` with the `workspace:` protocol. */
+function declaresWorkspace(project: ResolverContext, repoRoot: string, dir: string, name: string): boolean {
+  for (let d = dir; d === repoRoot || d.startsWith(`${repoRoot}/`); d = posix.dirname(d)) {
+    const manifest = `${d}/package.json`
+    const text = project.fs.readFile(manifest)
+    if (text !== undefined) return readManifest(manifest, text).workspace.includes(name)
+  }
+  return false
+}
+
+/**
+ * A bare specifier that names a package of the repository: the folder its `node_modules` link points to (the
+ * first one up from the importer, as Node.js looks), or none when the importer's manifest declares a `workspace:`
+ * dependency no folder provides. Undefined for packages outside the repository.
+ */
+function workspacePackage(project: ResolverContext, repoRoot: string, containingFile: string, specifier: string): { package?: string } | undefined {
+  const name = packageName(specifier)
+  if (name === undefined) return undefined
+  const importerDir = posix.dirname(containingFile)
+  for (let dir = importerDir; dir === repoRoot || dir.startsWith(`${repoRoot}/`); dir = posix.dirname(dir)) {
+    const link = `${dir}/node_modules/${name}`
+    if (!project.fs.directoryExists(link)) continue
+    const folder = toPosix(project.fs.realpath(link))
+    return isInRepo(folder, repoRoot) ? { package: folder } : undefined
+  }
+  return declaresWorkspace(project, repoRoot, importerDir, name) ? {} : undefined
+}
+
 /**
  * Resolves an import specifier exactly as the compiler does. Non-TS files (CSS, SVG, …), which the compiler
  * does not resolve, are looked up relative to the importer, through `paths` or through `baseUrl`.
@@ -107,7 +144,10 @@ export function resolveSpecifier(project: ResolverContext, repoRoot: string, con
   const resolved = result.resolvedModule
   if (resolved) {
     const file = toPosix(project.fs.realpath(resolved.resolvedFileName))
-    return isInRepo(file, repoRoot) ? { kind: 'module', file } : { kind: 'external' }
+    if (!isInRepo(file, repoRoot)) return { kind: 'external' }
+    // With preserveSymlinks the program holds the package under its node_modules path, which the graph cannot follow.
+    if (project.options.preserveSymlinks === true && toPosix(resolved.resolvedFileName).includes('/node_modules/')) return { kind: 'unresolved', ...workspacePackage(project, repoRoot, containingFile, cleaned) }
+    return { kind: 'module', file }
   }
   const ext = posix.extname(cleaned)
   if (!TS_LIKE.has(ext)) {
@@ -123,5 +163,7 @@ export function resolveSpecifier(project: ResolverContext, repoRoot: string, con
       }
     }
   }
-  return isProjectSpecifier(cleaned, project) ? { kind: 'unresolved' } : { kind: 'external' }
+  if (isProjectSpecifier(cleaned, project)) return { kind: 'unresolved' }
+  const workspace = workspacePackage(project, repoRoot, containingFile, cleaned)
+  return workspace === undefined ? { kind: 'external' } : { kind: 'unresolved', ...workspace }
 }

@@ -49,7 +49,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var require_typescript = __commonJS({
   "node_modules/typescript/lib/typescript.js"(exports, module) {
     "use strict";
-    var ts21 = {};
+    var ts22 = {};
     ((module2) => {
       "use strict";
       var __defProp2 = Object.defineProperty;
@@ -16845,38 +16845,38 @@ ${lanes.join("\n")}
       function getResolvedTypeReferenceDirectiveFromResolution(resolution) {
         return resolution.resolvedTypeReferenceDirective;
       }
-      function createModuleNotFoundChain(sourceFile, host, moduleReference, mode, packageName) {
+      function createModuleNotFoundChain(sourceFile, host, moduleReference, mode, packageName2) {
         var _a3;
         const alternateResult = (_a3 = host.getResolvedModule(sourceFile, moduleReference, mode)) == null ? void 0 : _a3.alternateResult;
         const alternateResultMessage = alternateResult && (getEmitModuleResolutionKind(host.getCompilerOptions()) === 2 ? [Diagnostics.There_are_types_at_0_but_this_result_could_not_be_resolved_under_your_current_moduleResolution_setting_Consider_updating_to_node16_nodenext_or_bundler, [alternateResult]] : [
           Diagnostics.There_are_types_at_0_but_this_result_could_not_be_resolved_when_respecting_package_json_exports_The_1_library_may_need_to_update_its_package_json_or_typings,
-          [alternateResult, alternateResult.includes(nodeModulesPathPart + "@types/") ? `@types/${mangleScopedPackageName(packageName)}` : packageName]
+          [alternateResult, alternateResult.includes(nodeModulesPathPart + "@types/") ? `@types/${mangleScopedPackageName(packageName2)}` : packageName2]
         ]);
         const result = alternateResultMessage ? chainDiagnosticMessages(
           /*details*/
           void 0,
           alternateResultMessage[0],
           ...alternateResultMessage[1]
-        ) : host.typesPackageExists(packageName) ? chainDiagnosticMessages(
+        ) : host.typesPackageExists(packageName2) ? chainDiagnosticMessages(
           /*details*/
           void 0,
           Diagnostics.If_the_0_package_actually_exposes_this_module_consider_sending_a_pull_request_to_amend_https_Colon_Slash_Slashgithub_com_SlashDefinitelyTyped_SlashDefinitelyTyped_Slashtree_Slashmaster_Slashtypes_Slash_1,
-          packageName,
-          mangleScopedPackageName(packageName)
-        ) : host.packageBundlesTypes(packageName) ? chainDiagnosticMessages(
+          packageName2,
+          mangleScopedPackageName(packageName2)
+        ) : host.packageBundlesTypes(packageName2) ? chainDiagnosticMessages(
           /*details*/
           void 0,
           Diagnostics.If_the_0_package_actually_exposes_this_module_try_adding_a_new_declaration_d_ts_file_containing_declare_module_1,
-          packageName,
+          packageName2,
           moduleReference
         ) : chainDiagnosticMessages(
           /*details*/
           void 0,
           Diagnostics.Try_npm_i_save_dev_types_Slash_1_if_it_exists_or_add_a_new_declaration_d_ts_file_containing_declare_module_0,
           moduleReference,
-          mangleScopedPackageName(packageName)
+          mangleScopedPackageName(packageName2)
         );
-        if (result) result.repopulateInfo = () => ({ moduleReference, mode, packageName: packageName === moduleReference ? void 0 : packageName });
+        if (result) result.repopulateInfo = () => ({ moduleReference, mode, packageName: packageName2 === moduleReference ? void 0 : packageName2 });
         return result;
       }
       function createModeMismatchDetails(currentSourceFile) {
@@ -47854,12 +47854,12 @@ ${lanes.join("\n")}
         }
         return concatenate(conditions, options.customConditions);
       }
-      function resolvePackageNameToPackageJson(packageName, containingDirectory, options, host, cache) {
+      function resolvePackageNameToPackageJson(packageName2, containingDirectory, options, host, cache) {
         const moduleResolutionState = getTemporaryModuleResolutionState(cache == null ? void 0 : cache.getPackageJsonInfoCache(), host, options);
         return forEachAncestorDirectoryStoppingAtGlobalCache(host, containingDirectory, (ancestorDirectory) => {
           if (getBaseFileName(ancestorDirectory) !== "node_modules") {
             const nodeModulesFolder = combinePaths(ancestorDirectory, "node_modules");
-            const candidate = combinePaths(nodeModulesFolder, packageName);
+            const candidate = combinePaths(nodeModulesFolder, packageName2);
             return getPackageJsonInfo(
               candidate,
               /*onlyRecordFailures*/
@@ -49791,8 +49791,8 @@ ${lanes.join("\n")}
       function loadModuleFromSpecificNodeModulesDirectory(extensions, moduleName, nodeModulesDirectory, nodeModulesDirectoryExists, state, cache, redirectedReference) {
         var _a3, _b;
         const candidate = normalizePath(combinePaths(nodeModulesDirectory, moduleName));
-        const { packageName, rest } = parsePackageName(moduleName);
-        const packageDirectory = combinePaths(nodeModulesDirectory, packageName);
+        const { packageName: packageName2, rest } = parsePackageName(moduleName);
+        const packageDirectory = combinePaths(nodeModulesDirectory, packageName2);
         let rootPackageInfo;
         let packageInfo = getPackageJsonInfo(candidate, !nodeModulesDirectoryExists, state);
         if (rest !== "" && packageInfo && (!(state.features & 8) || !hasProperty(((_a3 = rootPackageInfo = getPackageJsonInfo(packageDirectory, !nodeModulesDirectoryExists, state)) == null ? void 0 : _a3.contents.packageJsonContent) ?? emptyArray, "exports"))) {
@@ -49872,24 +49872,24 @@ ${lanes.join("\n")}
         }
       }
       var mangledScopedPackageSeparator = "__";
-      function mangleScopedPackageNameWithTrace(packageName, state) {
-        const mangled = mangleScopedPackageName(packageName);
-        if (state.traceEnabled && mangled !== packageName) {
+      function mangleScopedPackageNameWithTrace(packageName2, state) {
+        const mangled = mangleScopedPackageName(packageName2);
+        if (state.traceEnabled && mangled !== packageName2) {
           trace(state.host, Diagnostics.Scoped_package_detected_looking_in_0, mangled);
         }
         return mangled;
       }
-      function getTypesPackageName(packageName) {
-        return `@types/${mangleScopedPackageName(packageName)}`;
+      function getTypesPackageName(packageName2) {
+        return `@types/${mangleScopedPackageName(packageName2)}`;
       }
-      function mangleScopedPackageName(packageName) {
-        if (startsWith(packageName, "@")) {
-          const replaceSlash = packageName.replace(directorySeparator, mangledScopedPackageSeparator);
-          if (replaceSlash !== packageName) {
+      function mangleScopedPackageName(packageName2) {
+        if (startsWith(packageName2, "@")) {
+          const replaceSlash = packageName2.replace(directorySeparator, mangledScopedPackageSeparator);
+          if (replaceSlash !== packageName2) {
             return replaceSlash.slice(1);
           }
         }
-        return packageName;
+        return packageName2;
       }
       function getPackageNameFromTypesPackageName(mangledName) {
         const withoutAtTypePrefix = removePrefix(mangledName, "@types/");
@@ -54169,7 +54169,7 @@ ${lanes.join("\n")}
           return ending !== 0 || value === processEnding(relativeToBaseUrl, [ending], compilerOptions, host);
         }
       }
-      function tryGetModuleNameFromExportsOrImports(options, host, targetFilePath, packageDirectory, packageName, exports2, conditions, mode, isImports, preferTsExtension) {
+      function tryGetModuleNameFromExportsOrImports(options, host, targetFilePath, packageDirectory, packageName2, exports2, conditions, mode, isImports, preferTsExtension) {
         if (typeof exports2 === "string") {
           const ignoreCase = !hostUsesCaseSensitiveFileNames(host);
           const getCommonSourceDirectory2 = () => host.getCommonSourceDirectory();
@@ -54185,7 +54185,7 @@ ${lanes.join("\n")}
           switch (mode) {
             case 0:
               if (extensionSwappedTarget && comparePaths(extensionSwappedTarget, pathOrPattern, ignoreCase) === 0 || comparePaths(targetFilePath, pathOrPattern, ignoreCase) === 0 || outputFile && comparePaths(outputFile, pathOrPattern, ignoreCase) === 0 || declarationFile && comparePaths(declarationFile, pathOrPattern, ignoreCase) === 0) {
-                return { moduleFileToTry: packageName };
+                return { moduleFileToTry: packageName2 };
               }
               break;
             case 1:
@@ -54197,7 +54197,7 @@ ${lanes.join("\n")}
                   false
                 );
                 return { moduleFileToTry: getNormalizedAbsolutePath(
-                  combinePaths(combinePaths(packageName, exports2), fragment),
+                  combinePaths(combinePaths(packageName2, exports2), fragment),
                   /*currentDirectory*/
                   void 0
                 ) };
@@ -54210,7 +54210,7 @@ ${lanes.join("\n")}
                   false
                 );
                 return { moduleFileToTry: getNormalizedAbsolutePath(
-                  combinePaths(combinePaths(packageName, exports2), fragment),
+                  combinePaths(combinePaths(packageName2, exports2), fragment),
                   /*currentDirectory*/
                   void 0
                 ) };
@@ -54223,7 +54223,7 @@ ${lanes.join("\n")}
                   false
                 );
                 return { moduleFileToTry: getNormalizedAbsolutePath(
-                  combinePaths(combinePaths(packageName, exports2), fragment),
+                  combinePaths(combinePaths(packageName2, exports2), fragment),
                   /*currentDirectory*/
                   void 0
                 ) };
@@ -54235,7 +54235,7 @@ ${lanes.join("\n")}
                   /*ignoreCase*/
                   false
                 );
-                return { moduleFileToTry: combinePaths(packageName, fragment) };
+                return { moduleFileToTry: combinePaths(packageName2, fragment) };
               }
               if (declarationFile && containsPath(pathOrPattern, declarationFile, ignoreCase)) {
                 const fragment = changeFullExtension(getRelativePathFromDirectory(
@@ -54244,7 +54244,7 @@ ${lanes.join("\n")}
                   /*ignoreCase*/
                   false
                 ), getJSExtensionForFile(declarationFile, options));
-                return { moduleFileToTry: combinePaths(packageName, fragment) };
+                return { moduleFileToTry: combinePaths(packageName2, fragment) };
               }
               break;
             case 2:
@@ -54253,35 +54253,35 @@ ${lanes.join("\n")}
               const trailingSlice = pathOrPattern.slice(starPos + 1);
               if (canTryTsExtension && startsWith(targetFilePath, leadingSlice, ignoreCase) && endsWith(targetFilePath, trailingSlice, ignoreCase)) {
                 const starReplacement = targetFilePath.slice(leadingSlice.length, targetFilePath.length - trailingSlice.length);
-                return { moduleFileToTry: replaceFirstStar(packageName, starReplacement) };
+                return { moduleFileToTry: replaceFirstStar(packageName2, starReplacement) };
               }
               if (extensionSwappedTarget && startsWith(extensionSwappedTarget, leadingSlice, ignoreCase) && endsWith(extensionSwappedTarget, trailingSlice, ignoreCase)) {
                 const starReplacement = extensionSwappedTarget.slice(leadingSlice.length, extensionSwappedTarget.length - trailingSlice.length);
-                return { moduleFileToTry: replaceFirstStar(packageName, starReplacement) };
+                return { moduleFileToTry: replaceFirstStar(packageName2, starReplacement) };
               }
               if (!canTryTsExtension && startsWith(targetFilePath, leadingSlice, ignoreCase) && endsWith(targetFilePath, trailingSlice, ignoreCase)) {
                 const starReplacement = targetFilePath.slice(leadingSlice.length, targetFilePath.length - trailingSlice.length);
-                return { moduleFileToTry: replaceFirstStar(packageName, starReplacement) };
+                return { moduleFileToTry: replaceFirstStar(packageName2, starReplacement) };
               }
               if (outputFile && startsWith(outputFile, leadingSlice, ignoreCase) && endsWith(outputFile, trailingSlice, ignoreCase)) {
                 const starReplacement = outputFile.slice(leadingSlice.length, outputFile.length - trailingSlice.length);
-                return { moduleFileToTry: replaceFirstStar(packageName, starReplacement) };
+                return { moduleFileToTry: replaceFirstStar(packageName2, starReplacement) };
               }
               if (declarationFile && startsWith(declarationFile, leadingSlice, ignoreCase) && endsWith(declarationFile, trailingSlice, ignoreCase)) {
                 const starReplacement = declarationFile.slice(leadingSlice.length, declarationFile.length - trailingSlice.length);
-                const substituted = replaceFirstStar(packageName, starReplacement);
+                const substituted = replaceFirstStar(packageName2, starReplacement);
                 const jsExtension = tryGetJSExtensionForFile(declarationFile, options);
                 return jsExtension ? { moduleFileToTry: changeFullExtension(substituted, jsExtension) } : void 0;
               }
               break;
           }
         } else if (Array.isArray(exports2)) {
-          return forEach(exports2, (e) => tryGetModuleNameFromExportsOrImports(options, host, targetFilePath, packageDirectory, packageName, e, conditions, mode, isImports, preferTsExtension));
+          return forEach(exports2, (e) => tryGetModuleNameFromExportsOrImports(options, host, targetFilePath, packageDirectory, packageName2, e, conditions, mode, isImports, preferTsExtension));
         } else if (typeof exports2 === "object" && exports2 !== null) {
           for (const key of getOwnKeys(exports2)) {
             if (key === "default" || conditions.indexOf(key) >= 0 || isApplicableVersionedTypesKey(conditions, key)) {
               const subTarget = exports2[key];
-              const result = tryGetModuleNameFromExportsOrImports(options, host, targetFilePath, packageDirectory, packageName, subTarget, conditions, mode, isImports, preferTsExtension);
+              const result = tryGetModuleNameFromExportsOrImports(options, host, targetFilePath, packageDirectory, packageName2, subTarget, conditions, mode, isImports, preferTsExtension);
               if (result) {
                 return result;
               }
@@ -54290,11 +54290,11 @@ ${lanes.join("\n")}
         }
         return void 0;
       }
-      function tryGetModuleNameFromExports(options, host, targetFilePath, packageDirectory, packageName, exports2, conditions) {
+      function tryGetModuleNameFromExports(options, host, targetFilePath, packageDirectory, packageName2, exports2, conditions) {
         if (typeof exports2 === "object" && exports2 !== null && !Array.isArray(exports2) && allKeysStartWithDot(exports2)) {
           return forEach(getOwnKeys(exports2), (k) => {
             const subPackageName = getNormalizedAbsolutePath(
-              combinePaths(packageName, k),
+              combinePaths(packageName2, k),
               /*currentDirectory*/
               void 0
             );
@@ -54320,7 +54320,7 @@ ${lanes.join("\n")}
           host,
           targetFilePath,
           packageDirectory,
-          packageName,
+          packageName2,
           exports2,
           conditions,
           0,
@@ -54430,8 +54430,8 @@ ${lanes.join("\n")}
           return void 0;
         }
         const nodeModulesDirectoryName = moduleSpecifier.substring(parts.topLevelPackageNameIndex + 1);
-        const packageName = getPackageNameFromTypesPackageName(nodeModulesDirectoryName);
-        return getEmitModuleResolutionKind(options) === 1 && packageName === nodeModulesDirectoryName ? void 0 : packageName;
+        const packageName2 = getPackageNameFromTypesPackageName(nodeModulesDirectoryName);
+        return getEmitModuleResolutionKind(options) === 1 && packageName2 === nodeModulesDirectoryName ? void 0 : packageName2;
         function tryDirectoryWithPackageJson(packageRootIndex) {
           var _a3, _b;
           const packageRootPath = path3.substring(0, packageRootIndex);
@@ -54444,14 +54444,14 @@ ${lanes.join("\n")}
             const importMode = overrideMode || getDefaultResolutionModeForFile(importingSourceFile, host, options);
             if (getResolvePackageJsonExports(options)) {
               const nodeModulesDirectoryName2 = packageRootPath.substring(parts.topLevelPackageNameIndex + 1);
-              const packageName2 = getPackageNameFromTypesPackageName(nodeModulesDirectoryName2);
+              const packageName22 = getPackageNameFromTypesPackageName(nodeModulesDirectoryName2);
               const conditions = getConditions(options, importMode);
               const fromExports = (packageJsonContent == null ? void 0 : packageJsonContent.exports) ? tryGetModuleNameFromExports(
                 options,
                 host,
                 path3,
                 packageRootPath,
-                packageName2,
+                packageName22,
                 packageJsonContent.exports,
                 conditions
               ) : void 0;
@@ -137093,11 +137093,11 @@ ${lanes.join("\n")}
           });
           return packageMap;
         }
-        function typesPackageExists(packageName) {
-          return getPackagesMap().has(getTypesPackageName(packageName));
+        function typesPackageExists(packageName2) {
+          return getPackagesMap().has(getTypesPackageName(packageName2));
         }
-        function packageBundlesTypes(packageName) {
-          return !!getPackagesMap().get(packageName);
+        function packageBundlesTypes(packageName2) {
+          return !!getPackagesMap().get(packageName2);
         }
         function addResolutionDiagnostics(resolution) {
           var _a22;
@@ -137409,14 +137409,14 @@ ${lanes.join("\n")}
             newSourceFile.originalFileName = oldSourceFile.originalFileName;
             newSourceFile.resolvedPath = oldSourceFile.resolvedPath;
             newSourceFile.fileName = oldSourceFile.fileName;
-            const packageName = oldProgram.sourceFileToPackageName.get(oldSourceFile.path);
-            if (packageName !== void 0) {
-              const prevKind = seenPackageNames.get(packageName);
+            const packageName2 = oldProgram.sourceFileToPackageName.get(oldSourceFile.path);
+            if (packageName2 !== void 0) {
+              const prevKind = seenPackageNames.get(packageName2);
               const newKind = fileChanged ? 1 : 0;
               if (prevKind !== void 0 && newKind === 1 || prevKind === 1) {
                 return 0;
               }
-              seenPackageNames.set(packageName, newKind);
+              seenPackageNames.set(packageName2, newKind);
             }
             if (fileChanged) {
               if (oldSourceFile.impliedNodeFormat !== newSourceFile.impliedNodeFormat) {
@@ -149172,28 +149172,28 @@ ${lanes.join("\n")}
         return NameValidationResult2;
       })(NameValidationResult || {});
       var maxPackageNameLength = 214;
-      function validatePackageName(packageName) {
+      function validatePackageName(packageName2) {
         return validatePackageNameWorker(
-          packageName,
+          packageName2,
           /*supportScopedPackage*/
           true
         );
       }
-      function validatePackageNameWorker(packageName, supportScopedPackage) {
-        if (!packageName) {
+      function validatePackageNameWorker(packageName2, supportScopedPackage) {
+        if (!packageName2) {
           return 1;
         }
-        if (packageName.length > maxPackageNameLength) {
+        if (packageName2.length > maxPackageNameLength) {
           return 2;
         }
-        if (packageName.charCodeAt(0) === 46) {
+        if (packageName2.charCodeAt(0) === 46) {
           return 3;
         }
-        if (packageName.charCodeAt(0) === 95) {
+        if (packageName2.charCodeAt(0) === 95) {
           return 4;
         }
         if (supportScopedPackage) {
-          const matches = /^@([^/]+)\/([^/]+)$/.exec(packageName);
+          const matches = /^@([^/]+)\/([^/]+)$/.exec(packageName2);
           if (matches) {
             const scopeResult = validatePackageNameWorker(
               matches[1],
@@ -149214,7 +149214,7 @@ ${lanes.join("\n")}
             return 0;
           }
         }
-        if (!/^[\w.-]+$/.test(packageName)) {
+        if (!/^[\w.-]+$/.test(packageName2)) {
           return 5;
         }
         return 0;
@@ -151984,8 +151984,8 @@ ${lanes.join("\n")}
               continue;
             }
             const dependencyMap = /* @__PURE__ */ new Map();
-            for (const packageName in dependencies) {
-              dependencyMap.set(packageName, dependencies[packageName]);
+            for (const packageName2 in dependencies) {
+              dependencyMap.set(packageName2, dependencies[packageName2]);
             }
             info[key] = dependencyMap;
           }
@@ -152027,9 +152027,9 @@ ${lanes.join("\n")}
           allowsImportingSpecifier
         };
         function moduleSpecifierIsCoveredByPackageJson(specifier) {
-          const packageName = getNodeModuleRootSpecifier(specifier);
+          const packageName2 = getNodeModuleRootSpecifier(specifier);
           for (const packageJson of packageJsons) {
-            if (packageJson.has(packageName) || packageJson.has(getTypesPackageName(packageName))) {
+            if (packageJson.has(packageName2) || packageJson.has(getTypesPackageName(packageName2))) {
               return true;
             }
           }
@@ -152074,14 +152074,14 @@ ${lanes.join("\n")}
               return cached2;
             }
           }
-          const packageName = getNodeModulesPackageNameFromFileName(sourceFile.fileName, moduleSpecifierResolutionHost);
-          if (!packageName) {
-            const result2 = { importable: true, packageName };
+          const packageName2 = getNodeModulesPackageNameFromFileName(sourceFile.fileName, moduleSpecifierResolutionHost);
+          if (!packageName2) {
+            const result2 = { importable: true, packageName: packageName2 };
             sourceFileCache.set(sourceFile, result2);
             return result2;
           }
-          const importable = moduleSpecifierIsCoveredByPackageJson(packageName);
-          const result = { importable, packageName };
+          const importable = moduleSpecifierIsCoveredByPackageJson(packageName2);
+          const result = { importable, packageName: packageName2 };
           sourceFileCache.set(sourceFile, result);
           return result;
         }
@@ -152464,22 +152464,22 @@ ${lanes.join("\n")}
               cache.clear();
               usableByFileName = importingFile;
             }
-            let packageName;
+            let packageName2;
             if (moduleFile) {
               const nodeModulesPathParts = getNodeModulePathParts(moduleFile.fileName);
               if (nodeModulesPathParts) {
                 const { topLevelNodeModulesIndex, topLevelPackageNameIndex, packageRootIndex } = nodeModulesPathParts;
-                packageName = unmangleScopedPackageName(getPackageNameFromTypesPackageName(moduleFile.fileName.substring(topLevelPackageNameIndex + 1, packageRootIndex)));
+                packageName2 = unmangleScopedPackageName(getPackageNameFromTypesPackageName(moduleFile.fileName.substring(topLevelPackageNameIndex + 1, packageRootIndex)));
                 if (startsWith(importingFile, moduleFile.path.substring(0, topLevelNodeModulesIndex))) {
-                  const prevDeepestNodeModulesPath = packages.get(packageName);
+                  const prevDeepestNodeModulesPath = packages.get(packageName2);
                   const nodeModulesPath = moduleFile.fileName.substring(0, topLevelPackageNameIndex + 1);
                   if (prevDeepestNodeModulesPath) {
                     const prevDeepestNodeModulesIndex = prevDeepestNodeModulesPath.indexOf(nodeModulesPathPart);
                     if (topLevelNodeModulesIndex > prevDeepestNodeModulesIndex) {
-                      packages.set(packageName, nodeModulesPath);
+                      packages.set(packageName2, nodeModulesPath);
                     }
                   } else {
-                    packages.set(packageName, nodeModulesPath);
+                    packages.set(packageName2, nodeModulesPath);
                   }
                 }
               }
@@ -152508,7 +152508,7 @@ ${lanes.join("\n")}
               moduleName,
               moduleFile,
               moduleFileName: moduleFile == null ? void 0 : moduleFile.fileName,
-              packageName,
+              packageName: packageName2,
               exportKind,
               targetFlags: target.flags,
               isFromPackageJson,
@@ -152625,11 +152625,11 @@ ${lanes.join("\n")}
           }
           return true;
         }
-        function isNotShadowedByDeeperNodeModulesPackage(info, packageName) {
-          if (!packageName || !info.moduleFileName) return true;
+        function isNotShadowedByDeeperNodeModulesPackage(info, packageName2) {
+          if (!packageName2 || !info.moduleFileName) return true;
           const typingsCacheLocation = host.getGlobalTypingsCacheLocation();
           if (typingsCacheLocation && startsWith(info.moduleFileName, typingsCacheLocation)) return true;
-          const packageDeepestNodeModulesPath = packages.get(packageName);
+          const packageDeepestNodeModulesPath = packages.get(packageName2);
           return !packageDeepestNodeModulesPath || startsWith(info.moduleFileName, packageDeepestNodeModulesPath);
         }
       }
@@ -152675,8 +152675,8 @@ ${lanes.join("\n")}
         }
         return hasImportablePath;
       }
-      function fileContainsPackageImport(sourceFile, packageName) {
-        return sourceFile.imports && sourceFile.imports.some((i) => i.text === packageName || i.text.startsWith(packageName + "/"));
+      function fileContainsPackageImport(sourceFile, packageName2) {
+        return sourceFile.imports && sourceFile.imports.some((i) => i.text === packageName2 || i.text.startsWith(packageName2 + "/"));
       }
       function isImportablePath(fromPath, toPath3, getCanonicalFileName, globalCachePath, host) {
         const toNodeModules = forEachAncestorDirectoryStoppingAtGlobalCache(
@@ -172716,9 +172716,9 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
         errorCodes: errorCodes31,
         getCodeActions: function getCodeActionsToFixNotFoundModule(context) {
           const { host, sourceFile, span: { start }, errorCode } = context;
-          const packageName = errorCode === errorCannotFindImplicitJsxImport ? getJSXImplicitImportBase(context.program.getCompilerOptions(), sourceFile) : tryGetImportedPackageName(sourceFile, start);
-          if (packageName === void 0) return void 0;
-          const typesPackageName = getTypesPackageNameToInstall(packageName, host, errorCode);
+          const packageName2 = errorCode === errorCannotFindImplicitJsxImport ? getJSXImplicitImportBase(context.program.getCompilerOptions(), sourceFile) : tryGetImportedPackageName(sourceFile, start);
+          if (packageName2 === void 0) return void 0;
+          const typesPackageName = getTypesPackageNameToInstall(packageName2, host, errorCode);
           return typesPackageName === void 0 ? [] : [createCodeFixAction(
             fixName2,
             /*changes*/
@@ -172732,11 +172732,11 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
         fixIds: [fixIdInstallTypesPackage],
         getAllCodeActions: (context) => {
           return codeFixAll(context, errorCodes31, (_changes, diag2, commands) => {
-            const packageName = tryGetImportedPackageName(diag2.file, diag2.start);
-            if (packageName === void 0) return void 0;
+            const packageName2 = tryGetImportedPackageName(diag2.file, diag2.start);
+            if (packageName2 === void 0) return void 0;
             switch (context.fixId) {
               case fixIdInstallTypesPackage: {
-                const pkg = getTypesPackageNameToInstall(packageName, context.host, diag2.code);
+                const pkg = getTypesPackageNameToInstall(packageName2, context.host, diag2.code);
                 if (pkg) {
                   commands.push(getInstallCommand(diag2.file.fileName, pkg));
                 }
@@ -172748,23 +172748,23 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
           });
         }
       });
-      function getInstallCommand(fileName, packageName) {
-        return { type: "install package", file: fileName, packageName };
+      function getInstallCommand(fileName, packageName2) {
+        return { type: "install package", file: fileName, packageName: packageName2 };
       }
       function tryGetImportedPackageName(sourceFile, pos) {
         const moduleSpecifierText = tryCast(getTokenAtPosition(sourceFile, pos), isStringLiteral);
         if (!moduleSpecifierText) return void 0;
         const moduleName = moduleSpecifierText.text;
-        const { packageName } = parsePackageName(moduleName);
-        return isExternalModuleNameRelative(packageName) ? void 0 : packageName;
+        const { packageName: packageName2 } = parsePackageName(moduleName);
+        return isExternalModuleNameRelative(packageName2) ? void 0 : packageName2;
       }
-      function getTypesPackageNameToInstall(packageName, host, diagCode) {
+      function getTypesPackageNameToInstall(packageName2, host, diagCode) {
         var _a3;
-        if (nodeCoreModules.has(packageName)) {
+        if (nodeCoreModules.has(packageName2)) {
           return "@types/node";
         }
         if (diagCode !== errorCodeCannotFindModule) {
-          return ((_a3 = host.isKnownTypesPackageName) == null ? void 0 : _a3.call(host, packageName)) ? getTypesPackageName(packageName) : void 0;
+          return ((_a3 = host.isKnownTypesPackageName) == null ? void 0 : _a3.call(host, packageName2)) ? getTypesPackageName(packageName2) : void 0;
         }
         return void 0;
       }
@@ -183187,21 +183187,21 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
         function getCompletionEntriesFromDirectories(directory) {
           if (!tryDirectoryExists(host, directory)) return;
           for (const typeDirectoryName of tryGetDirectories(host, directory)) {
-            const packageName = unmangleScopedPackageName(typeDirectoryName);
-            if (options.types && !contains(options.types, packageName)) continue;
+            const packageName2 = unmangleScopedPackageName(typeDirectoryName);
+            if (options.types && !contains(options.types, packageName2)) continue;
             if (fragmentDirectory === void 0) {
-              if (!seen.has(packageName)) {
+              if (!seen.has(packageName2)) {
                 result.add(nameAndKind(
-                  packageName,
+                  packageName2,
                   "external module name",
                   /*extension*/
                   void 0
                 ));
-                seen.set(packageName, true);
+                seen.set(packageName2, true);
               }
             } else {
               const baseDirectory = combinePaths(directory, typeDirectoryName);
-              const remainingFragment = tryRemoveDirectoryPrefix(fragmentDirectory, packageName, hostGetCanonicalFileName(host));
+              const remainingFragment = tryRemoveDirectoryPrefix(fragmentDirectory, packageName2, hostGetCanonicalFileName(host));
               if (remainingFragment !== void 0) {
                 getCompletionEntriesForDirectoryFragment(
                   remainingFragment,
@@ -198790,16 +198790,16 @@ ${options.prefix}` : "\n" : options.prefix
         isEnabled: () => false,
         writeLine: noop
       };
-      function typingToFileName(cachePath, packageName, installTypingHost, log) {
+      function typingToFileName(cachePath, packageName2, installTypingHost, log) {
         try {
-          const result = resolveModuleName(packageName, combinePaths(cachePath, "index.d.ts"), {
+          const result = resolveModuleName(packageName2, combinePaths(cachePath, "index.d.ts"), {
             moduleResolution: 2
             /* Node10 */
           }, installTypingHost);
           return result.resolvedModule && result.resolvedModule.resolvedFileName;
         } catch (e) {
           if (log.isEnabled()) {
-            log.writeLine(`Failed to resolve ${packageName} in folder '${cachePath}': ${e.message}`);
+            log.writeLine(`Failed to resolve ${packageName2} in folder '${cachePath}': ${e.message}`);
           }
           return void 0;
         }
@@ -198930,10 +198930,10 @@ ${options.prefix}` : "\n" : options.prefix
         }
         /** @internal */
         installPackage(req) {
-          const { fileName, packageName, projectName, projectRootPath, id } = req;
-          const validationResult = ts_JsTyping_exports.validatePackageName(packageName);
+          const { fileName, packageName: packageName2, projectName, projectRootPath, id } = req;
+          const validationResult = ts_JsTyping_exports.validatePackageName(packageName2);
           if (validationResult !== ts_JsTyping_exports.NameValidationResult.Ok) {
-            const message = ts_JsTyping_exports.renderPackageNameValidationFailure(validationResult, packageName);
+            const message = ts_JsTyping_exports.renderPackageNameValidationFailure(validationResult, packageName2);
             if (this.log.isEnabled()) {
               this.log.writeLine(message);
             }
@@ -198953,8 +198953,8 @@ ${options.prefix}` : "\n" : options.prefix
             }
           }) || projectRootPath;
           if (cwd) {
-            this.installWorker(-1, [packageName], cwd, (success2) => {
-              const message = success2 ? `Package ${packageName} installed.` : `There was an error installing ${packageName}.`;
+            this.installWorker(-1, [packageName2], cwd, (success2) => {
+              const message = success2 ? `Package ${packageName2} installed.` : `There was an error installing ${packageName2}.`;
               const response = {
                 kind: ActionPackageInstalled,
                 projectName,
@@ -199014,26 +199014,26 @@ ${options.prefix}` : "\n" : options.prefix
                 if (npmLock.packages && !hasProperty(npmLock.packages, `node_modules/${key}`) || npmLock.dependencies && !hasProperty(npmLock.dependencies, key)) {
                   continue;
                 }
-                const packageName = getBaseFileName(key);
-                if (!packageName) {
+                const packageName2 = getBaseFileName(key);
+                if (!packageName2) {
                   continue;
                 }
-                const typingFile = typingToFileName(cacheLocation, packageName, this.installTypingHost, this.log);
+                const typingFile = typingToFileName(cacheLocation, packageName2, this.installTypingHost, this.log);
                 if (!typingFile) {
-                  this.missingTypingsSet.add(packageName);
+                  this.missingTypingsSet.add(packageName2);
                   continue;
                 }
-                const existingTypingFile = this.packageNameToTypingLocation.get(packageName);
+                const existingTypingFile = this.packageNameToTypingLocation.get(packageName2);
                 if (existingTypingFile) {
                   if (existingTypingFile.typingLocation === typingFile) {
                     continue;
                   }
                   if (this.log.isEnabled()) {
-                    this.log.writeLine(`New typing for package ${packageName} from '${typingFile}' conflicts with existing typing file '${existingTypingFile}'`);
+                    this.log.writeLine(`New typing for package ${packageName2} from '${typingFile}' conflicts with existing typing file '${existingTypingFile}'`);
                   }
                 }
                 if (this.log.isEnabled()) {
-                  this.log.writeLine(`Adding entry into typings cache: '${packageName}' => '${typingFile}'`);
+                  this.log.writeLine(`Adding entry into typings cache: '${packageName2}' => '${typingFile}'`);
                 }
                 const info = npmLock.packages && getProperty(npmLock.packages, `node_modules/${key}`) || getProperty(npmLock.dependencies, key);
                 const version22 = info && info.version;
@@ -199041,7 +199041,7 @@ ${options.prefix}` : "\n" : options.prefix
                   continue;
                 }
                 const newTyping = { typingLocation: typingFile, version: new Version(version22) };
-                this.packageNameToTypingLocation.set(packageName, newTyping);
+                this.packageNameToTypingLocation.set(packageName2, newTyping);
               }
             }
           }
@@ -199124,16 +199124,16 @@ ${options.prefix}` : "\n" : options.prefix
                 this.log.writeLine(`Installed typings ${JSON.stringify(scopedTypings)}`);
               }
               const installedTypingFiles = [];
-              for (const packageName of filteredTypings) {
-                const typingFile = typingToFileName(cachePath, packageName, this.installTypingHost, this.log);
+              for (const packageName2 of filteredTypings) {
+                const typingFile = typingToFileName(cachePath, packageName2, this.installTypingHost, this.log);
                 if (!typingFile) {
-                  this.missingTypingsSet.add(packageName);
+                  this.missingTypingsSet.add(packageName2);
                   continue;
                 }
-                const distTags = this.typesRegistry.get(packageName);
+                const distTags = this.typesRegistry.get(packageName2);
                 const newVersion = new Version(distTags[`ts${versionMajorMinor}`] || distTags[this.latestDistTag]);
                 const newTyping = { typingLocation: typingFile, version: newVersion };
-                this.packageNameToTypingLocation.set(packageName, newTyping);
+                this.packageNameToTypingLocation.set(packageName2, newTyping);
                 installedTypingFiles.push(typingFile);
               }
               if (this.log.isEnabled()) {
@@ -199202,8 +199202,8 @@ ${options.prefix}` : "\n" : options.prefix
           }
         }
       };
-      function typingsName(packageName) {
-        return `@types/${packageName}@ts${versionMajorMinor}`;
+      function typingsName(packageName2) {
+        return `@types/${packageName2}@ts${versionMajorMinor}`;
       }
       var LogLevel2 = /* @__PURE__ */ ((LogLevel3) => {
         LogLevel3[LogLevel3["terse"] = 0] = "terse";
@@ -206540,12 +206540,12 @@ Dynamic files must always be opened with service's current directory or service 
               ));
             }
           },
-          setBlockedByPackageJsonDependencies(fromFileName, toFileName2, preferences, options, packageName, isBlockedByPackageJsonDependencies) {
+          setBlockedByPackageJsonDependencies(fromFileName, toFileName2, preferences, options, packageName2, isBlockedByPackageJsonDependencies) {
             const cache2 = ensureCache(fromFileName, preferences, options);
             const info = cache2.get(toFileName2);
             if (info) {
               info.isBlockedByPackageJsonDependencies = isBlockedByPackageJsonDependencies;
-              info.packageName = packageName;
+              info.packageName = packageName2;
             } else {
               cache2.set(toFileName2, createInfo(
                 /*kind*/
@@ -206554,7 +206554,7 @@ Dynamic files must always be opened with service's current directory or service 
                 void 0,
                 /*moduleSpecifiers*/
                 void 0,
-                packageName,
+                packageName2,
                 isBlockedByPackageJsonDependencies
               ));
             }
@@ -206584,8 +206584,8 @@ Dynamic files must always be opened with service's current directory or service 
         function key(fromFileName, preferences, options) {
           return `${fromFileName},${preferences.importModuleSpecifierEnding},${preferences.importModuleSpecifierPreference},${options.overrideImportMode}`;
         }
-        function createInfo(kind, modulePaths, moduleSpecifiers2, packageName, isBlockedByPackageJsonDependencies) {
-          return { kind, modulePaths, moduleSpecifiers: moduleSpecifiers2, packageName, isBlockedByPackageJsonDependencies };
+        function createInfo(kind, modulePaths, moduleSpecifiers2, packageName2, isBlockedByPackageJsonDependencies) {
+          return { kind, modulePaths, moduleSpecifiers: moduleSpecifiers2, packageName: packageName2, isBlockedByPackageJsonDependencies };
         }
       }
       function createPackageJsonCache(host) {
@@ -208830,13 +208830,13 @@ Project '${project.projectName}' (${ProjectKind[project.projectKind]}) ${counter
                 nodeModulesPathParts.topLevelPackageNameIndex + 1,
                 nodeModulesPathParts.packageRootIndex
               );
-              const packageName = getPackageNameFromTypesPackageName(unmangleScopedPackageName(packageNamePathPart));
+              const packageName2 = getPackageNameFromTypesPackageName(unmangleScopedPackageName(packageNamePathPart));
               const path3 = project.toPath(fileName);
               if (entrypoints && some(entrypoints, (e) => project.toPath(e) === path3)) {
-                return (_b = auxiliaryProject.resolutionCache.resolveSingleModuleNameWithoutWatching(packageName, resolveFromFile).resolvedModule) == null ? void 0 : _b.resolvedFileName;
+                return (_b = auxiliaryProject.resolutionCache.resolveSingleModuleNameWithoutWatching(packageName2, resolveFromFile).resolvedModule) == null ? void 0 : _b.resolvedFileName;
               } else {
                 const pathToFileInPackage = fileName.substring(nodeModulesPathParts.packageRootIndex + 1);
-                const specifier = `${packageName}/${removeFileExtension(pathToFileInPackage)}`;
+                const specifier = `${packageName2}/${removeFileExtension(pathToFileInPackage)}`;
                 return (_c = auxiliaryProject.resolutionCache.resolveSingleModuleNameWithoutWatching(specifier, resolveFromFile).resolvedModule) == null ? void 0 : _c.resolvedFileName;
               }
             }
@@ -211568,9 +211568,9 @@ Additional information: BADCLIENT: Bad error code, ${badCode} not found in range
         };
       }
     })({ get exports() {
-      return ts21;
+      return ts22;
     }, set exports(v) {
-      ts21 = v;
+      ts22 = v;
       if (typeof module !== "undefined" && module.exports) {
         module.exports = v;
       }
@@ -212704,9 +212704,9 @@ var require_parse = __commonJS({
                 const idx = prev.value.lastIndexOf("[");
                 const pre = prev.value.slice(0, idx);
                 const rest2 = prev.value.slice(idx + 2);
-                const posix19 = POSIX_REGEX_SOURCE[rest2];
-                if (posix19) {
-                  prev.value = pre + posix19;
+                const posix20 = POSIX_REGEX_SOURCE[rest2];
+                if (posix20) {
+                  prev.value = pre + posix20;
                   state.backtrack = true;
                   advance();
                   if (!bos.output && tokens2.indexOf(prev) === 1) {
@@ -213223,7 +213223,7 @@ var require_picomatch = __commonJS({
         throw new TypeError("Expected pattern to be a non-empty string");
       }
       const opts = options || {};
-      const posix19 = opts.windows;
+      const posix20 = opts.windows;
       const regex = isState ? picomatch4.compileRe(glob, options) : picomatch4.makeRe(glob, options, false, true);
       const state = regex.state;
       delete regex.state;
@@ -213233,8 +213233,8 @@ var require_picomatch = __commonJS({
         isIgnored = picomatch4(opts.ignore, ignoreOpts, returnState);
       }
       const matcher2 = (input2, returnObject = false) => {
-        const { isMatch, match, output: output2 } = picomatch4.test(input2, regex, options, { glob, posix: posix19 });
-        const result = { glob, state, regex, posix: posix19, input: input2, output: output2, match, isMatch };
+        const { isMatch, match, output: output2 } = picomatch4.test(input2, regex, options, { glob, posix: posix20 });
+        const result = { glob, state, regex, posix: posix20, input: input2, output: output2, match, isMatch };
         if (typeof opts.onResult === "function") {
           opts.onResult(result);
         }
@@ -213259,7 +213259,7 @@ var require_picomatch = __commonJS({
       }
       return matcher2;
     };
-    picomatch4.test = (input2, regex, options, { glob, posix: posix19 } = {}) => {
+    picomatch4.test = (input2, regex, options, { glob, posix: posix20 } = {}) => {
       if (typeof input2 !== "string") {
         throw new TypeError("Expected input to be a string");
       }
@@ -213267,7 +213267,7 @@ var require_picomatch = __commonJS({
         return { isMatch: false, output: "" };
       }
       const opts = options || {};
-      const format = opts.format || (posix19 ? utils.toPosixSlashes : null);
+      const format = opts.format || (posix20 ? utils.toPosixSlashes : null);
       let match = input2 === glob;
       let output2 = match && format ? format(input2) : input2;
       if (match === false) {
@@ -213276,16 +213276,16 @@ var require_picomatch = __commonJS({
       }
       if (match === false || opts.capture === true) {
         if (opts.matchBase === true || opts.basename === true) {
-          match = picomatch4.matchBase(input2, regex, options, posix19);
+          match = picomatch4.matchBase(input2, regex, options, posix20);
         } else {
           match = regex.exec(output2);
         }
       }
       return { isMatch: Boolean(match), match, output: output2 };
     };
-    picomatch4.matchBase = (input2, glob, options, posix19 = options && options.windows) => {
+    picomatch4.matchBase = (input2, glob, options, posix20 = options && options.windows) => {
       const regex = glob instanceof RegExp ? glob : picomatch4.makeRe(glob, options);
-      return regex.test(utils.basename(input2, { windows: posix19 }));
+      return regex.test(utils.basename(input2, { windows: posix20 }));
     };
     picomatch4.isMatch = (str2, patterns, options) => picomatch4(patterns, options)(str2);
     picomatch4.parse = (pattern, options) => {
@@ -237122,7 +237122,7 @@ async function loadContext(options) {
 
 // src/cli/analyze.ts
 import { readFileSync as readFileSync4 } from "fs";
-import { posix as posix15, resolve as resolve3 } from "path";
+import { posix as posix16, resolve as resolve3 } from "path";
 
 // src/classify/classify.ts
 import { posix as posix2 } from "path";
@@ -237683,6 +237683,13 @@ function classify(input2) {
       reasons.push(reason("unresolved-import", `line ${u.line}: ${what}`, u.file));
     }
   }
+  const unresolvedPackages = /* @__PURE__ */ new Map();
+  for (const u of graph.unresolved) if (u.package !== void 0 && !unresolvedPackages.has(u.package)) unresolvedPackages.set(u.package, u);
+  for (const file2 of changed) {
+    for (const [folder, u] of unresolvedPackages) {
+      if (file2.startsWith(`${folder}/`)) reasons.push(reason("unresolved-import", `cannot resolve "${u.specifier}" (workspace package ${folder}), imported at ${u.file} line ${u.line}`, file2));
+    }
+  }
   const tableChanges = input2.baseRoutes ? compareRouteTables(input2.baseRoutes, headRoutes) : [];
   for (const c of tableChanges) {
     const file2 = routeFileOf(c.key);
@@ -238236,7 +238243,7 @@ var SignalsSchema = external_exports.object({
   security: SecuritySignalSchema,
   vulnerabilities: VulnerabilitiesSignalSchema
 }).strict();
-var UnresolvedImportSchema = external_exports.object({ file: path2, specifier: external_exports.string(), line, reason: external_exports.enum(["not-found", "non-literal"]), target: path2.optional() }).strict();
+var UnresolvedImportSchema = external_exports.object({ file: path2, specifier: external_exports.string(), line, reason: external_exports.enum(["not-found", "non-literal"]), target: path2.optional(), package: path2.optional() }).strict();
 var DynamicRouteSchema = external_exports.object({ file: path2, line, detail: external_exports.string() }).strict();
 var DependencyChangeSchema = external_exports.object({
   manifest: path2,
@@ -238385,13 +238392,71 @@ function writeTextFile(path3, text) {
 }
 
 // src/project/fs.ts
+import { posix as posix5 } from "path";
+
+// src/project/workspace-links.ts
+var import_typescript3 = __toESM(require_typescript(), 1);
 import { posix as posix4 } from "path";
+function readManifest(path3, text) {
+  const { config: config2 } = import_typescript3.default.parseConfigFileTextToJson(path3, text);
+  if (typeof config2 !== "object" || config2 === null) return { workspace: [] };
+  const json3 = config2;
+  const workspace = [];
+  for (const section2 of DEPENDENCY_SECTIONS) {
+    const deps = json3[section2];
+    if (typeof deps !== "object" || deps === null) continue;
+    for (const [name, spec] of Object.entries(deps)) if (typeof spec === "string" && spec.startsWith("workspace:")) workspace.push(name);
+  }
+  return { ...typeof json3.name === "string" ? { name: json3.name } : {}, workspace };
+}
+var dirOf = (file2) => posix4.dirname(file2) === "." ? "" : posix4.dirname(file2);
+var join2 = (dir, path3) => dir === "" ? path3 : `${dir}/${path3}`;
+function readWorkspaceLinks(files, read) {
+  const folders = /* @__PURE__ */ new Map();
+  const declared = /* @__PURE__ */ new Map();
+  for (const file2 of files) {
+    if (posix4.basename(file2) !== "package.json" || file2.split("/").includes("node_modules")) continue;
+    const manifest = readManifest(file2, read(file2));
+    const dir = dirOf(file2);
+    if (manifest.name !== void 0) folders.set(manifest.name, folders.has(manifest.name) ? null : dir);
+    if (manifest.workspace.length > 0) declared.set(dir, new Set(manifest.workspace));
+  }
+  const target = (dir, name) => declared.get(dir)?.has(name) ? folders.get(name) ?? void 0 : void 0;
+  const entries = /* @__PURE__ */ new Map();
+  const linked = /* @__PURE__ */ new Set();
+  const add = (dir, name) => {
+    let set2 = entries.get(dir);
+    if (!set2) entries.set(dir, set2 = /* @__PURE__ */ new Set());
+    set2.add(name);
+  };
+  for (const [dir, names] of declared) {
+    for (const name of names) {
+      const folder = target(dir, name);
+      if (folder === void 0) continue;
+      linked.add(folder);
+      const modules = join2(dir, "node_modules");
+      const [first = name, rest] = name.split("/");
+      add(modules, first);
+      if (rest !== void 0) add(`${modules}/${first}`, rest);
+    }
+  }
+  return {
+    target,
+    declares: (dir, name) => declared.get(dir)?.has(name) ?? false,
+    entries: (dir) => [...entries.get(dir) ?? []],
+    isLinked: (folder) => linked.has(folder)
+  };
+}
+
+// src/project/fs.ts
 function toPosix(path3) {
   return path3.replaceAll("\\", "/");
 }
 function isInside(root, path3) {
   return path3 === root || path3.startsWith(root.endsWith("/") ? root : `${root}/`);
 }
+var OUTPUT_EXTENSIONS = [".d.mts", ".d.cts", ".d.ts", ".mjs", ".cjs", ".js", ".jsx"];
+var SOURCE_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts"];
 function createTreeFileSystem(options) {
   const root = toPosix(options.repoRoot);
   const files = new Set(options.files);
@@ -238406,64 +238471,106 @@ function createTreeFileSystem(options) {
   };
   entry("");
   for (const file2 of files) {
-    let dir = posix4.dirname(file2);
-    let name = posix4.basename(file2);
+    let dir = posix5.dirname(file2);
+    let name = posix5.basename(file2);
     if (dir === ".") dir = "";
     entry(dir).files.add(name);
     while (dir !== "") {
-      name = posix4.basename(dir);
-      let parent = posix4.dirname(dir);
+      name = posix5.basename(dir);
+      let parent = posix5.dirname(dir);
       if (parent === ".") parent = "";
       entry(parent).directories.add(name);
       dir = parent;
     }
   }
-  const inTree = (path3) => {
+  const content = (rel) => {
+    const text = options.contents.get(rel);
+    if (text === void 0) throw new Error(`internal: ${rel} exists in the tree but was not prefetched`);
+    return text;
+  };
+  const links = readWorkspaceLinks(files, content);
+  const abs = (rel) => rel === "" ? root : `${root}/${rel}`;
+  const locate = (path3) => {
     const p = toPosix(path3);
-    if (!isInside(root, p)) return void 0;
-    const rel = p === root ? "" : p.slice(root.length + 1);
-    if (rel === "node_modules" || rel.startsWith("node_modules/") || rel.includes("/node_modules/") || rel.endsWith("/node_modules")) return void 0;
-    return rel;
+    if (!isInside(root, p)) return { kind: "fallback", path: p };
+    let segments = p === root ? [] : p.slice(root.length + 1).split("/");
+    for (; ; ) {
+      const i = segments.indexOf("node_modules");
+      if (i === -1) return { kind: "tree", rel: segments.join("/") };
+      const nameEnd = i + (segments[i + 1]?.startsWith("@") === true ? 3 : 2);
+      if (segments.length < nameEnd) return { kind: "modules", rel: segments.join("/") };
+      const folder = links.target(segments.slice(0, i).join("/"), segments.slice(i + 1, nameEnd).join("/"));
+      if (folder === void 0) return { kind: "fallback", path: abs(segments.join("/")) };
+      segments = [...folder === "" ? [] : folder.split("/"), ...segments.slice(nameEnd)];
+    }
+  };
+  const sourceOf = (rel) => {
+    const segments = rel.split("/");
+    for (let i = 0; i < segments.length; i++) {
+      if (segments[i] !== "dist") continue;
+      const pkg = segments.slice(0, i).join("/");
+      if (links.isLinked(pkg)) return [...segments.slice(0, i), "src", ...segments.slice(i + 1)].join("/");
+    }
+    return void 0;
+  };
+  const treeFile = (rel) => {
+    if (files.has(rel)) return rel;
+    const source = sourceOf(rel);
+    const ext = source === void 0 ? void 0 : OUTPUT_EXTENSIONS.find((e) => source.endsWith(e));
+    if (source === void 0 || ext === void 0) return void 0;
+    const stem2 = source.slice(0, -ext.length);
+    return SOURCE_EXTENSIONS.map((e) => stem2 + e).find((f) => files.has(f));
+  };
+  const treeDirectory = (rel) => {
+    if (children.has(rel)) return true;
+    const source = sourceOf(rel);
+    return source !== void 0 && children.has(source);
+  };
+  const merged = (path3, rel) => {
+    const disk = options.fallback.getEntries(path3);
+    return { files: disk.files, directories: [.../* @__PURE__ */ new Set([...disk.directories, ...links.entries(rel)])] };
   };
   return {
     fileExists: (path3) => {
-      const rel = inTree(path3);
-      return rel === void 0 ? options.fallback.fileExists(path3) : files.has(rel);
+      const l = locate(path3);
+      return l.kind === "tree" ? treeFile(l.rel) !== void 0 : options.fallback.fileExists(l.kind === "modules" ? abs(l.rel) : l.path);
     },
     readFile: (path3) => {
-      const rel = inTree(path3);
-      if (rel === void 0) return options.fallback.readFile(path3);
-      if (!files.has(rel)) return void 0;
-      const content = options.contents.get(rel);
-      if (content === void 0) throw new Error(`internal: ${rel} exists in the tree but was not prefetched`);
-      return content;
+      const l = locate(path3);
+      if (l.kind !== "tree") return options.fallback.readFile(l.kind === "modules" ? abs(l.rel) : l.path);
+      const file2 = treeFile(l.rel);
+      return file2 === void 0 ? void 0 : content(file2);
     },
     directoryExists: (path3) => {
-      const rel = inTree(path3);
-      if (rel === void 0) return options.fallback.directoryExists(path3);
-      return children.has(rel);
+      const l = locate(path3);
+      if (l.kind === "tree") return treeDirectory(l.rel);
+      if (l.kind === "modules") return links.entries(l.rel).length > 0 || options.fallback.directoryExists(abs(l.rel));
+      return options.fallback.directoryExists(l.path);
     },
     getDirectories: (path3) => {
-      const rel = inTree(path3);
-      if (rel === void 0) return options.fallback.getDirectories(path3);
-      return [...children.get(rel)?.directories ?? []];
+      const l = locate(path3);
+      if (l.kind === "tree") return [...children.get(l.rel)?.directories ?? []];
+      if (l.kind === "modules") return merged(abs(l.rel), l.rel).directories;
+      return options.fallback.getDirectories(l.path);
     },
     getEntries: (path3) => {
-      const rel = inTree(path3);
-      if (rel === void 0) return options.fallback.getEntries(path3);
-      const e = children.get(rel);
+      const l = locate(path3);
+      if (l.kind === "modules") return merged(abs(l.rel), l.rel);
+      if (l.kind === "fallback") return options.fallback.getEntries(l.path);
+      const e = children.get(l.rel);
       return { files: [...e?.files ?? []], directories: [...e?.directories ?? []] };
     },
     realpath: (path3) => {
-      const rel = inTree(path3);
-      return rel === void 0 ? toPosix(options.fallback.realpath(path3)) : toPosix(path3);
+      const l = locate(path3);
+      if (l.kind === "tree") return abs(treeFile(l.rel) ?? l.rel);
+      return toPosix(options.fallback.realpath(l.kind === "modules" ? abs(l.rel) : l.path));
     }
   };
 }
 
 // src/project/resolve.ts
-var import_typescript3 = __toESM(require_typescript(), 1);
-import { posix as posix5 } from "path";
+var import_typescript4 = __toESM(require_typescript(), 1);
+import { posix as posix6 } from "path";
 function createResolverContext(input2) {
   const fs2 = input2.fs;
   const resolutionHost = {
@@ -238480,7 +238587,7 @@ function createResolverContext(input2) {
     options: input2.options,
     configPath: input2.configPath,
     resolutionHost,
-    resolutionCache: import_typescript3.default.createModuleResolutionCache(input2.projectDir, (f) => f, input2.options)
+    resolutionCache: import_typescript4.default.createModuleResolutionCache(input2.projectDir, (f) => f, input2.options)
   };
 }
 var TS_LIKE = /* @__PURE__ */ new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs", ".json", ""]);
@@ -238492,7 +238599,7 @@ function pathsBase(options, configPath) {
   if (typeof base === "string") return toPosix(base);
   const baseUrl = getBaseUrl(options);
   if (baseUrl !== void 0) return toPosix(baseUrl);
-  return posix5.dirname(toPosix(configPath));
+  return posix6.dirname(toPosix(configPath));
 }
 function pathMappingCandidates(specifier, options, configPath) {
   const paths = options.paths;
@@ -238515,11 +238622,11 @@ function pathMappingCandidates(specifier, options, configPath) {
   }
   if (!best) return void 0;
   const base = pathsBase(options, configPath);
-  return (paths[best.pattern] ?? []).map((target) => posix5.resolve(base, target.replace("*", best.star)));
+  return (paths[best.pattern] ?? []).map((target) => posix6.resolve(base, target.replace("*", best.star)));
 }
 function specifierTarget(project, containingFile, specifier) {
   const cleaned = specifier.split("?")[0]?.split("#")[0] ?? specifier;
-  if (isRelative(cleaned)) return posix5.resolve(posix5.dirname(containingFile), cleaned);
+  if (isRelative(cleaned)) return posix6.resolve(posix6.dirname(containingFile), cleaned);
   return pathMappingCandidates(cleaned, project.options, project.configPath)?.[0];
 }
 function isProjectSpecifier(specifier, project) {
@@ -238528,7 +238635,7 @@ function isProjectSpecifier(specifier, project) {
   const baseUrl = getBaseUrl(project.options);
   if (baseUrl !== void 0) {
     const first = specifier.split("/")[0] ?? "";
-    const candidate = posix5.resolve(toPosix(baseUrl), first);
+    const candidate = posix6.resolve(toPosix(baseUrl), first);
     return project.fs.directoryExists(candidate) || project.fs.fileExists(candidate);
   }
   return false;
@@ -238536,21 +238643,49 @@ function isProjectSpecifier(specifier, project) {
 function isInRepo(file2, repoRoot2) {
   return file2.startsWith(`${repoRoot2}/`) && !file2.includes("/node_modules/");
 }
+function packageName(specifier) {
+  if (specifier.startsWith("node:")) return void 0;
+  const [first = "", second] = specifier.split("/");
+  if (!first.startsWith("@")) return first;
+  return second === void 0 ? void 0 : `${first}/${second}`;
+}
+function declaresWorkspace(project, repoRoot2, dir, name) {
+  for (let d = dir; d === repoRoot2 || d.startsWith(`${repoRoot2}/`); d = posix6.dirname(d)) {
+    const manifest = `${d}/package.json`;
+    const text = project.fs.readFile(manifest);
+    if (text !== void 0) return readManifest(manifest, text).workspace.includes(name);
+  }
+  return false;
+}
+function workspacePackage(project, repoRoot2, containingFile, specifier) {
+  const name = packageName(specifier);
+  if (name === void 0) return void 0;
+  const importerDir = posix6.dirname(containingFile);
+  for (let dir = importerDir; dir === repoRoot2 || dir.startsWith(`${repoRoot2}/`); dir = posix6.dirname(dir)) {
+    const link2 = `${dir}/node_modules/${name}`;
+    if (!project.fs.directoryExists(link2)) continue;
+    const folder = toPosix(project.fs.realpath(link2));
+    return isInRepo(folder, repoRoot2) ? { package: folder } : void 0;
+  }
+  return declaresWorkspace(project, repoRoot2, importerDir, name) ? {} : void 0;
+}
 function resolveSpecifier(project, repoRoot2, containingFile, specifier, mode) {
   const cleaned = specifier.split("?")[0]?.split("#")[0] ?? specifier;
-  const result = import_typescript3.default.resolveModuleName(cleaned, containingFile, project.options, project.resolutionHost, project.resolutionCache, void 0, mode);
+  const result = import_typescript4.default.resolveModuleName(cleaned, containingFile, project.options, project.resolutionHost, project.resolutionCache, void 0, mode);
   const resolved = result.resolvedModule;
   if (resolved) {
     const file2 = toPosix(project.fs.realpath(resolved.resolvedFileName));
-    return isInRepo(file2, repoRoot2) ? { kind: "module", file: file2 } : { kind: "external" };
+    if (!isInRepo(file2, repoRoot2)) return { kind: "external" };
+    if (project.options.preserveSymlinks === true && toPosix(resolved.resolvedFileName).includes("/node_modules/")) return { kind: "unresolved", ...workspacePackage(project, repoRoot2, containingFile, cleaned) };
+    return { kind: "module", file: file2 };
   }
-  const ext = posix5.extname(cleaned);
+  const ext = posix6.extname(cleaned);
   if (!TS_LIKE.has(ext)) {
     const candidates = [];
-    if (isRelative(cleaned)) candidates.push(posix5.resolve(posix5.dirname(containingFile), cleaned));
+    if (isRelative(cleaned)) candidates.push(posix6.resolve(posix6.dirname(containingFile), cleaned));
     candidates.push(...pathMappingCandidates(cleaned, project.options, project.configPath) ?? []);
     const baseUrl = getBaseUrl(project.options);
-    if (baseUrl !== void 0 && !isRelative(cleaned)) candidates.push(posix5.resolve(toPosix(baseUrl), cleaned));
+    if (baseUrl !== void 0 && !isRelative(cleaned)) candidates.push(posix6.resolve(toPosix(baseUrl), cleaned));
     for (const candidate of candidates) {
       if (project.fs.fileExists(candidate)) {
         const file2 = toPosix(project.fs.realpath(candidate));
@@ -238558,7 +238693,9 @@ function resolveSpecifier(project, repoRoot2, containingFile, specifier, mode) {
       }
     }
   }
-  return isProjectSpecifier(cleaned, project) ? { kind: "unresolved" } : { kind: "external" };
+  if (isProjectSpecifier(cleaned, project)) return { kind: "unresolved" };
+  const workspace = workspacePackage(project, repoRoot2, containingFile, cleaned);
+  return workspace === void 0 ? { kind: "external" } : { kind: "unresolved", ...workspace };
 }
 
 // src/cli/signals.ts
@@ -238566,10 +238703,10 @@ import { existsSync as existsSync2, readFileSync as readFileSync2, realpathSync 
 import { isAbsolute as isAbsolute3 } from "path";
 
 // src/signals/paths.ts
-import { isAbsolute as isAbsolute2, posix as posix6 } from "path";
+import { isAbsolute as isAbsolute2, posix as posix7 } from "path";
 var CODE_EXTENSIONS = /* @__PURE__ */ new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs", ".go", ".py"]);
 function isCodeFile(path3) {
-  return CODE_EXTENSIONS.has(posix6.extname(path3)) && !path3.endsWith(".d.ts");
+  return CODE_EXTENSIONS.has(posix7.extname(path3)) && !path3.endsWith(".d.ts");
 }
 function reportPathToRepo(raw, repoRoot2, projectPrefix, canonical2 = (x) => x) {
   const p = canonical2(raw).replaceAll("\\", "/");
@@ -238578,7 +238715,7 @@ function reportPathToRepo(raw, repoRoot2, projectPrefix, canonical2 = (x) => x) 
     if (!p.startsWith(`${root}/`)) return void 0;
     return p.slice(root.length + 1);
   }
-  return posix6.normalize(posix6.join(projectPrefix, p));
+  return posix7.normalize(posix7.join(projectPrefix, p));
 }
 function toRanges(lines) {
   const ranges = [];
@@ -238749,7 +238886,7 @@ function pythonSuppressions(files, comments) {
 }
 
 // src/signals/go.ts
-import { posix as posix7 } from "path";
+import { posix as posix8 } from "path";
 function parseGoCoverProfile(text, module, projectPrefix) {
   const lines = text.split("\n").filter((l) => l.trim() !== "");
   if (!lines[0]?.startsWith("mode:")) throw new ReportError("the coverage report is neither Istanbul JSON nor a Go coverprofile (go test -coverprofile)");
@@ -238760,7 +238897,7 @@ function parseGoCoverProfile(text, module, projectPrefix) {
     const [, file2 = "", start = "0", end = "0", count2 = "0"] = m;
     const rel = module !== "" && file2.startsWith(`${module}/`) ? file2.slice(module.length + 1) : void 0;
     if (rel === void 0) continue;
-    const path3 = posix7.join(projectPrefix, rel);
+    const path3 = posix8.join(projectPrefix, rel);
     const perFile = blocks.get(path3) ?? /* @__PURE__ */ new Map();
     const key = `${start}:${end}:${line3.slice(file2.length).split(" ")[0] ?? ""}`;
     const previous = perFile.get(key);
@@ -238992,7 +239129,7 @@ function vulnerabilitiesSignal(report, changedPackages) {
 }
 
 // src/signals/security.ts
-var import_typescript4 = __toESM(require_typescript(), 1);
+var import_typescript5 = __toESM(require_typescript(), 1);
 var TOKEN_FORMATS = [
   [/AKIA[0-9A-Z]{16}/, "AWS access key id"],
   [/gh[pousr]_[A-Za-z0-9]{36,}/, "GitHub token"],
@@ -239014,22 +239151,22 @@ function entropy(text) {
 }
 function nameOf(node2) {
   if (!node2) return void 0;
-  if (import_typescript4.default.isIdentifier(node2) || import_typescript4.default.isPrivateIdentifier(node2)) return node2.text;
-  if (import_typescript4.default.isStringLiteral(node2) || import_typescript4.default.isNoSubstitutionTemplateLiteral(node2)) return node2.text;
-  if (import_typescript4.default.isPropertyAccessExpression(node2)) return node2.name.text;
+  if (import_typescript5.default.isIdentifier(node2) || import_typescript5.default.isPrivateIdentifier(node2)) return node2.text;
+  if (import_typescript5.default.isStringLiteral(node2) || import_typescript5.default.isNoSubstitutionTemplateLiteral(node2)) return node2.text;
+  if (import_typescript5.default.isPropertyAccessExpression(node2)) return node2.name.text;
   return void 0;
 }
 function calleeName(call) {
   const callee = call.expression;
-  if (import_typescript4.default.isPropertyAccessExpression(callee)) return { object: nameOf(callee.expression), name: callee.name.text };
+  if (import_typescript5.default.isPropertyAccessExpression(callee)) return { object: nameOf(callee.expression), name: callee.name.text };
   return { object: void 0, name: nameOf(callee) };
 }
 function assignedName(literal3) {
   const parent = literal3.parent;
   if (!parent) return void 0;
-  if (import_typescript4.default.isVariableDeclaration(parent) || import_typescript4.default.isPropertyAssignment(parent) || import_typescript4.default.isPropertyDeclaration(parent)) return nameOf(parent.name);
-  if (import_typescript4.default.isBinaryExpression(parent) && parent.operatorToken.kind === import_typescript4.default.SyntaxKind.EqualsToken) return nameOf(parent.left);
-  if (import_typescript4.default.isJsxAttribute(parent)) return nameOf(parent.name);
+  if (import_typescript5.default.isVariableDeclaration(parent) || import_typescript5.default.isPropertyAssignment(parent) || import_typescript5.default.isPropertyDeclaration(parent)) return nameOf(parent.name);
+  if (import_typescript5.default.isBinaryExpression(parent) && parent.operatorToken.kind === import_typescript5.default.SyntaxKind.EqualsToken) return nameOf(parent.left);
+  if (import_typescript5.default.isJsxAttribute(parent)) return nameOf(parent.name);
   return void 0;
 }
 function findSecurityIssues(path3, code2, addedLines) {
@@ -239041,30 +239178,30 @@ function findSecurityIssues(path3, code2, addedLines) {
     if (addedLines.has(line3)) out.push({ path: path3, line: line3, rule, severity, message, text: (lines[line3 - 1] ?? "").trim().slice(0, 200) });
   };
   const visit3 = (node2) => {
-    if (import_typescript4.default.isJsxAttribute(node2)) {
+    if (import_typescript5.default.isJsxAttribute(node2)) {
       const name = nameOf(node2.name);
       if (name === "dangerouslySetInnerHTML") report(node2, "dangerously-set-inner-html", "high", "raw HTML rendered with dangerouslySetInnerHTML: sanitize it (e.g. DOMPurify) or render text");
-      if (name === "target" && node2.initializer && import_typescript4.default.isStringLiteral(node2.initializer) && node2.initializer.text === "_blank") {
+      if (name === "target" && node2.initializer && import_typescript5.default.isStringLiteral(node2.initializer) && node2.initializer.text === "_blank") {
         const attrs = node2.parent.properties;
-        const rel = attrs.find((a) => import_typescript4.default.isJsxAttribute(a) && nameOf(a.name) === "rel");
-        const relText = rel && import_typescript4.default.isJsxAttribute(rel) && rel.initializer && import_typescript4.default.isStringLiteral(rel.initializer) ? rel.initializer.text : "";
+        const rel = attrs.find((a) => import_typescript5.default.isJsxAttribute(a) && nameOf(a.name) === "rel");
+        const relText = rel && import_typescript5.default.isJsxAttribute(rel) && rel.initializer && import_typescript5.default.isStringLiteral(rel.initializer) ? rel.initializer.text : "";
         if (!relText.includes("noopener") && !relText.includes("noreferrer")) report(node2, "target-blank", "low", 'target="_blank" without rel="noopener noreferrer"');
       }
-    } else if (import_typescript4.default.isPropertyAssignment(node2) && nameOf(node2.name) === "dangerouslySetInnerHTML") {
+    } else if (import_typescript5.default.isPropertyAssignment(node2) && nameOf(node2.name) === "dangerouslySetInnerHTML") {
       report(node2, "dangerously-set-inner-html", "high", "raw HTML passed through dangerouslySetInnerHTML: sanitize it or render text");
-    } else if (import_typescript4.default.isBinaryExpression(node2) && (node2.operatorToken.kind === import_typescript4.default.SyntaxKind.EqualsToken || node2.operatorToken.kind === import_typescript4.default.SyntaxKind.PlusEqualsToken)) {
-      const name = import_typescript4.default.isPropertyAccessExpression(node2.left) ? node2.left.name.text : void 0;
+    } else if (import_typescript5.default.isBinaryExpression(node2) && (node2.operatorToken.kind === import_typescript5.default.SyntaxKind.EqualsToken || node2.operatorToken.kind === import_typescript5.default.SyntaxKind.PlusEqualsToken)) {
+      const name = import_typescript5.default.isPropertyAccessExpression(node2.left) ? node2.left.name.text : void 0;
       if (name === "innerHTML" || name === "outerHTML") report(node2, "inner-html", "high", `assignment to ${name}: an XSS sink, use textContent or sanitize`);
-    } else if (import_typescript4.default.isCallExpression(node2) || import_typescript4.default.isNewExpression(node2)) {
+    } else if (import_typescript5.default.isCallExpression(node2) || import_typescript5.default.isNewExpression(node2)) {
       const { object: object2, name } = calleeName(node2);
       const first = node2.arguments?.[0];
       if (name === "eval" && object2 === void 0) report(node2, "eval", "high", "eval() executes arbitrary code");
       else if (name === "Function" && (object2 === void 0 || object2 === "window" || object2 === "globalThis")) report(node2, "eval", "high", "Function constructor executes arbitrary code");
-      else if ((name === "setTimeout" || name === "setInterval") && first && (import_typescript4.default.isStringLiteralLike(first) || import_typescript4.default.isTemplateExpression(first))) report(node2, "string-timer", "medium", `${name} with a string evaluates code`);
+      else if ((name === "setTimeout" || name === "setInterval") && first && (import_typescript5.default.isStringLiteralLike(first) || import_typescript5.default.isTemplateExpression(first))) report(node2, "string-timer", "medium", `${name} with a string evaluates code`);
       else if (name === "insertAdjacentHTML") report(node2, "inner-html", "high", "insertAdjacentHTML: an XSS sink, sanitize the HTML");
       else if ((name === "write" || name === "writeln") && object2 === "document") report(node2, "document-write", "medium", `document.${name} writes raw HTML`);
-      else if (name === "postMessage" && node2.arguments?.[1] && import_typescript4.default.isStringLiteralLike(node2.arguments[1]) && node2.arguments[1].text === "*") report(node2, "postmessage-wildcard", "medium", 'postMessage to any origin ("*"): pass the target origin');
-    } else if (import_typescript4.default.isStringLiteralLike(node2)) {
+      else if (name === "postMessage" && node2.arguments?.[1] && import_typescript5.default.isStringLiteralLike(node2.arguments[1]) && node2.arguments[1].text === "*") report(node2, "postmessage-wildcard", "medium", 'postMessage to any origin ("*"): pass the target origin');
+    } else if (import_typescript5.default.isStringLiteralLike(node2)) {
       const text = node2.text;
       const token = TOKEN_FORMATS.find(([pattern]) => pattern.test(text));
       if (token) report(node2, "hardcoded-secret", "high", `looks like a ${token[1]} in the code: move it to a secret store and rotate it`);
@@ -239077,7 +239214,7 @@ function findSecurityIssues(path3, code2, addedLines) {
         }
       }
     }
-    import_typescript4.default.forEachChild(node2, visit3);
+    import_typescript5.default.forEachChild(node2, visit3);
   };
   visit3(sf);
   return out;
@@ -239148,16 +239285,16 @@ function lintSignal(messages, files) {
 }
 
 // src/signals/suppressions.ts
-var import_typescript5 = __toESM(require_typescript(), 1);
+var import_typescript6 = __toESM(require_typescript(), 1);
 var TEXT_TOKENS = /* @__PURE__ */ new Set([
-  import_typescript5.default.SyntaxKind.JsxText,
-  import_typescript5.default.SyntaxKind.JsxTextAllWhiteSpaces,
-  import_typescript5.default.SyntaxKind.StringLiteral,
-  import_typescript5.default.SyntaxKind.NoSubstitutionTemplateLiteral,
-  import_typescript5.default.SyntaxKind.TemplateHead,
-  import_typescript5.default.SyntaxKind.TemplateMiddle,
-  import_typescript5.default.SyntaxKind.TemplateTail,
-  import_typescript5.default.SyntaxKind.RegularExpressionLiteral
+  import_typescript6.default.SyntaxKind.JsxText,
+  import_typescript6.default.SyntaxKind.JsxTextAllWhiteSpaces,
+  import_typescript6.default.SyntaxKind.StringLiteral,
+  import_typescript6.default.SyntaxKind.NoSubstitutionTemplateLiteral,
+  import_typescript6.default.SyntaxKind.TemplateHead,
+  import_typescript6.default.SyntaxKind.TemplateMiddle,
+  import_typescript6.default.SyntaxKind.TemplateTail,
+  import_typescript6.default.SyntaxKind.RegularExpressionLiteral
 ]);
 var DIRECTIVES2 = [
   ["eslint-disable-next-line", "eslint-disable-next-line"],
@@ -239199,10 +239336,10 @@ function findSuppressions(path3, code2, addedLines) {
       leaves.push(node2);
       if (TEXT_TOKENS.has(node2.kind)) textRanges.push([node2.getStart(sf), node2.end]);
     }
-    if (node2.kind === import_typescript5.default.SyntaxKind.AnyKeyword) {
+    if (node2.kind === import_typescript6.default.SyntaxKind.AnyKeyword) {
       const parent = node2.parent;
-      if (parent && import_typescript5.default.isAsExpression(parent)) add(node2.getStart(sf), "as-any");
-      else if (parent && !import_typescript5.default.isTypeAssertionExpression(parent) && parent.type === node2 && code2.slice(0, node2.getStart(sf)).trimEnd().endsWith(":")) add(node2.getStart(sf), "any-annotation");
+      if (parent && import_typescript6.default.isAsExpression(parent)) add(node2.getStart(sf), "as-any");
+      else if (parent && !import_typescript6.default.isTypeAssertionExpression(parent) && parent.type === node2 && code2.slice(0, node2.getStart(sf)).trimEnd().endsWith(":")) add(node2.getStart(sf), "any-annotation");
     }
     for (const child of children) collect(child);
   };
@@ -239211,7 +239348,7 @@ function findSuppressions(path3, code2, addedLines) {
   const seen = /* @__PURE__ */ new Set();
   for (const leaf of leaves) {
     if (TEXT_TOKENS.has(leaf.kind)) continue;
-    for (const range of [...import_typescript5.default.getLeadingCommentRanges(code2, leaf.pos) ?? [], ...import_typescript5.default.getTrailingCommentRanges(code2, leaf.end) ?? []]) {
+    for (const range of [...import_typescript6.default.getLeadingCommentRanges(code2, leaf.pos) ?? [], ...import_typescript6.default.getTrailingCommentRanges(code2, leaf.end) ?? []]) {
       if (seen.has(range.pos) || inText(range.pos)) continue;
       seen.add(range.pos);
       const kind = directiveOf(code2.slice(range.pos, range.end));
@@ -242692,16 +242829,16 @@ var printDocASTReducer = {
   },
   // Document
   Document: {
-    leave: (node2) => join2(node2.definitions, "\n\n")
+    leave: (node2) => join3(node2.definitions, "\n\n")
   },
   OperationDefinition: {
     leave(node2) {
-      const varDefs = wrap("(", join2(node2.variableDefinitions, ", "), ")");
-      const prefix = join2(
+      const varDefs = wrap("(", join3(node2.variableDefinitions, ", "), ")");
+      const prefix = join3(
         [
           node2.operation,
-          join2([node2.name, varDefs]),
-          join2(node2.directives, " ")
+          join3([node2.name, varDefs]),
+          join3(node2.directives, " ")
         ],
         " "
       );
@@ -242709,7 +242846,7 @@ var printDocASTReducer = {
     }
   },
   VariableDefinition: {
-    leave: ({ variable, type, defaultValue, directives }) => variable + ": " + type + wrap(" = ", defaultValue) + wrap(" ", join2(directives, " "))
+    leave: ({ variable, type, defaultValue, directives }) => variable + ": " + type + wrap(" = ", defaultValue) + wrap(" ", join3(directives, " "))
   },
   SelectionSet: {
     leave: ({ selections }) => block(selections)
@@ -242717,11 +242854,11 @@ var printDocASTReducer = {
   Field: {
     leave({ alias, name, arguments: args, directives, selectionSet }) {
       const prefix = wrap("", alias, ": ") + name;
-      let argsLine = prefix + wrap("(", join2(args, ", "), ")");
+      let argsLine = prefix + wrap("(", join3(args, ", "), ")");
       if (argsLine.length > MAX_LINE_LENGTH) {
-        argsLine = prefix + wrap("(\n", indent(join2(args, "\n")), "\n)");
+        argsLine = prefix + wrap("(\n", indent(join3(args, "\n")), "\n)");
       }
-      return join2([argsLine, join2(directives, " "), selectionSet], " ");
+      return join3([argsLine, join3(directives, " "), selectionSet], " ");
     }
   },
   Argument: {
@@ -242729,14 +242866,14 @@ var printDocASTReducer = {
   },
   // Fragments
   FragmentSpread: {
-    leave: ({ name, directives }) => "..." + name + wrap(" ", join2(directives, " "))
+    leave: ({ name, directives }) => "..." + name + wrap(" ", join3(directives, " "))
   },
   InlineFragment: {
-    leave: ({ typeCondition, directives, selectionSet }) => join2(
+    leave: ({ typeCondition, directives, selectionSet }) => join3(
       [
         "...",
         wrap("on ", typeCondition),
-        join2(directives, " "),
+        join3(directives, " "),
         selectionSet
       ],
       " "
@@ -242745,7 +242882,7 @@ var printDocASTReducer = {
   FragmentDefinition: {
     leave: ({ name, typeCondition, variableDefinitions, directives, selectionSet }) => (
       // or removed in the future.
-      `fragment ${name}${wrap("(", join2(variableDefinitions, ", "), ")")} on ${typeCondition} ${wrap("", join2(directives, " "), " ")}` + selectionSet
+      `fragment ${name}${wrap("(", join3(variableDefinitions, ", "), ")")} on ${typeCondition} ${wrap("", join3(directives, " "), " ")}` + selectionSet
     )
   },
   // Value
@@ -242768,17 +242905,17 @@ var printDocASTReducer = {
     leave: ({ value }) => value
   },
   ListValue: {
-    leave: ({ values }) => "[" + join2(values, ", ") + "]"
+    leave: ({ values }) => "[" + join3(values, ", ") + "]"
   },
   ObjectValue: {
-    leave: ({ fields }) => "{" + join2(fields, ", ") + "}"
+    leave: ({ fields }) => "{" + join3(fields, ", ") + "}"
   },
   ObjectField: {
     leave: ({ name, value }) => name + ": " + value
   },
   // Directive
   Directive: {
-    leave: ({ name, arguments: args }) => "@" + name + wrap("(", join2(args, ", "), ")")
+    leave: ({ name, arguments: args }) => "@" + name + wrap("(", join3(args, ", "), ")")
   },
   // Type
   NamedType: {
@@ -242792,122 +242929,122 @@ var printDocASTReducer = {
   },
   // Type System Definitions
   SchemaDefinition: {
-    leave: ({ description, directives, operationTypes }) => wrap("", description, "\n") + join2(["schema", join2(directives, " "), block(operationTypes)], " ")
+    leave: ({ description, directives, operationTypes }) => wrap("", description, "\n") + join3(["schema", join3(directives, " "), block(operationTypes)], " ")
   },
   OperationTypeDefinition: {
     leave: ({ operation, type }) => operation + ": " + type
   },
   ScalarTypeDefinition: {
-    leave: ({ description, name, directives }) => wrap("", description, "\n") + join2(["scalar", name, join2(directives, " ")], " ")
+    leave: ({ description, name, directives }) => wrap("", description, "\n") + join3(["scalar", name, join3(directives, " ")], " ")
   },
   ObjectTypeDefinition: {
-    leave: ({ description, name, interfaces, directives, fields }) => wrap("", description, "\n") + join2(
+    leave: ({ description, name, interfaces, directives, fields }) => wrap("", description, "\n") + join3(
       [
         "type",
         name,
-        wrap("implements ", join2(interfaces, " & ")),
-        join2(directives, " "),
+        wrap("implements ", join3(interfaces, " & ")),
+        join3(directives, " "),
         block(fields)
       ],
       " "
     )
   },
   FieldDefinition: {
-    leave: ({ description, name, arguments: args, type, directives }) => wrap("", description, "\n") + name + (hasMultilineItems(args) ? wrap("(\n", indent(join2(args, "\n")), "\n)") : wrap("(", join2(args, ", "), ")")) + ": " + type + wrap(" ", join2(directives, " "))
+    leave: ({ description, name, arguments: args, type, directives }) => wrap("", description, "\n") + name + (hasMultilineItems(args) ? wrap("(\n", indent(join3(args, "\n")), "\n)") : wrap("(", join3(args, ", "), ")")) + ": " + type + wrap(" ", join3(directives, " "))
   },
   InputValueDefinition: {
-    leave: ({ description, name, type, defaultValue, directives }) => wrap("", description, "\n") + join2(
-      [name + ": " + type, wrap("= ", defaultValue), join2(directives, " ")],
+    leave: ({ description, name, type, defaultValue, directives }) => wrap("", description, "\n") + join3(
+      [name + ": " + type, wrap("= ", defaultValue), join3(directives, " ")],
       " "
     )
   },
   InterfaceTypeDefinition: {
-    leave: ({ description, name, interfaces, directives, fields }) => wrap("", description, "\n") + join2(
+    leave: ({ description, name, interfaces, directives, fields }) => wrap("", description, "\n") + join3(
       [
         "interface",
         name,
-        wrap("implements ", join2(interfaces, " & ")),
-        join2(directives, " "),
+        wrap("implements ", join3(interfaces, " & ")),
+        join3(directives, " "),
         block(fields)
       ],
       " "
     )
   },
   UnionTypeDefinition: {
-    leave: ({ description, name, directives, types }) => wrap("", description, "\n") + join2(
-      ["union", name, join2(directives, " "), wrap("= ", join2(types, " | "))],
+    leave: ({ description, name, directives, types }) => wrap("", description, "\n") + join3(
+      ["union", name, join3(directives, " "), wrap("= ", join3(types, " | "))],
       " "
     )
   },
   EnumTypeDefinition: {
-    leave: ({ description, name, directives, values }) => wrap("", description, "\n") + join2(["enum", name, join2(directives, " "), block(values)], " ")
+    leave: ({ description, name, directives, values }) => wrap("", description, "\n") + join3(["enum", name, join3(directives, " "), block(values)], " ")
   },
   EnumValueDefinition: {
-    leave: ({ description, name, directives }) => wrap("", description, "\n") + join2([name, join2(directives, " ")], " ")
+    leave: ({ description, name, directives }) => wrap("", description, "\n") + join3([name, join3(directives, " ")], " ")
   },
   InputObjectTypeDefinition: {
-    leave: ({ description, name, directives, fields }) => wrap("", description, "\n") + join2(["input", name, join2(directives, " "), block(fields)], " ")
+    leave: ({ description, name, directives, fields }) => wrap("", description, "\n") + join3(["input", name, join3(directives, " "), block(fields)], " ")
   },
   DirectiveDefinition: {
-    leave: ({ description, name, arguments: args, repeatable, locations }) => wrap("", description, "\n") + "directive @" + name + (hasMultilineItems(args) ? wrap("(\n", indent(join2(args, "\n")), "\n)") : wrap("(", join2(args, ", "), ")")) + (repeatable ? " repeatable" : "") + " on " + join2(locations, " | ")
+    leave: ({ description, name, arguments: args, repeatable, locations }) => wrap("", description, "\n") + "directive @" + name + (hasMultilineItems(args) ? wrap("(\n", indent(join3(args, "\n")), "\n)") : wrap("(", join3(args, ", "), ")")) + (repeatable ? " repeatable" : "") + " on " + join3(locations, " | ")
   },
   SchemaExtension: {
-    leave: ({ directives, operationTypes }) => join2(
-      ["extend schema", join2(directives, " "), block(operationTypes)],
+    leave: ({ directives, operationTypes }) => join3(
+      ["extend schema", join3(directives, " "), block(operationTypes)],
       " "
     )
   },
   ScalarTypeExtension: {
-    leave: ({ name, directives }) => join2(["extend scalar", name, join2(directives, " ")], " ")
+    leave: ({ name, directives }) => join3(["extend scalar", name, join3(directives, " ")], " ")
   },
   ObjectTypeExtension: {
-    leave: ({ name, interfaces, directives, fields }) => join2(
+    leave: ({ name, interfaces, directives, fields }) => join3(
       [
         "extend type",
         name,
-        wrap("implements ", join2(interfaces, " & ")),
-        join2(directives, " "),
+        wrap("implements ", join3(interfaces, " & ")),
+        join3(directives, " "),
         block(fields)
       ],
       " "
     )
   },
   InterfaceTypeExtension: {
-    leave: ({ name, interfaces, directives, fields }) => join2(
+    leave: ({ name, interfaces, directives, fields }) => join3(
       [
         "extend interface",
         name,
-        wrap("implements ", join2(interfaces, " & ")),
-        join2(directives, " "),
+        wrap("implements ", join3(interfaces, " & ")),
+        join3(directives, " "),
         block(fields)
       ],
       " "
     )
   },
   UnionTypeExtension: {
-    leave: ({ name, directives, types }) => join2(
+    leave: ({ name, directives, types }) => join3(
       [
         "extend union",
         name,
-        join2(directives, " "),
-        wrap("= ", join2(types, " | "))
+        join3(directives, " "),
+        wrap("= ", join3(types, " | "))
       ],
       " "
     )
   },
   EnumTypeExtension: {
-    leave: ({ name, directives, values }) => join2(["extend enum", name, join2(directives, " "), block(values)], " ")
+    leave: ({ name, directives, values }) => join3(["extend enum", name, join3(directives, " "), block(values)], " ")
   },
   InputObjectTypeExtension: {
-    leave: ({ name, directives, fields }) => join2(["extend input", name, join2(directives, " "), block(fields)], " ")
+    leave: ({ name, directives, fields }) => join3(["extend input", name, join3(directives, " "), block(fields)], " ")
   }
 };
-function join2(maybeArray, separator = "") {
+function join3(maybeArray, separator = "") {
   var _maybeArray$filter$jo;
   return (_maybeArray$filter$jo = maybeArray === null || maybeArray === void 0 ? void 0 : maybeArray.filter((x) => x).join(separator)) !== null && _maybeArray$filter$jo !== void 0 ? _maybeArray$filter$jo : "";
 }
 function block(array2) {
-  return wrap("{\n", indent(join2(array2, "\n")), "\n}");
+  return wrap("{\n", indent(join3(array2, "\n")), "\n}");
 }
 function wrap(start, maybeString, end = "") {
   return maybeString != null && maybeString !== "" ? start + maybeString + end : "";
@@ -248410,37 +248547,37 @@ function backendFileImpact(table3, schema, resolvers) {
 }
 
 // src/backend/resolvers.ts
-var import_typescript7 = __toESM(require_typescript(), 1);
+var import_typescript8 = __toESM(require_typescript(), 1);
 
 // src/backend/rest.ts
-var import_typescript6 = __toESM(require_typescript(), 1);
+var import_typescript7 = __toESM(require_typescript(), 1);
 var METHODS2 = /* @__PURE__ */ new Set(["get", "post", "put", "patch", "delete", "del", "options", "head", "all"]);
 var SERVERS = /* @__PURE__ */ new Set(["app", "fastify", "server", "router", "instance", "api", "routes", "express", "srv"]);
 function receiverName(call) {
-  if (!import_typescript6.default.isPropertyAccessExpression(call.expression)) return void 0;
+  if (!import_typescript7.default.isPropertyAccessExpression(call.expression)) return void 0;
   let target = call.expression.expression;
-  while (import_typescript6.default.isCallExpression(target) && import_typescript6.default.isPropertyAccessExpression(target.expression)) target = target.expression.expression;
-  return import_typescript6.default.isIdentifier(target) ? target.text : import_typescript6.default.isPropertyAccessExpression(target) ? target.name.text : void 0;
+  while (import_typescript7.default.isCallExpression(target) && import_typescript7.default.isPropertyAccessExpression(target.expression)) target = target.expression.expression;
+  return import_typescript7.default.isIdentifier(target) ? target.text : import_typescript7.default.isPropertyAccessExpression(target) ? target.name.text : void 0;
 }
 function isHandler(node2, call) {
   if (node2 === void 0 || call.typeArguments) return false;
-  if (import_typescript6.default.isArrowFunction(node2) || import_typescript6.default.isFunctionExpression(node2)) return true;
-  return (import_typescript6.default.isIdentifier(node2) || import_typescript6.default.isPropertyAccessExpression(node2)) && SERVERS.has(receiverName(call) ?? "");
+  if (import_typescript7.default.isArrowFunction(node2) || import_typescript7.default.isFunctionExpression(node2)) return true;
+  return (import_typescript7.default.isIdentifier(node2) || import_typescript7.default.isPropertyAccessExpression(node2)) && SERVERS.has(receiverName(call) ?? "");
 }
 function literal2(node2) {
-  return node2 && (import_typescript6.default.isStringLiteral(node2) || import_typescript6.default.isNoSubstitutionTemplateLiteral(node2)) ? node2.text : void 0;
+  return node2 && (import_typescript7.default.isStringLiteral(node2) || import_typescript7.default.isNoSubstitutionTemplateLiteral(node2)) ? node2.text : void 0;
 }
 function objectProp(obj, name) {
   for (const p of obj.properties) {
-    if (import_typescript6.default.isPropertyAssignment(p) && (import_typescript6.default.isIdentifier(p.name) || import_typescript6.default.isStringLiteral(p.name)) && p.name.text === name) return p.initializer;
-    if (import_typescript6.default.isMethodDeclaration(p) && import_typescript6.default.isIdentifier(p.name) && p.name.text === name) return p;
+    if (import_typescript7.default.isPropertyAssignment(p) && (import_typescript7.default.isIdentifier(p.name) || import_typescript7.default.isStringLiteral(p.name)) && p.name.text === name) return p.initializer;
+    if (import_typescript7.default.isMethodDeclaration(p) && import_typescript7.default.isIdentifier(p.name) && p.name.text === name) return p;
   }
   return void 0;
 }
 function restNodes(sf) {
   const out = [];
   const visit3 = (node2) => {
-    if (import_typescript6.default.isCallExpression(node2) && import_typescript6.default.isPropertyAccessExpression(node2.expression)) {
+    if (import_typescript7.default.isCallExpression(node2) && import_typescript7.default.isPropertyAccessExpression(node2.expression)) {
       const method = node2.expression.name.text;
       const args = node2.arguments;
       const last = args[args.length - 1];
@@ -248448,27 +248585,27 @@ function restNodes(sf) {
         const path3 = literal2(args[0]);
         if (path3 !== void 0 && (path3.startsWith("/") || path3 === "*")) out.push({ key: `${method === "del" ? "DELETE" : method.toUpperCase()} ${path3}`, node: node2, value: last });
         const target = node2.expression.expression;
-        if (path3 === void 0 && import_typescript6.default.isCallExpression(target) && import_typescript6.default.isPropertyAccessExpression(target.expression) && target.expression.name.text === "route") {
+        if (path3 === void 0 && import_typescript7.default.isCallExpression(target) && import_typescript7.default.isPropertyAccessExpression(target.expression) && target.expression.name.text === "route") {
           const routePath = literal2(target.arguments[0]);
           if (routePath !== void 0) out.push({ key: `${method.toUpperCase()} ${routePath}`, node: node2, value: last });
         }
       } else if (METHODS2.has(method) && args.length === 1 && isHandler(args[0], node2)) {
         const target = node2.expression.expression;
-        if (import_typescript6.default.isCallExpression(target) && import_typescript6.default.isPropertyAccessExpression(target.expression) && target.expression.name.text === "route") {
+        if (import_typescript7.default.isCallExpression(target) && import_typescript7.default.isPropertyAccessExpression(target.expression) && target.expression.name.text === "route") {
           const routePath = literal2(target.arguments[0]);
           if (routePath !== void 0) out.push({ key: `${method.toUpperCase()} ${routePath}`, node: node2, value: args[0] });
         }
-      } else if (method === "route" && args.length === 1 && args[0] && import_typescript6.default.isObjectLiteralExpression(args[0])) {
+      } else if (method === "route" && args.length === 1 && args[0] && import_typescript7.default.isObjectLiteralExpression(args[0])) {
         const methods = objectProp(args[0], "method");
         const url2 = literal2(objectProp(args[0], "url")) ?? literal2(objectProp(args[0], "path"));
         const handler = objectProp(args[0], "handler");
-        const names = methods && import_typescript6.default.isArrayLiteralExpression(methods) ? methods.elements.map((e) => literal2(e)) : [literal2(methods)];
+        const names = methods && import_typescript7.default.isArrayLiteralExpression(methods) ? methods.elements.map((e) => literal2(e)) : [literal2(methods)];
         if (url2 !== void 0 && handler) {
           for (const m of names) if (m !== void 0) out.push({ key: `${m.toUpperCase()} ${url2}`, node: node2, value: handler });
         }
       }
     }
-    import_typescript6.default.forEachChild(node2, visit3);
+    import_typescript7.default.forEachChild(node2, visit3);
   };
   visit3(sf);
   return out;
@@ -248476,7 +248613,7 @@ function restNodes(sf) {
 
 // src/backend/resolvers.ts
 function propName(name) {
-  if (import_typescript7.default.isIdentifier(name) || import_typescript7.default.isStringLiteral(name) || import_typescript7.default.isNoSubstitutionTemplateLiteral(name)) return name.text;
+  if (import_typescript8.default.isIdentifier(name) || import_typescript8.default.isStringLiteral(name) || import_typescript8.default.isNoSubstitutionTemplateLiteral(name)) return name.text;
   return void 0;
 }
 function normalized(node2, sf) {
@@ -248484,7 +248621,7 @@ function normalized(node2, sf) {
 }
 function unwrap(e) {
   let x = e;
-  while (import_typescript7.default.isParenthesizedExpression(x) || import_typescript7.default.isAsExpression(x) || import_typescript7.default.isSatisfiesExpression(x)) x = x.expression;
+  while (import_typescript8.default.isParenthesizedExpression(x) || import_typescript8.default.isAsExpression(x) || import_typescript8.default.isSatisfiesExpression(x)) x = x.expression;
   return x;
 }
 var ENUM_MARKER = "__values";
@@ -248492,9 +248629,9 @@ var META_FIELDS = /* @__PURE__ */ new Set(["__resolveReference", "__resolveType"
 function resolverNodes(sf, typeFields) {
   const out = [];
   const visit3 = (node2) => {
-    if (import_typescript7.default.isObjectLiteralExpression(node2)) {
+    if (import_typescript8.default.isObjectLiteralExpression(node2)) {
       for (const prop of node2.properties) {
-        if (!import_typescript7.default.isPropertyAssignment(prop)) continue;
+        if (!import_typescript8.default.isPropertyAssignment(prop)) continue;
         const type = propName(prop.name);
         const inner = unwrap(prop.initializer);
         const fields = type === void 0 ? void 0 : typeFields.get(type);
@@ -248502,16 +248639,16 @@ function resolverNodes(sf, typeFields) {
           out.push({ key: `${type ?? ""}.${ENUM_MARKER}`, node: prop, value: prop.initializer });
           continue;
         }
-        if (fields === void 0 || !import_typescript7.default.isObjectLiteralExpression(inner)) continue;
+        if (fields === void 0 || !import_typescript8.default.isObjectLiteralExpression(inner)) continue;
         for (const member of inner.properties) {
           const field = member.name ? propName(member.name) : void 0;
           if (field === void 0 || !fields.has(field) && !META_FIELDS.has(field)) continue;
-          const value = import_typescript7.default.isPropertyAssignment(member) ? member.initializer : import_typescript7.default.isShorthandPropertyAssignment(member) ? member.name : member;
+          const value = import_typescript8.default.isPropertyAssignment(member) ? member.initializer : import_typescript8.default.isShorthandPropertyAssignment(member) ? member.name : member;
           out.push({ key: `${type}.${field}`, node: member, value });
         }
       }
     }
-    import_typescript7.default.forEachChild(node2, visit3);
+    import_typescript8.default.forEachChild(node2, visit3);
   };
   visit3(sf);
   return out;
@@ -248526,14 +248663,14 @@ function resolverEntries(file2, code2, typeFields, withRest = true) {
   const imports = /* @__PURE__ */ new Set();
   const removed = nodes.map(({ node: node2 }) => [node2.getStart(sf), node2.end]);
   for (const statement of sf.statements) {
-    if (import_typescript7.default.isImportDeclaration(statement) && import_typescript7.default.isStringLiteral(statement.moduleSpecifier)) {
+    if (import_typescript8.default.isImportDeclaration(statement) && import_typescript8.default.isStringLiteral(statement.moduleSpecifier)) {
       const clause = statement.importClause;
       const spec = statement.moduleSpecifier.text;
       if (!clause) imports.add(`${spec}|`);
       if (clause?.name) imports.add(`${spec}|default as ${clause.name.text}`);
       const named = clause?.namedBindings;
-      if (named && import_typescript7.default.isNamespaceImport(named)) imports.add(`${spec}|* as ${named.name.text}`);
-      if (named && import_typescript7.default.isNamedImports(named)) for (const el of named.elements) imports.add(`${spec}|${(el.propertyName ?? el.name).text} as ${el.name.text}`);
+      if (named && import_typescript8.default.isNamespaceImport(named)) imports.add(`${spec}|* as ${named.name.text}`);
+      if (named && import_typescript8.default.isNamedImports(named)) for (const el of named.elements) imports.add(`${spec}|${(el.propertyName ?? el.name).text} as ${el.name.text}`);
       removed.push([statement.getStart(sf), statement.end]);
     }
   }
@@ -248545,7 +248682,7 @@ function resolverEntries(file2, code2, typeFields, withRest = true) {
   };
   const items = [];
   for (const statement of sf.statements) {
-    if (import_typescript7.default.isImportDeclaration(statement)) continue;
+    if (import_typescript8.default.isImportDeclaration(statement)) continue;
     const object2 = topLevelObject(statement);
     if (!object2) {
       items.push(blank(statement));
@@ -248557,21 +248694,21 @@ function resolverEntries(file2, code2, typeFields, withRest = true) {
   return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, imports };
 }
 function stripComments(code2) {
-  const scanner = import_typescript7.default.createScanner(import_typescript7.default.ScriptTarget.Latest, false, import_typescript7.default.LanguageVariant.Standard, code2);
+  const scanner = import_typescript8.default.createScanner(import_typescript8.default.ScriptTarget.Latest, false, import_typescript8.default.LanguageVariant.Standard, code2);
   let out = "";
-  for (let kind = scanner.scan(); kind !== import_typescript7.default.SyntaxKind.EndOfFileToken; kind = scanner.scan()) {
-    if (kind === import_typescript7.default.SyntaxKind.SingleLineCommentTrivia || kind === import_typescript7.default.SyntaxKind.MultiLineCommentTrivia) continue;
+  for (let kind = scanner.scan(); kind !== import_typescript8.default.SyntaxKind.EndOfFileToken; kind = scanner.scan()) {
+    if (kind === import_typescript8.default.SyntaxKind.SingleLineCommentTrivia || kind === import_typescript8.default.SyntaxKind.MultiLineCommentTrivia) continue;
     out += scanner.getTokenText();
   }
   return out;
 }
 function topLevelObject(statement) {
   let value;
-  if (import_typescript7.default.isVariableStatement(statement) && statement.declarationList.declarations.length === 1) value = statement.declarationList.declarations[0]?.initializer;
-  else if (import_typescript7.default.isExportAssignment(statement)) value = statement.expression;
-  else if (import_typescript7.default.isExpressionStatement(statement) && import_typescript7.default.isBinaryExpression(statement.expression) && statement.expression.operatorToken.kind === import_typescript7.default.SyntaxKind.EqualsToken) value = statement.expression.right;
+  if (import_typescript8.default.isVariableStatement(statement) && statement.declarationList.declarations.length === 1) value = statement.declarationList.declarations[0]?.initializer;
+  else if (import_typescript8.default.isExportAssignment(statement)) value = statement.expression;
+  else if (import_typescript8.default.isExpressionStatement(statement) && import_typescript8.default.isBinaryExpression(statement.expression) && statement.expression.operatorToken.kind === import_typescript8.default.SyntaxKind.EqualsToken) value = statement.expression.right;
   const inner = value ? unwrap(value) : void 0;
-  return inner && import_typescript7.default.isObjectLiteralExpression(inner) ? inner : void 0;
+  return inner && import_typescript8.default.isObjectLiteralExpression(inner) ? inner : void 0;
 }
 function diffResolvers(base, head) {
   const before = new Map(base.entries.map((e) => [e.key, e.text]));
@@ -248586,29 +248723,29 @@ function diffResolvers(base, head) {
 function accessChain(node2) {
   const parts = [];
   let current = node2;
-  while (import_typescript7.default.isPropertyAccessExpression(current)) {
+  while (import_typescript8.default.isPropertyAccessExpression(current)) {
     parts.unshift(current.name.text);
     current = current.expression;
   }
-  if (import_typescript7.default.isIdentifier(current)) parts.unshift(current.text);
-  else if (current.kind === import_typescript7.default.SyntaxKind.ThisKeyword) parts.unshift("this");
+  if (import_typescript8.default.isIdentifier(current)) parts.unshift(current.text);
+  else if (current.kind === import_typescript8.default.SyntaxKind.ThisKeyword) parts.unshift("this");
   else return [];
   return parts;
 }
-var TYPE_ONLY = /* @__PURE__ */ new Set([import_typescript7.default.SyntaxKind.InterfaceDeclaration, import_typescript7.default.SyntaxKind.TypeAliasDeclaration, import_typescript7.default.SyntaxKind.PropertySignature, import_typescript7.default.SyntaxKind.MethodSignature, import_typescript7.default.SyntaxKind.TypeParameter, import_typescript7.default.SyntaxKind.TypeLiteral]);
+var TYPE_ONLY = /* @__PURE__ */ new Set([import_typescript8.default.SyntaxKind.InterfaceDeclaration, import_typescript8.default.SyntaxKind.TypeAliasDeclaration, import_typescript8.default.SyntaxKind.PropertySignature, import_typescript8.default.SyntaxKind.MethodSignature, import_typescript8.default.SyntaxKind.TypeParameter, import_typescript8.default.SyntaxKind.TypeLiteral]);
 function resolverAnchors(value, checker, isProjectFile, rel, globals, context = () => []) {
   const own2 = value.getSourceFile();
   const modules = /* @__PURE__ */ new Set();
   const seen = /* @__PURE__ */ new Set();
   const visit3 = (node2) => {
-    if (import_typescript7.default.isTypeNode(node2) || import_typescript7.default.isTypeAliasDeclaration(node2) || import_typescript7.default.isInterfaceDeclaration(node2)) return;
-    if (import_typescript7.default.isPropertyAccessExpression(node2) && !(import_typescript7.default.isPropertyAccessExpression(node2.parent) && node2.parent.expression === node2)) {
+    if (import_typescript8.default.isTypeNode(node2) || import_typescript8.default.isTypeAliasDeclaration(node2) || import_typescript8.default.isInterfaceDeclaration(node2)) return;
+    if (import_typescript8.default.isPropertyAccessExpression(node2) && !(import_typescript8.default.isPropertyAccessExpression(node2.parent) && node2.parent.expression === node2)) {
       for (const m of context(accessChain(node2))) modules.add(m);
     }
-    if (import_typescript7.default.isIdentifier(node2)) {
+    if (import_typescript8.default.isIdentifier(node2)) {
       const symbol2 = checker.getSymbolAtLocation(node2);
-      const target = symbol2 && symbol2.flags & import_typescript7.default.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol2) : symbol2;
-      const decls = (target?.declarations ?? []).filter((d) => !TYPE_ONLY.has(d.kind) && !import_typescript7.default.isBinaryExpression(d) && !import_typescript7.default.isPropertyAccessExpression(d) && !import_typescript7.default.isElementAccessExpression(d) && !import_typescript7.default.isIdentifier(d));
+      const target = symbol2 && symbol2.flags & import_typescript8.default.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol2) : symbol2;
+      const decls = (target?.declarations ?? []).filter((d) => !TYPE_ONLY.has(d.kind) && !import_typescript8.default.isBinaryExpression(d) && !import_typescript8.default.isPropertyAccessExpression(d) && !import_typescript8.default.isElementAccessExpression(d) && !import_typescript8.default.isIdentifier(d));
       if (decls.every((d) => d.getSourceFile().isDeclarationFile) && globals.has(node2.text)) {
         modules.add(globals.get(node2.text) ?? "");
         return;
@@ -248616,7 +248753,7 @@ function resolverAnchors(value, checker, isProjectFile, rel, globals, context = 
       for (const d of decls) {
         const sf = d.getSourceFile();
         if (sf === own2) {
-          const body = import_typescript7.default.isFunctionDeclaration(d) ? d : import_typescript7.default.isVariableDeclaration(d) && d.initializer && (import_typescript7.default.isArrowFunction(d.initializer) || import_typescript7.default.isFunctionExpression(d.initializer)) ? d.initializer : void 0;
+          const body = import_typescript8.default.isFunctionDeclaration(d) ? d : import_typescript8.default.isVariableDeclaration(d) && d.initializer && (import_typescript8.default.isArrowFunction(d.initializer) || import_typescript8.default.isFunctionExpression(d.initializer)) ? d.initializer : void 0;
           if (body && !seen.has(body)) {
             seen.add(body);
             visit3(body);
@@ -248626,7 +248763,7 @@ function resolverAnchors(value, checker, isProjectFile, rel, globals, context = 
         }
       }
     }
-    import_typescript7.default.forEachChild(node2, visit3);
+    import_typescript8.default.forEachChild(node2, visit3);
   };
   seen.add(value);
   visit3(value);
@@ -248634,7 +248771,7 @@ function resolverAnchors(value, checker, isProjectFile, rel, globals, context = 
 }
 
 // src/backend/schema.ts
-var import_typescript8 = __toESM(require_typescript(), 1);
+var import_typescript9 = __toESM(require_typescript(), 1);
 var GQL_TAGS = /* @__PURE__ */ new Set(["gql", "graphql"]);
 function sdlSources(file2, code2) {
   if (file2.endsWith(".graphql") || file2.endsWith(".gql")) return { sources: [{ file: file2, line: 1, sdl: code2 }], problems: [] };
@@ -248643,15 +248780,15 @@ function sdlSources(file2, code2) {
   if (!code2.includes("gql") && !code2.includes("graphql")) return { sources, problems };
   const { sourceFile: sf } = parseIsolated(file2, code2);
   const visit3 = (node2) => {
-    if (import_typescript8.default.isTaggedTemplateExpression(node2) && import_typescript8.default.isIdentifier(node2.tag) && GQL_TAGS.has(node2.tag.text)) {
+    if (import_typescript9.default.isTaggedTemplateExpression(node2) && import_typescript9.default.isIdentifier(node2.tag) && GQL_TAGS.has(node2.tag.text)) {
       const line3 = sf.getLineAndCharacterOfPosition(node2.template.getStart(sf)).line + 1;
-      if (import_typescript8.default.isNoSubstitutionTemplateLiteral(node2.template)) sources.push({ file: file2, line: line3, sdl: node2.template.text });
+      if (import_typescript9.default.isNoSubstitutionTemplateLiteral(node2.template)) sources.push({ file: file2, line: line3, sdl: node2.template.text });
       else {
         problems.push({ file: file2, line: line3, detail: "gql template with interpolations: only its literal parts are read" });
         sources.push({ file: file2, line: line3, sdl: [node2.template.head.text, ...node2.template.templateSpans.map((s) => s.literal.text)].join("\n") });
       }
     }
-    import_typescript8.default.forEachChild(node2, visit3);
+    import_typescript9.default.forEachChild(node2, visit3);
   };
   visit3(sf);
   return { sources, problems };
@@ -248876,14 +249013,14 @@ async function schemaContracts(ctx, table3, files, baseSha) {
 }
 
 // src/cli/disk-fs.ts
-var import_typescript9 = __toESM(require_typescript(), 1);
+var import_typescript10 = __toESM(require_typescript(), 1);
 import { readdirSync, realpathSync as realpathSync3, statSync as statSync2 } from "fs";
 function createDiskFileSystem() {
   return {
-    fileExists: (p) => import_typescript9.default.sys.fileExists(p),
-    readFile: (p) => import_typescript9.default.sys.readFile(p),
-    directoryExists: (p) => import_typescript9.default.sys.directoryExists(p),
-    getDirectories: (p) => import_typescript9.default.sys.getDirectories(p),
+    fileExists: (p) => import_typescript10.default.sys.fileExists(p),
+    readFile: (p) => import_typescript10.default.sys.readFile(p),
+    directoryExists: (p) => import_typescript10.default.sys.directoryExists(p),
+    getDirectories: (p) => import_typescript10.default.sys.getDirectories(p),
     getEntries: (p) => {
       const files = [];
       const directories = [];
@@ -248918,7 +249055,7 @@ import { execFile as execFile3 } from "child_process";
 import { createHash } from "crypto";
 import { existsSync as existsSync3, mkdirSync as mkdirSync2, mkdtempSync, readdirSync as readdirSync2, readFileSync as readFileSync3, realpathSync as realpathSync4, rmSync as rmSync2, statSync as statSync3, writeFileSync as writeFileSync2 } from "fs";
 import { homedir, tmpdir } from "os";
-import { dirname as dirname2, join as join3 } from "path";
+import { dirname as dirname2, join as join4 } from "path";
 import { fileURLToPath } from "url";
 
 // src/decls/impact.ts
@@ -249139,7 +249276,7 @@ function missingTool(error62, message) {
 function helperDir(name) {
   let dir = dirname2(fileURLToPath(import.meta.url));
   for (let i = 0; i < 5; i++) {
-    if (existsSync3(join3(dir, name))) return join3(dir, name);
+    if (existsSync3(join4(dir, name))) return join4(dir, name);
     dir = dirname2(dir);
   }
   throw new Error(`internal: ${name}/ not found next to farol`);
@@ -249149,7 +249286,7 @@ function sourceHash(dir) {
   const walk = (d) => {
     for (const name of readdirSync2(d).sort()) {
       if (name === "__pycache__") continue;
-      const full = join3(d, name);
+      const full = join4(d, name);
       if (statSync3(full).isDirectory()) walk(full);
       else hash2.update(full.slice(dir.length)).update(readFileSync3(full));
     }
@@ -249168,8 +249305,8 @@ async function goHelperBinary() {
   const key = createHash("sha256").update(`${sourceHash(src)}
 ${goVersion}
 ${process.platform}-${process.arch}`).digest("hex").slice(0, 24);
-  const dir = join3(defaultCacheDir(), "go-helper", key);
-  const binary = join3(dir, process.platform === "win32" ? "gohelper.exe" : "gohelper");
+  const dir = join4(defaultCacheDir(), "go-helper", key);
+  const binary = join4(dir, process.platform === "win32" ? "gohelper.exe" : "gohelper");
   if (existsSync3(binary)) return binary;
   mkdirSync2(dir, { recursive: true });
   try {
@@ -249207,17 +249344,17 @@ async function readerFor(ctx) {
   return { label: "Python", version: sourceHash(helperDir("py-helper")), read: (dir, project, comments) => runPythonHelper(["analyze", "--root", dir, "--project", project, "--roots", roots, "--comments", comments.join(",")], dir) };
 }
 function defaultCacheDir(env = process.env) {
-  return env.FAROL_CACHE_DIR ?? env.REVSCOPE_CACHE_DIR ?? join3(env.XDG_CACHE_HOME ?? join3(homedir(), ".cache"), "farol");
+  return env.FAROL_CACHE_DIR ?? env.REVSCOPE_CACHE_DIR ?? join4(env.XDG_CACHE_HOME ?? join4(homedir(), ".cache"), "farol");
 }
 var CACHE_ENTRIES = 200;
 function prune(dir) {
-  const entries = readdirSync2(dir).filter((n) => n.endsWith(".json")).map((n) => ({ n, t: statSync3(join3(dir, n)).mtimeMs })).sort((a, b) => b.t - a.t);
-  for (const e of entries.slice(CACHE_ENTRIES)) rmSync2(join3(dir, e.n), { force: true });
+  const entries = readdirSync2(dir).filter((n) => n.endsWith(".json")).map((n) => ({ n, t: statSync3(join4(dir, n)).mtimeMs })).sort((a, b) => b.t - a.t);
+  for (const e of entries.slice(CACHE_ENTRIES)) rmSync2(join4(dir, e.n), { force: true });
 }
 async function readTree(ctx, reader, sha, comments, cache) {
   const project = ctx.projectPrefix === "" ? "." : ctx.projectPrefix;
   const key = cache === null ? null : createHash("sha256").update(JSON.stringify([TOOL_VERSION, reader.label, reader.version, await treeOf(ctx.repoRoot, sha), project, ctx.config.python.roots, [...comments].sort()])).digest("hex");
-  const file2 = key === null || cache === null ? null : join3(cache, `${key}.json`);
+  const file2 = key === null || cache === null ? null : join4(cache, `${key}.json`);
   if (file2 !== null && existsSync3(file2)) {
     const cached2 = DeclHelperSchema.safeParse(JSON.parse(readFileSync3(file2, "utf8")));
     if (cached2.success) {
@@ -249225,7 +249362,7 @@ async function readTree(ctx, reader, sha, comments, cache) {
       return cached2.data;
     }
   }
-  const dir = realpathSync4(mkdtempSync(join3(tmpdir(), "farol-tree-")));
+  const dir = realpathSync4(mkdtempSync(join4(tmpdir(), "farol-tree-")));
   try {
     await exportTree(ctx.repoRoot, sha, dir);
     const stdout = await reader.read(dir, project, comments);
@@ -249412,21 +249549,21 @@ function writeStdout(text) {
 
 // src/cli/workspace.ts
 import { readdirSync as readdirSync3 } from "fs";
-import { posix as posix13 } from "path";
+import { posix as posix14 } from "path";
 
 // src/backend/entrypoints.ts
-import { posix as posix8 } from "path";
+import { posix as posix9 } from "path";
 
 // src/backend/globals.ts
-var import_typescript10 = __toESM(require_typescript(), 1);
+var import_typescript11 = __toESM(require_typescript(), 1);
 function definedGlobals(sf) {
   const names = [];
   const visit3 = (node2) => {
-    if (import_typescript10.default.isBinaryExpression(node2) && node2.operatorToken.kind === import_typescript10.default.SyntaxKind.EqualsToken && import_typescript10.default.isPropertyAccessExpression(node2.left)) {
+    if (import_typescript11.default.isBinaryExpression(node2) && node2.operatorToken.kind === import_typescript11.default.SyntaxKind.EqualsToken && import_typescript11.default.isPropertyAccessExpression(node2.left)) {
       const target = node2.left.expression;
-      if (import_typescript10.default.isIdentifier(target) && (target.text === "global" || target.text === "globalThis" || target.text === "window")) names.push(node2.left.name.text);
+      if (import_typescript11.default.isIdentifier(target) && (target.text === "global" || target.text === "globalThis" || target.text === "window")) names.push(node2.left.name.text);
     }
-    import_typescript10.default.forEachChild(node2, visit3);
+    import_typescript11.default.forEachChild(node2, visit3);
   };
   visit3(sf);
   return names;
@@ -249435,12 +249572,12 @@ function usesGlobal(sf, name, checker) {
   let found = false;
   const visit3 = (node2) => {
     if (found) return;
-    if (import_typescript10.default.isIdentifier(node2) && node2.text === name && !(import_typescript10.default.isPropertyAccessExpression(node2.parent) && node2.parent.name === node2)) {
+    if (import_typescript11.default.isIdentifier(node2) && node2.text === name && !(import_typescript11.default.isPropertyAccessExpression(node2.parent) && node2.parent.name === node2)) {
       const symbol2 = checker.getSymbolAtLocation(node2);
       const decls = symbol2?.declarations ?? [];
       if (decls.every((d) => d.getSourceFile().isDeclarationFile)) found = true;
     }
-    import_typescript10.default.forEachChild(node2, visit3);
+    import_typescript11.default.forEachChild(node2, visit3);
   };
   visit3(sf);
   return found;
@@ -249450,7 +249587,7 @@ function usesGlobal(sf, name, checker) {
 var import_picomatch2 = __toESM(require_picomatch2(), 1);
 function buildBackendTable(input2) {
   const root = input2.repoRoot.replaceAll("\\", "/");
-  const rel = (fileName) => posix8.relative(root, fileName.replaceAll("\\", "/"));
+  const rel = (fileName) => posix9.relative(root, fileName.replaceAll("\\", "/"));
   const isProjectFile = (fileName) => {
     const p = fileName.replaceAll("\\", "/");
     return p.startsWith(`${root}/`) && !p.includes("/node_modules/");
@@ -249597,13 +249734,13 @@ function createIgnoreMatcher(globs3) {
 }
 
 // src/project/graph.ts
-var import_typescript11 = __toESM(require_typescript(), 1);
-import { posix as posix9 } from "path";
+var import_typescript12 = __toESM(require_typescript(), 1);
+import { posix as posix10 } from "path";
 function lineOf(sf, node2) {
   return sf.getLineAndCharacterOfPosition(node2.getStart(sf)).line + 1;
 }
 function isReexportOnly(sf) {
-  return sf.statements.length > 0 && sf.statements.every((s) => import_typescript11.default.isExportDeclaration(s) && s.moduleSpecifier !== void 0);
+  return sf.statements.length > 0 && sf.statements.every((s) => import_typescript12.default.isExportDeclaration(s) && s.moduleSpecifier !== void 0);
 }
 var GraphBuilder = class {
   constructor(project, options) {
@@ -249618,7 +249755,7 @@ var GraphBuilder = class {
   unresolved = [];
   checker;
   rel(file2) {
-    return posix9.relative(this.options.repoRoot, toPosix(file2));
+    return posix10.relative(this.options.repoRoot, toPosix(file2));
   }
   isProjectFile(file2) {
     const p = toPosix(file2);
@@ -249640,6 +249777,7 @@ var GraphBuilder = class {
       const entry = { file: from, specifier: literal3.text, line: lineOf(sf, literal3), reason: "not-found" };
       const target = specifierTarget(this.project, toPosix(sf.fileName), literal3.text);
       if (target !== void 0 && this.isProjectFile(target)) entry.target = this.rel(target);
+      if (r.package !== void 0) entry.package = this.rel(r.package);
       this.unresolved.push(entry);
       return void 0;
     }
@@ -249652,10 +249790,10 @@ var GraphBuilder = class {
   declaringFiles(binding) {
     const local = this.checker.getSymbolAtLocation(binding);
     if (!local) return void 0;
-    const target = local.flags & import_typescript11.default.SymbolFlags.Alias ? this.checker.getAliasedSymbol(local) : local;
+    const target = local.flags & import_typescript12.default.SymbolFlags.Alias ? this.checker.getAliasedSymbol(local) : local;
     const decls = target.declarations ?? [];
     if (decls.length === 0) return void 0;
-    if ((target.flags & (import_typescript11.default.SymbolFlags.Value | import_typescript11.default.SymbolFlags.ConstEnum)) === 0) return [];
+    if ((target.flags & (import_typescript12.default.SymbolFlags.Value | import_typescript12.default.SymbolFlags.ConstEnum)) === 0) return [];
     const files = /* @__PURE__ */ new Set();
     for (const d of decls) {
       const file2 = d.getSourceFile().fileName;
@@ -249665,16 +249803,16 @@ var GraphBuilder = class {
     return [...files];
   }
   visitImport(sf, from, node2) {
-    if (!import_typescript11.default.isStringLiteralLike(node2.moduleSpecifier)) return;
+    if (!import_typescript12.default.isStringLiteralLike(node2.moduleSpecifier)) return;
     const clause = node2.importClause;
     if (!clause) {
       this.link(sf, from, node2.moduleSpecifier, "side-effect");
       return;
     }
     if (isTypeOnlyImport(clause)) return;
-    const named = clause.namedBindings && import_typescript11.default.isNamedImports(clause.namedBindings) ? clause.namedBindings.elements.filter((e) => !e.isTypeOnly) : [];
-    const namespace = clause.namedBindings && import_typescript11.default.isNamespaceImport(clause.namedBindings) ? clause.namedBindings : void 0;
-    const allTypes = clause.namedBindings && import_typescript11.default.isNamedImports(clause.namedBindings) && clause.namedBindings.elements.length > 0 && named.length === 0;
+    const named = clause.namedBindings && import_typescript12.default.isNamedImports(clause.namedBindings) ? clause.namedBindings.elements.filter((e) => !e.isTypeOnly) : [];
+    const namespace = clause.namedBindings && import_typescript12.default.isNamespaceImport(clause.namedBindings) ? clause.namedBindings : void 0;
+    const allTypes = clause.namedBindings && import_typescript12.default.isNamedImports(clause.namedBindings) && clause.namedBindings.elements.length > 0 && named.length === 0;
     if (!clause.name && !namespace && allTypes) return;
     const r = this.resolve(sf, node2.moduleSpecifier);
     if (r.kind !== "module") {
@@ -249696,25 +249834,25 @@ var GraphBuilder = class {
     }
   }
   visitExport(sf, from, node2) {
-    if (!node2.moduleSpecifier || !import_typescript11.default.isStringLiteralLike(node2.moduleSpecifier) || node2.isTypeOnly) return;
+    if (!node2.moduleSpecifier || !import_typescript12.default.isStringLiteralLike(node2.moduleSpecifier) || node2.isTypeOnly) return;
     const clause = node2.exportClause;
-    if (clause && import_typescript11.default.isNamedExports(clause) && clause.elements.length > 0 && clause.elements.every((e) => e.isTypeOnly)) return;
+    if (clause && import_typescript12.default.isNamedExports(clause) && clause.elements.length > 0 && clause.elements.every((e) => e.isTypeOnly)) return;
     this.link(sf, from, node2.moduleSpecifier, "reexport");
   }
   visitCalls(sf, from) {
     const visit3 = (node2) => {
-      if (import_typescript11.default.isCallExpression(node2)) {
+      if (import_typescript12.default.isCallExpression(node2)) {
         const arg = node2.arguments[0];
-        if (node2.expression.kind === import_typescript11.default.SyntaxKind.ImportKeyword) {
-          if (arg && import_typescript11.default.isStringLiteralLike(arg)) this.link(sf, from, arg, "dynamic");
+        if (node2.expression.kind === import_typescript12.default.SyntaxKind.ImportKeyword) {
+          if (arg && import_typescript12.default.isStringLiteralLike(arg)) this.link(sf, from, arg, "dynamic");
           else this.unresolved.push({ file: from, specifier: arg ? arg.getText(sf) : "", line: lineOf(sf, node2), reason: "non-literal" });
-        } else if (import_typescript11.default.isIdentifier(node2.expression) && node2.expression.text === "require" && arg && import_typescript11.default.isStringLiteralLike(arg) && node2.arguments.length === 1) {
+        } else if (import_typescript12.default.isIdentifier(node2.expression) && node2.expression.text === "require" && arg && import_typescript12.default.isStringLiteralLike(arg) && node2.arguments.length === 1) {
           this.link(sf, from, arg, "require");
-        } else if (import_typescript11.default.isPropertyAccessExpression(node2.expression) && import_typescript11.default.isMetaProperty(node2.expression.expression) && node2.expression.expression.keywordToken === import_typescript11.default.SyntaxKind.ImportKeyword && node2.expression.name.text === "glob") {
+        } else if (import_typescript12.default.isPropertyAccessExpression(node2.expression) && import_typescript12.default.isMetaProperty(node2.expression.expression) && node2.expression.expression.keywordToken === import_typescript12.default.SyntaxKind.ImportKeyword && node2.expression.name.text === "glob") {
           this.unresolved.push({ file: from, specifier: node2.getText(sf), line: lineOf(sf, node2), reason: "non-literal" });
         }
       }
-      import_typescript11.default.forEachChild(node2, visit3);
+      import_typescript12.default.forEachChild(node2, visit3);
     };
     visit3(sf);
   }
@@ -249723,11 +249861,11 @@ var GraphBuilder = class {
     this.nodes.add(from);
     if (!this.options.isOrigin(from) || sf.isDeclarationFile) return;
     for (const statement of sf.statements) {
-      if (import_typescript11.default.isImportDeclaration(statement)) this.visitImport(sf, from, statement);
-      else if (import_typescript11.default.isExportDeclaration(statement)) this.visitExport(sf, from, statement);
-      else if (import_typescript11.default.isImportEqualsDeclaration(statement) && !statement.isTypeOnly && import_typescript11.default.isExternalModuleReference(statement.moduleReference)) {
+      if (import_typescript12.default.isImportDeclaration(statement)) this.visitImport(sf, from, statement);
+      else if (import_typescript12.default.isExportDeclaration(statement)) this.visitExport(sf, from, statement);
+      else if (import_typescript12.default.isImportEqualsDeclaration(statement) && !statement.isTypeOnly && import_typescript12.default.isExternalModuleReference(statement.moduleReference)) {
         const expr = statement.moduleReference.expression;
-        if (import_typescript11.default.isStringLiteralLike(expr)) this.link(sf, from, expr, "require");
+        if (import_typescript12.default.isStringLiteralLike(expr)) this.link(sf, from, expr, "require");
       }
     }
     this.visitCalls(sf, from);
@@ -249742,7 +249880,7 @@ var GraphBuilder = class {
       if (isReexportOnly(sf)) reexportOnly.push(rel);
       for (const d of this.project.program.getSyntacticDiagnostics(sf)) {
         const line3 = sf.getLineAndCharacterOfPosition(d.start).line + 1;
-        parseErrors.push({ file: rel, line: line3, message: import_typescript11.default.flattenDiagnosticMessageText(d.messageText, " ") });
+        parseErrors.push({ file: rel, line: line3, message: import_typescript12.default.flattenDiagnosticMessageText(d.messageText, " ") });
       }
     }
     const edges = [...this.edges.values()].sort((a, b) => compareStrings(a.from, b.from) || compareStrings(a.to, b.to) || compareStrings(a.kind, b.kind));
@@ -249757,8 +249895,8 @@ function buildImportGraph(project, options) {
 }
 
 // src/project/program.ts
-var import_typescript12 = __toESM(require_typescript(), 1);
-import { posix as posix10 } from "path";
+var import_typescript13 = __toESM(require_typescript(), 1);
+import { posix as posix11 } from "path";
 var ProjectError = class extends Error {
   constructor(message) {
     super(message);
@@ -249766,7 +249904,7 @@ var ProjectError = class extends Error {
   }
 };
 function parseConfigHost(fs2, cwd) {
-  const matchFiles = import_typescript12.default.matchFiles;
+  const matchFiles = import_typescript13.default.matchFiles;
   if (typeof matchFiles !== "function") throw new ProjectError("this TypeScript version does not expose matchFiles; reinstall the pinned typescript version");
   return {
     useCaseSensitiveFileNames: true,
@@ -249775,17 +249913,17 @@ function parseConfigHost(fs2, cwd) {
     readFile: (p) => fs2.readFile(p),
     readDirectory: (root, extensions, excludes, includes, depth) => matchFiles(root, extensions, excludes, includes, true, cwd, depth, (p) => fs2.getEntries(p), (p) => fs2.realpath(p)),
     onUnRecoverableConfigFileDiagnostic: (d) => {
-      throw new ProjectError(`cannot read tsconfig: ${import_typescript12.default.flattenDiagnosticMessageText(d.messageText, "\n")}`);
+      throw new ProjectError(`cannot read tsconfig: ${import_typescript13.default.flattenDiagnosticMessageText(d.messageText, "\n")}`);
     }
   };
 }
 function parseTsconfig(configPath, fs2, cwd) {
   if (!fs2.fileExists(configPath)) throw new ProjectError(`tsconfig not found at ${configPath}; adjust "tsconfig" in the configuration`);
-  const parsed = import_typescript12.default.getParsedCommandLineOfConfigFile(configPath, {}, parseConfigHost(fs2, cwd));
+  const parsed = import_typescript13.default.getParsedCommandLineOfConfigFile(configPath, {}, parseConfigHost(fs2, cwd));
   if (!parsed) throw new ProjectError(`cannot parse ${configPath}`);
-  const fatal = parsed.errors.filter((d) => d.category === import_typescript12.default.DiagnosticCategory.Error && d.code !== 18003);
+  const fatal = parsed.errors.filter((d) => d.category === import_typescript13.default.DiagnosticCategory.Error && d.code !== 18003);
   if (fatal.length > 0) {
-    const messages = fatal.map((d) => import_typescript12.default.flattenDiagnosticMessageText(d.messageText, "\n"));
+    const messages = fatal.map((d) => import_typescript13.default.flattenDiagnosticMessageText(d.messageText, "\n"));
     throw new ProjectError(`invalid tsconfig ${configPath}: ${messages.join("; ")}`);
   }
   return parsed;
@@ -249794,7 +249932,7 @@ function selectConfig(rootConfig, anchorFile, fs2, cwd) {
   const parsed = parseTsconfig(rootConfig, fs2, cwd);
   if (anchorFile === void 0 || parsed.fileNames.includes(anchorFile) || !parsed.projectReferences?.length) return { parsed, configPath: rootConfig };
   for (const ref of parsed.projectReferences) {
-    const refPath = fs2.directoryExists(ref.path) ? posix10.join(ref.path, "tsconfig.json") : ref.path;
+    const refPath = fs2.directoryExists(ref.path) ? posix11.join(ref.path, "tsconfig.json") : ref.path;
     const child = parseTsconfig(refPath, fs2, cwd);
     if (child.fileNames.includes(anchorFile)) return { parsed: child, configPath: refPath };
   }
@@ -249814,7 +249952,7 @@ function createProjectProgram(input2) {
     declaration: false,
     emitDeclarationOnly: false
   };
-  const host = import_typescript12.default.createCompilerHost(options, true);
+  const host = import_typescript13.default.createCompilerHost(options, true);
   host.fileExists = (p) => fs2.fileExists(p);
   host.readFile = (p) => fs2.readFile(p);
   host.directoryExists = (p) => fs2.directoryExists(p);
@@ -249823,26 +249961,26 @@ function createProjectProgram(input2) {
   host.getCurrentDirectory = () => projectDir;
   host.useCaseSensitiveFileNames = () => true;
   host.getCanonicalFileName = (f) => f;
-  host.getDefaultLibFileName = () => posix10.join(projectDir, "__farol_no_lib__.d.ts");
+  host.getDefaultLibFileName = () => posix11.join(projectDir, "__farol_no_lib__.d.ts");
   host.writeFile = () => void 0;
   host.getSourceFile = (fileName, languageVersionOrOptions) => {
     const text = fs2.readFile(fileName);
-    return text === void 0 ? void 0 : import_typescript12.default.createSourceFile(fileName, text, languageVersionOrOptions, true);
+    return text === void 0 ? void 0 : import_typescript13.default.createSourceFile(fileName, text, languageVersionOrOptions, true);
   };
   const rootNames = input2.anchorFile === void 0 || parsed.fileNames.includes(input2.anchorFile) ? parsed.fileNames : [...parsed.fileNames, input2.anchorFile];
-  const program3 = import_typescript12.default.createProgram({ rootNames, options, host, projectReferences: void 0 });
-  const resolutionCache = import_typescript12.default.createModuleResolutionCache(projectDir, (f) => f, options);
+  const program3 = import_typescript13.default.createProgram({ rootNames, options, host, projectReferences: void 0 });
+  const resolutionCache = import_typescript13.default.createModuleResolutionCache(projectDir, (f) => f, options);
   return { program: program3, options, configPath, resolutionHost: host, resolutionCache, fs: fs2 };
 }
 
 // src/routes/next/index.ts
-import { posix as posix12 } from "path";
+import { posix as posix13 } from "path";
 
 // src/routes/files.ts
-import { posix as posix11 } from "path";
+import { posix as posix12 } from "path";
 var ROUTE_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js"];
 function isNonRouteFile(file2) {
-  const name = posix11.basename(file2);
+  const name = posix12.basename(file2);
   if (name.endsWith(".d.ts") || /\.(test|spec|stories)\.[cm]?[jt]sx?$/.test(name)) return true;
   return file2.split("/").some((part) => part === "__tests__" || part === "__mocks__");
 }
@@ -249950,40 +250088,40 @@ function extract(input2) {
   const middleware = ["middleware", "proxy"].map((n) => moduleIn(fileSet, root, n)).filter((m) => m !== null);
   const routes = [...pagesRoutes(root, input2.files, fileSet, middleware), ...appRoutes(root, input2.files, fileSet, middleware)];
   const dynamic = [];
-  if (routes.length === 0) dynamic.push({ file: root === "" ? "." : root, line: 1, detail: `no Next.js route found: expected modules under ${posix12.join(root, "pages")} or page/route modules under ${posix12.join(root, "app")}` });
+  if (routes.length === 0) dynamic.push({ file: root === "" ? "." : root, line: 1, detail: `no Next.js route found: expected modules under ${posix13.join(root, "pages")} or page/route modules under ${posix13.join(root, "app")}` });
   return routeTable(routes, dynamic, routes.flatMap((r) => [...r.entry === null ? [] : [r.entry], ...r.modules, ...r.layouts]));
 }
 var nextAdapter = { name: "next", source: "directory", extract };
 
 // src/routes/react-router/index.ts
-var import_typescript17 = __toESM(require_typescript(), 1);
+var import_typescript18 = __toESM(require_typescript(), 1);
 
 // src/routes/react-router/builders.ts
-var import_typescript16 = __toESM(require_typescript(), 1);
+var import_typescript17 = __toESM(require_typescript(), 1);
 
 // src/routes/react-router/elements.ts
-var import_typescript15 = __toESM(require_typescript(), 1);
+var import_typescript16 = __toESM(require_typescript(), 1);
 
 // src/routes/react-router/scope.ts
-var import_typescript14 = __toESM(require_typescript(), 1);
+var import_typescript15 = __toESM(require_typescript(), 1);
 
 // src/routes/react-router/lazy.ts
-var import_typescript13 = __toESM(require_typescript(), 1);
+var import_typescript14 = __toESM(require_typescript(), 1);
 function lazyImports(scope, fn, node2, seen = /* @__PURE__ */ new Set()) {
   const specs = [];
   const called = [];
   let nonLiteral;
   const visit3 = (n) => {
-    if (import_typescript13.default.isCallExpression(n)) {
-      if (n.expression.kind === import_typescript13.default.SyntaxKind.ImportKeyword) {
+    if (import_typescript14.default.isCallExpression(n)) {
+      if (n.expression.kind === import_typescript14.default.SyntaxKind.ImportKeyword) {
         const arg = n.arguments[0];
-        if (arg && import_typescript13.default.isStringLiteralLike(arg)) specs.push(arg);
+        if (arg && import_typescript14.default.isStringLiteralLike(arg)) specs.push(arg);
         else nonLiteral = n;
-      } else if (import_typescript13.default.isIdentifier(n.expression)) {
+      } else if (import_typescript14.default.isIdentifier(n.expression)) {
         called.push(n.expression);
       }
     }
-    import_typescript13.default.forEachChild(n, visit3);
+    import_typescript14.default.forEachChild(n, visit3);
   };
   visit3(fn);
   if (nonLiteral) return scope.fail(nonLiteral, "lazy import() with a computed path");
@@ -250001,7 +250139,7 @@ function lazyImports(scope, fn, node2, seen = /* @__PURE__ */ new Set()) {
     const b = scope.bindingQuiet(id.text);
     if (!b) continue;
     const value = b.value;
-    if (import_typescript13.default.isFunctionDeclaration(value) || import_typescript13.default.isArrowFunction(value) || import_typescript13.default.isFunctionExpression(value)) {
+    if (import_typescript14.default.isFunctionDeclaration(value) || import_typescript14.default.isArrowFunction(value) || import_typescript14.default.isFunctionExpression(value)) {
       const before = scope.registry.dynamic.length;
       const followed = lazyImports(b.scope, value, node2, seen);
       if (followed && followed.length > 0) return followed;
@@ -250014,14 +250152,14 @@ function lazyImports(scope, fn, node2, seen = /* @__PURE__ */ new Set()) {
 // src/routes/react-router/scope.ts
 function unwrap2(expr) {
   let e = expr;
-  while (import_typescript14.default.isParenthesizedExpression(e) || import_typescript14.default.isAsExpression(e) || import_typescript14.default.isSatisfiesExpression(e) || import_typescript14.default.isNonNullExpression(e) || import_typescript14.default.isTypeAssertionExpression(e)) e = e.expression;
+  while (import_typescript15.default.isParenthesizedExpression(e) || import_typescript15.default.isAsExpression(e) || import_typescript15.default.isSatisfiesExpression(e) || import_typescript15.default.isNonNullExpression(e) || import_typescript15.default.isTypeAssertionExpression(e)) e = e.expression;
   return e;
 }
 function isFunctionLike(node2) {
-  return import_typescript14.default.isArrowFunction(node2) || import_typescript14.default.isFunctionExpression(node2) || import_typescript14.default.isMethodDeclaration(node2) || import_typescript14.default.isFunctionDeclaration(node2);
+  return import_typescript15.default.isArrowFunction(node2) || import_typescript15.default.isFunctionExpression(node2) || import_typescript15.default.isMethodDeclaration(node2) || import_typescript15.default.isFunctionDeclaration(node2);
 }
 function propertyName(name) {
-  if (import_typescript14.default.isIdentifier(name) || import_typescript14.default.isStringLiteral(name) || import_typescript14.default.isNoSubstitutionTemplateLiteral(name)) return name.text;
+  if (import_typescript15.default.isIdentifier(name) || import_typescript15.default.isStringLiteral(name) || import_typescript15.default.isNoSubstitutionTemplateLiteral(name)) return name.text;
   return void 0;
 }
 var Registry = class {
@@ -250065,31 +250203,31 @@ var Scope = class {
   reexports = [];
   defaultExport;
   index(statement) {
-    const exported = import_typescript14.default.canHaveModifiers(statement) && (import_typescript14.default.getModifiers(statement) ?? []).some((m) => m.kind === import_typescript14.default.SyntaxKind.ExportKeyword);
-    if (import_typescript14.default.isImportDeclaration(statement) && import_typescript14.default.isStringLiteral(statement.moduleSpecifier) && statement.importClause && !isTypeOnlyImport(statement.importClause)) {
+    const exported = import_typescript15.default.canHaveModifiers(statement) && (import_typescript15.default.getModifiers(statement) ?? []).some((m) => m.kind === import_typescript15.default.SyntaxKind.ExportKeyword);
+    if (import_typescript15.default.isImportDeclaration(statement) && import_typescript15.default.isStringLiteral(statement.moduleSpecifier) && statement.importClause && !isTypeOnlyImport(statement.importClause)) {
       const spec = statement.moduleSpecifier.text;
       const clause = statement.importClause;
       if (clause.name) this.imports.set(clause.name.text, { spec, imported: "default" });
       const bindings = clause.namedBindings;
-      if (bindings && import_typescript14.default.isNamespaceImport(bindings)) this.imports.set(bindings.name.text, { spec, imported: "*" });
-      if (bindings && import_typescript14.default.isNamedImports(bindings)) {
+      if (bindings && import_typescript15.default.isNamespaceImport(bindings)) this.imports.set(bindings.name.text, { spec, imported: "*" });
+      if (bindings && import_typescript15.default.isNamedImports(bindings)) {
         for (const el of bindings.elements) if (!el.isTypeOnly) this.imports.set(el.name.text, { spec, imported: (el.propertyName ?? el.name).text });
       }
-    } else if (import_typescript14.default.isVariableStatement(statement) && statement.declarationList.flags & import_typescript14.default.NodeFlags.Const) {
+    } else if (import_typescript15.default.isVariableStatement(statement) && statement.declarationList.flags & import_typescript15.default.NodeFlags.Const) {
       for (const decl of statement.declarationList.declarations) {
-        if (!import_typescript14.default.isIdentifier(decl.name) || !decl.initializer) continue;
+        if (!import_typescript15.default.isIdentifier(decl.name) || !decl.initializer) continue;
         this.locals.set(decl.name.text, decl.initializer);
         if (exported) this.exportNames.set(decl.name.text, decl.name.text);
       }
-    } else if (import_typescript14.default.isFunctionDeclaration(statement) && statement.name) {
+    } else if (import_typescript15.default.isFunctionDeclaration(statement) && statement.name) {
       this.locals.set(statement.name.text, statement);
       if (exported) this.exportNames.set(statement.name.text, statement.name.text);
-    } else if (import_typescript14.default.isExportAssignment(statement) && !statement.isExportEquals) {
+    } else if (import_typescript15.default.isExportAssignment(statement) && !statement.isExportEquals) {
       this.defaultExport = statement.expression;
-    } else if (import_typescript14.default.isExportDeclaration(statement) && !statement.isTypeOnly) {
-      const spec = statement.moduleSpecifier && import_typescript14.default.isStringLiteral(statement.moduleSpecifier) ? statement.moduleSpecifier.text : void 0;
+    } else if (import_typescript15.default.isExportDeclaration(statement) && !statement.isTypeOnly) {
+      const spec = statement.moduleSpecifier && import_typescript15.default.isStringLiteral(statement.moduleSpecifier) ? statement.moduleSpecifier.text : void 0;
       const clause = statement.exportClause;
-      if (clause && import_typescript14.default.isNamedExports(clause)) {
+      if (clause && import_typescript15.default.isNamedExports(clause)) {
         const names = new Map(clause.elements.filter((e) => !e.isTypeOnly).map((e) => [e.name.text, (e.propertyName ?? e.name).text]));
         if (spec === void 0) for (const [exportedName, local] of names) this.exportNames.set(exportedName, local);
         else this.reexports.push({ spec, names });
@@ -250106,7 +250244,7 @@ var Scope = class {
   /** Top-level constant or function of this module (no imports). */
   local(name) {
     const value = this.locals.get(name);
-    return value && !import_typescript14.default.isFunctionDeclaration(value) ? unwrap2(value) : value;
+    return value && !import_typescript15.default.isFunctionDeclaration(value) ? unwrap2(value) : value;
   }
   /** Repo path of an imported module, `package:<spec>` for packages, null (recorded) when unresolved. */
   resolveSpecifier(specifier, node2) {
@@ -250162,10 +250300,10 @@ var Scope = class {
   /** Object literal behind an expression (a literal, or a constant holding one, here or in another module). */
   objectLiteral(expr, depth = 0) {
     const e = unwrap2(expr);
-    if (import_typescript14.default.isObjectLiteralExpression(e)) return { scope: this, object: e };
-    if (import_typescript14.default.isIdentifier(e) && depth < 20) {
+    if (import_typescript15.default.isObjectLiteralExpression(e)) return { scope: this, object: e };
+    if (import_typescript15.default.isIdentifier(e) && depth < 20) {
       const b = this.bindingQuiet(e.text);
-      if (b && !import_typescript14.default.isFunctionDeclaration(b.value)) return b.scope.objectLiteral(b.value, depth + 1);
+      if (b && !import_typescript15.default.isFunctionDeclaration(b.value)) return b.scope.objectLiteral(b.value, depth + 1);
     }
     return void 0;
   }
@@ -250180,8 +250318,8 @@ var Scope = class {
   stringValue(expr, depth = 0) {
     if (depth > 20) return void 0;
     const e = unwrap2(expr);
-    if (import_typescript14.default.isStringLiteral(e) || import_typescript14.default.isNoSubstitutionTemplateLiteral(e)) return e.text;
-    if (import_typescript14.default.isTemplateExpression(e)) {
+    if (import_typescript15.default.isStringLiteral(e) || import_typescript15.default.isNoSubstitutionTemplateLiteral(e)) return e.text;
+    if (import_typescript15.default.isTemplateExpression(e)) {
       let text = e.head.text;
       for (const span of e.templateSpans) {
         const part = this.stringValue(span.expression, depth + 1);
@@ -250190,16 +250328,16 @@ var Scope = class {
       }
       return text;
     }
-    if (import_typescript14.default.isIdentifier(e)) {
+    if (import_typescript15.default.isIdentifier(e)) {
       const b = this.bindingQuiet(e.text);
-      return b && !import_typescript14.default.isFunctionDeclaration(b.value) ? b.scope.stringValue(b.value, depth + 1) : void 0;
+      return b && !import_typescript15.default.isFunctionDeclaration(b.value) ? b.scope.stringValue(b.value, depth + 1) : void 0;
     }
-    if (import_typescript14.default.isPropertyAccessExpression(e) || import_typescript14.default.isElementAccessExpression(e) && import_typescript14.default.isStringLiteralLike(e.argumentExpression)) {
-      const key = import_typescript14.default.isPropertyAccessExpression(e) ? e.name.text : e.argumentExpression.text;
+    if (import_typescript15.default.isPropertyAccessExpression(e) || import_typescript15.default.isElementAccessExpression(e) && import_typescript15.default.isStringLiteralLike(e.argumentExpression)) {
+      const key = import_typescript15.default.isPropertyAccessExpression(e) ? e.name.text : e.argumentExpression.text;
       const holder = this.objectLiteral(e.expression);
       if (!holder) return void 0;
       for (const prop of holder.object.properties) {
-        if (import_typescript14.default.isPropertyAssignment(prop) && propertyName(prop.name) === key) return holder.scope.stringValue(prop.initializer, depth + 1);
+        if (import_typescript15.default.isPropertyAssignment(prop) && propertyName(prop.name) === key) return holder.scope.stringValue(prop.initializer, depth + 1);
       }
     }
     return void 0;
@@ -250209,7 +250347,7 @@ var Scope = class {
     const imp = this.imports.get(name);
     if (imp !== void 0) return this.resolveSpecifier(imp.spec, node2);
     const value = this.local(name);
-    if (value && import_typescript14.default.isCallExpression(value)) {
+    if (value && import_typescript15.default.isCallExpression(value)) {
       const loader = value.arguments.find((a) => isFunctionLike(a));
       if (loader) return lazyImports(this, loader, node2)?.[0] ?? null;
     }
@@ -250219,22 +250357,22 @@ var Scope = class {
   /** Component given as a value (`Component: X`, `ErrorBoundary: X`). */
   componentValue(expr) {
     const e = unwrap2(expr);
-    if (e.kind === import_typescript14.default.SyntaxKind.NullKeyword || import_typescript14.default.isIdentifier(e) && e.text === "undefined") return { entry: null, modules: [] };
+    if (e.kind === import_typescript15.default.SyntaxKind.NullKeyword || import_typescript15.default.isIdentifier(e) && e.text === "undefined") return { entry: null, modules: [] };
     let id = e;
-    while (import_typescript14.default.isPropertyAccessExpression(id)) id = id.expression;
-    if (!import_typescript14.default.isIdentifier(id)) return this.fail(e, `unsupported component value "${e.getText(this.sf)}"`);
+    while (import_typescript15.default.isPropertyAccessExpression(id)) id = id.expression;
+    if (!import_typescript15.default.isIdentifier(id)) return this.fail(e, `unsupported component value "${e.getText(this.sf)}"`);
     const m = this.resolveComponent(id.text, e);
     return m === null ? null : { entry: m, modules: [m] };
   }
   /** Modules of a `lazy` value: a function, an object of functions (lazy: { Component: … }) or a function constant. */
   lazyValue(value) {
-    const v = import_typescript14.default.isExpression(value) ? unwrap2(value) : value;
-    if (import_typescript14.default.isIdentifier(v)) {
+    const v = import_typescript15.default.isExpression(value) ? unwrap2(value) : value;
+    if (import_typescript15.default.isIdentifier(v)) {
       const b = this.binding(v.text, v);
       if (!b) return null;
       return b.scope.lazyValue(b.value);
     }
-    if (isFunctionLike(v) || import_typescript14.default.isObjectLiteralExpression(v) || import_typescript14.default.isCallExpression(v)) {
+    if (isFunctionLike(v) || import_typescript15.default.isObjectLiteralExpression(v) || import_typescript15.default.isCallExpression(v)) {
       const modules = lazyImports(this, v, v);
       return modules === null ? null : { entry: modules[0] ?? null, modules };
     }
@@ -250244,18 +250382,18 @@ var Scope = class {
 
 // src/routes/react-router/elements.ts
 function isJsx(node2) {
-  return import_typescript15.default.isJsxElement(node2) || import_typescript15.default.isJsxSelfClosingElement(node2) || import_typescript15.default.isJsxFragment(node2);
+  return import_typescript16.default.isJsxElement(node2) || import_typescript16.default.isJsxSelfClosingElement(node2) || import_typescript16.default.isJsxFragment(node2);
 }
 function containsJsx(node2) {
   if (isJsx(node2)) return true;
-  return import_typescript15.default.forEachChild(node2, (child) => containsJsx(child) ? true : void 0) ?? false;
+  return import_typescript16.default.forEachChild(node2, (child) => containsJsx(child) ? true : void 0) ?? false;
 }
 function elementModules(scope, expr) {
   const e = unwrap2(expr);
-  if (e.kind === import_typescript15.default.SyntaxKind.NullKeyword || import_typescript15.default.isIdentifier(e) && e.text === "undefined") return { entry: null, modules: [] };
-  if (import_typescript15.default.isIdentifier(e)) {
+  if (e.kind === import_typescript16.default.SyntaxKind.NullKeyword || import_typescript16.default.isIdentifier(e) && e.text === "undefined") return { entry: null, modules: [] };
+  if (import_typescript16.default.isIdentifier(e)) {
     const b = scope.bindingQuiet(e.text);
-    if (!b || import_typescript15.default.isFunctionDeclaration(b.value) || !isJsx(unwrap2(b.value))) return scope.fail(e, `element ${e.text} is not a JSX constant`);
+    if (!b || import_typescript16.default.isFunctionDeclaration(b.value) || !isJsx(unwrap2(b.value))) return scope.fail(e, `element ${e.text} is not a JSX constant`);
     return elementModules(b.scope, b.value);
   }
   const root = e;
@@ -250264,8 +250402,8 @@ function elementModules(scope, expr) {
   const state = { failed: false };
   const tag = (name, node2) => {
     let id = name;
-    while (import_typescript15.default.isPropertyAccessExpression(id)) id = id.expression;
-    if (!import_typescript15.default.isIdentifier(id)) return;
+    while (import_typescript16.default.isPropertyAccessExpression(id)) id = id.expression;
+    if (!import_typescript16.default.isIdentifier(id)) return;
     const text = id.text;
     const first = text[0] ?? "";
     if (first === first.toLowerCase() && !text.includes(".")) return;
@@ -250275,17 +250413,17 @@ function elementModules(scope, expr) {
   };
   const inExpression = (node2) => {
     if (isJsx(node2)) visit3(node2);
-    else import_typescript15.default.forEachChild(node2, inExpression);
+    else import_typescript16.default.forEachChild(node2, inExpression);
   };
   const attributes = (attrs) => {
-    for (const attr of attrs.properties) if (import_typescript15.default.isJsxAttribute(attr) && attr.initializer && import_typescript15.default.isJsxExpression(attr.initializer)) inExpression(attr.initializer);
+    for (const attr of attrs.properties) if (import_typescript16.default.isJsxAttribute(attr) && attr.initializer && import_typescript16.default.isJsxExpression(attr.initializer)) inExpression(attr.initializer);
   };
   const children = (list2) => {
     for (const child of list2) {
-      if (import_typescript15.default.isJsxText(child)) continue;
-      if (import_typescript15.default.isJsxExpression(child)) {
+      if (import_typescript16.default.isJsxText(child)) continue;
+      if (import_typescript16.default.isJsxExpression(child)) {
         const inner = child.expression;
-        if (!inner || import_typescript15.default.isStringLiteralLike(inner) || import_typescript15.default.isNumericLiteral(inner)) continue;
+        if (!inner || import_typescript16.default.isStringLiteralLike(inner) || import_typescript16.default.isNumericLiteral(inner)) continue;
         if (containsJsx(inner)) inExpression(inner);
         else {
           scope.fail(child, `element content is computed: "${child.getText(scope.sf)}"`);
@@ -250297,9 +250435,9 @@ function elementModules(scope, expr) {
     }
   };
   function visit3(node2) {
-    if (import_typescript15.default.isJsxFragment(node2)) {
+    if (import_typescript16.default.isJsxFragment(node2)) {
       children(node2.children);
-    } else if (import_typescript15.default.isJsxSelfClosingElement(node2)) {
+    } else if (import_typescript16.default.isJsxSelfClosingElement(node2)) {
       tag(node2.tagName, node2);
       attributes(node2.attributes);
     } else {
@@ -250342,7 +250480,7 @@ var DefBuilder = class {
   }
   set(name, value, node2) {
     const s = this.scope;
-    const expr = import_typescript16.default.isExpression(value) ? value : void 0;
+    const expr = import_typescript17.default.isExpression(value) ? value : void 0;
     switch (name) {
       case "path": {
         const p = expr ? s.stringValue(expr) : void 0;
@@ -250352,8 +250490,8 @@ var DefBuilder = class {
       }
       case "index": {
         const e = expr ? unwrap2(expr) : void 0;
-        if (e?.kind === import_typescript16.default.SyntaxKind.TrueKeyword) this.index = true;
-        else if (e?.kind !== import_typescript16.default.SyntaxKind.FalseKeyword) this.reject(node2, `computed index flag "${value.getText(s.sf)}"`);
+        if (e?.kind === import_typescript17.default.SyntaxKind.TrueKeyword) this.index = true;
+        else if (e?.kind !== import_typescript17.default.SyntaxKind.FalseKeyword) this.reject(node2, `computed index flag "${value.getText(s.sf)}"`);
         return;
       }
       case "element":
@@ -250397,38 +250535,38 @@ var RouteCollector = class {
       s.fail(e, "route definitions nest too deeply (circular constants?)");
       return;
     }
-    if (import_typescript16.default.isArrayLiteralExpression(e)) {
+    if (import_typescript17.default.isArrayLiteralExpression(e)) {
       for (const el of e.elements) {
-        if (import_typescript16.default.isSpreadElement(el)) {
+        if (import_typescript17.default.isSpreadElement(el)) {
           const spread = unwrap2(el.expression);
-          if (import_typescript16.default.isIdentifier(spread)) this.fromExpression(s, spread, ctx, depth + 1);
+          if (import_typescript17.default.isIdentifier(spread)) this.fromExpression(s, spread, ctx, depth + 1);
           else s.fail(el, `spread in route array "${el.getText(s.sf)}"`);
-        } else if (import_typescript16.default.isObjectLiteralExpression(unwrap2(el))) this.fromObject(s, unwrap2(el), ctx);
-        else if (import_typescript16.default.isIdentifier(unwrap2(el))) this.fromExpression(s, el, ctx, depth + 1);
+        } else if (import_typescript17.default.isObjectLiteralExpression(unwrap2(el))) this.fromObject(s, unwrap2(el), ctx);
+        else if (import_typescript17.default.isIdentifier(unwrap2(el))) this.fromExpression(s, el, ctx, depth + 1);
         else s.fail(el, `unsupported route "${el.getText(s.sf)}"`);
       }
       return;
     }
-    if (import_typescript16.default.isObjectLiteralExpression(e)) {
+    if (import_typescript17.default.isObjectLiteralExpression(e)) {
       this.fromObject(s, e, ctx);
       return;
     }
-    if (import_typescript16.default.isIdentifier(e)) {
+    if (import_typescript17.default.isIdentifier(e)) {
       const b = s.binding(e.text, e);
       if (!b) return;
-      if (import_typescript16.default.isFunctionDeclaration(b.value)) {
+      if (import_typescript17.default.isFunctionDeclaration(b.value)) {
         s.fail(e, `routes come from ${e.text}, which is a function`);
         return;
       }
       this.fromExpression(b.scope, b.value, ctx, depth + 1);
       return;
     }
-    if (import_typescript16.default.isCallExpression(e) && isCallTo(e, ROUTES_FROM_ELEMENTS)) {
+    if (import_typescript17.default.isCallExpression(e) && isCallTo(e, ROUTES_FROM_ELEMENTS)) {
       const arg = e.arguments[0];
       if (arg) this.fromJsxNodes(s, [arg], ctx);
       return;
     }
-    if (import_typescript16.default.isCallExpression(e) && import_typescript16.default.isPropertyAccessExpression(e.expression)) {
+    if (import_typescript17.default.isCallExpression(e) && import_typescript17.default.isPropertyAccessExpression(e.expression)) {
       s.fail(e, `routes generated by .${e.expression.name.text}()`);
       return;
     }
@@ -250438,7 +250576,7 @@ var RouteCollector = class {
     const def = new DefBuilder(s);
     let children;
     for (const prop of obj.properties) {
-      if (import_typescript16.default.isSpreadAssignment(prop)) {
+      if (import_typescript17.default.isSpreadAssignment(prop)) {
         def.reject(prop, `spread in route object "${prop.getText(s.sf)}"`);
         continue;
       }
@@ -250448,15 +250586,15 @@ var RouteCollector = class {
         continue;
       }
       let value;
-      if (import_typescript16.default.isPropertyAssignment(prop)) value = prop.initializer;
-      else if (import_typescript16.default.isShorthandPropertyAssignment(prop)) value = prop.name;
-      else if (import_typescript16.default.isMethodDeclaration(prop)) value = prop;
+      if (import_typescript17.default.isPropertyAssignment(prop)) value = prop.initializer;
+      else if (import_typescript17.default.isShorthandPropertyAssignment(prop)) value = prop.name;
+      else if (import_typescript17.default.isMethodDeclaration(prop)) value = prop;
       if (value === void 0) {
         if (ROUTE_KEYS.has(name)) def.reject(prop, `unsupported "${name}" accessor`);
         continue;
       }
       if (name === "children") {
-        if (import_typescript16.default.isExpression(value)) children = value;
+        if (import_typescript17.default.isExpression(value)) children = value;
         else def.reject(prop, "unsupported children");
         continue;
       }
@@ -250470,15 +250608,15 @@ var RouteCollector = class {
   /** Routes from JSX children of <Routes>, a fragment, or the argument of createRoutesFromElements(). */
   fromJsxNodes(s, nodes, ctx) {
     for (const raw of nodes) {
-      const node2 = import_typescript16.default.isExpression(raw) ? unwrap2(raw) : raw;
-      if (import_typescript16.default.isJsxText(node2)) continue;
-      if (import_typescript16.default.isJsxFragment(node2)) {
+      const node2 = import_typescript17.default.isExpression(raw) ? unwrap2(raw) : raw;
+      if (import_typescript17.default.isJsxText(node2)) continue;
+      if (import_typescript17.default.isJsxFragment(node2)) {
         this.fromJsxNodes(s, node2.children, ctx);
-      } else if (import_typescript16.default.isJsxElement(node2) || import_typescript16.default.isJsxSelfClosingElement(node2)) {
-        const tagName = import_typescript16.default.isJsxElement(node2) ? node2.openingElement.tagName : node2.tagName;
-        if (import_typescript16.default.isIdentifier(tagName) && tagName.text === "Route") this.fromJsxRoute(s, node2, ctx);
+      } else if (import_typescript17.default.isJsxElement(node2) || import_typescript17.default.isJsxSelfClosingElement(node2)) {
+        const tagName = import_typescript17.default.isJsxElement(node2) ? node2.openingElement.tagName : node2.tagName;
+        if (import_typescript17.default.isIdentifier(tagName) && tagName.text === "Route") this.fromJsxRoute(s, node2, ctx);
         else s.fail(node2, `unexpected <${tagName.getText(s.sf)}> among routes`);
-      } else if (import_typescript16.default.isJsxExpression(node2)) {
+      } else if (import_typescript17.default.isJsxExpression(node2)) {
         if (node2.expression) s.fail(node2, `routes generated in JSX: "${node2.getText(s.sf).slice(0, 80)}"`);
       } else {
         s.fail(node2, `unsupported routes "${node2.getText(s.sf).slice(0, 80)}"`);
@@ -250487,13 +250625,13 @@ var RouteCollector = class {
   }
   fromJsxRoute(s, node2, ctx) {
     const def = new DefBuilder(s);
-    const attrs = import_typescript16.default.isJsxElement(node2) ? node2.openingElement.attributes : node2.attributes;
+    const attrs = import_typescript17.default.isJsxElement(node2) ? node2.openingElement.attributes : node2.attributes;
     for (const attr of attrs.properties) {
-      if (import_typescript16.default.isJsxSpreadAttribute(attr)) {
+      if (import_typescript17.default.isJsxSpreadAttribute(attr)) {
         def.reject(attr, "spread attributes on <Route>");
         continue;
       }
-      const name = import_typescript16.default.isIdentifier(attr.name) ? attr.name.text : void 0;
+      const name = import_typescript17.default.isIdentifier(attr.name) ? attr.name.text : void 0;
       if (name === void 0) continue;
       const init = attr.initializer;
       if (init === void 0) {
@@ -250501,12 +250639,12 @@ var RouteCollector = class {
         else if (ROUTE_KEYS.has(name)) def.reject(attr, `attribute ${name} without a value`);
         continue;
       }
-      const value = import_typescript16.default.isJsxExpression(init) ? init.expression : init;
+      const value = import_typescript17.default.isJsxExpression(init) ? init.expression : init;
       if (!value) continue;
       def.set(name, value, attr);
     }
     const built = def.build();
-    if (built) this.emit(built, ctx, import_typescript16.default.isJsxElement(node2) ? (child) => {
+    if (built) this.emit(built, ctx, import_typescript17.default.isJsxElement(node2) ? (child) => {
       this.fromJsxNodes(s, node2.children, child);
     } : void 0);
   }
@@ -250515,30 +250653,30 @@ var ROUTER_FACTORIES = /* @__PURE__ */ new Set(["createBrowserRouter", "createHa
 var ROUTES_FROM_ELEMENTS = /* @__PURE__ */ new Set(["createRoutesFromElements", "createRoutesFromChildren"]);
 function isCallTo(call, names) {
   const callee = call.expression;
-  if (import_typescript16.default.isIdentifier(callee)) return names.has(callee.text);
-  if (import_typescript16.default.isPropertyAccessExpression(callee)) return names.has(callee.name.text);
+  if (import_typescript17.default.isIdentifier(callee)) return names.has(callee.text);
+  if (import_typescript17.default.isPropertyAccessExpression(callee)) return names.has(callee.name.text);
   return false;
 }
 
 // src/routes/react-router/index.ts
 function looksLikeRouteArray(expr) {
   const e = unwrap2(expr);
-  if (!import_typescript17.default.isArrayLiteralExpression(e) || e.elements.length === 0) return false;
+  if (!import_typescript18.default.isArrayLiteralExpression(e) || e.elements.length === 0) return false;
   return e.elements.every((el) => {
     const o = unwrap2(el);
-    if (!import_typescript17.default.isObjectLiteralExpression(o)) return true;
+    if (!import_typescript18.default.isObjectLiteralExpression(o)) return true;
     return o.properties.some((p) => p.name !== void 0 && ROUTE_KEYS.has(propertyName(p.name) ?? ""));
   });
 }
 function isRoutesElement(node2) {
-  return import_typescript17.default.isJsxElement(node2) && import_typescript17.default.isIdentifier(node2.openingElement.tagName) && node2.openingElement.tagName.text === "Routes";
+  return import_typescript18.default.isJsxElement(node2) && import_typescript18.default.isIdentifier(node2.openingElement.tagName) && node2.openingElement.tagName.text === "Routes";
 }
 function collectRoots(scope, collector) {
   const handled = /* @__PURE__ */ new Set();
   let roots = 0;
   const handleArray = (expr) => {
     const target = unwrap2(expr);
-    const resolved = import_typescript17.default.isIdentifier(target) ? scope.local(target.text) : target;
+    const resolved = import_typescript18.default.isIdentifier(target) ? scope.local(target.text) : target;
     if (resolved && handled.has(resolved)) return;
     if (resolved) handled.add(resolved);
     roots++;
@@ -250546,11 +250684,11 @@ function collectRoots(scope, collector) {
   };
   const visit3 = (node2) => {
     if (handled.has(node2)) return;
-    if (import_typescript17.default.isCallExpression(node2) && isCallTo(node2, ROUTER_FACTORIES)) {
+    if (import_typescript18.default.isCallExpression(node2) && isCallTo(node2, ROUTER_FACTORIES)) {
       const arg = node2.arguments[0];
       if (arg) handleArray(arg);
       else scope.fail(node2, "router created without routes");
-    } else if (import_typescript17.default.isCallExpression(node2) && isCallTo(node2, ROUTES_FROM_ELEMENTS)) {
+    } else if (import_typescript18.default.isCallExpression(node2) && isCallTo(node2, ROUTES_FROM_ELEMENTS)) {
       handled.add(node2);
       roots++;
       collector.fromJsxNodes(scope, node2.arguments, ROOT_CTX);
@@ -250560,15 +250698,15 @@ function collectRoots(scope, collector) {
       collector.fromJsxNodes(scope, node2.children, ROOT_CTX);
       return;
     }
-    import_typescript17.default.forEachChild(node2, visit3);
+    import_typescript18.default.forEachChild(node2, visit3);
   };
   visit3(scope.sf);
   for (const statement of scope.sf.statements) {
-    if (import_typescript17.default.isVariableStatement(statement) && statement.modifiers?.some((m) => m.kind === import_typescript17.default.SyntaxKind.ExportKeyword)) {
+    if (import_typescript18.default.isVariableStatement(statement) && statement.modifiers?.some((m) => m.kind === import_typescript18.default.SyntaxKind.ExportKeyword)) {
       for (const decl of statement.declarationList.declarations) {
         if (decl.initializer && !handled.has(unwrap2(decl.initializer)) && looksLikeRouteArray(decl.initializer)) handleArray(decl.initializer);
       }
-    } else if (import_typescript17.default.isExportAssignment(statement) && !handled.has(unwrap2(statement.expression)) && looksLikeRouteArray(statement.expression)) {
+    } else if (import_typescript18.default.isExportAssignment(statement) && !handled.has(unwrap2(statement.expression)) && looksLikeRouteArray(statement.expression)) {
       handleArray(statement.expression);
     }
   }
@@ -250593,30 +250731,30 @@ function extract2(input2) {
 var reactRouterAdapter = { name: "react-router", source: "file", extract: extract2 };
 
 // src/routes/tanstack-router/index.ts
-var import_typescript18 = __toESM(require_typescript(), 1);
+var import_typescript19 = __toESM(require_typescript(), 1);
 var FILE_ROUTE_FACTORIES = /* @__PURE__ */ new Set(["createFileRoute", "createLazyFileRoute"]);
 var ROOT_ROUTE_FACTORIES = /* @__PURE__ */ new Set(["createRootRoute", "createRootRouteWithContext"]);
 var ROOT_ID = "__root__";
 function calleeName2(call) {
   let callee = call.expression;
-  while (import_typescript18.default.isCallExpression(callee)) callee = callee.expression;
-  return import_typescript18.default.isIdentifier(callee) ? callee.text : void 0;
+  while (import_typescript19.default.isCallExpression(callee)) callee = callee.expression;
+  return import_typescript19.default.isIdentifier(callee) ? callee.text : void 0;
 }
 function routesOf(file2, code2, dynamic) {
   const { sourceFile: sf } = parseIsolated(file2, code2);
   const found = [];
   const visit3 = (node2) => {
-    if (import_typescript18.default.isCallExpression(node2)) {
+    if (import_typescript19.default.isCallExpression(node2)) {
       const name = calleeName2(node2);
       if (name !== void 0 && ROOT_ROUTE_FACTORIES.has(name)) {
         if (!found.some((f) => f.id === ROOT_ID)) found.push({ id: ROOT_ID, lazy: false });
-      } else if (name !== void 0 && FILE_ROUTE_FACTORIES.has(name) && import_typescript18.default.isIdentifier(node2.expression)) {
+      } else if (name !== void 0 && FILE_ROUTE_FACTORIES.has(name) && import_typescript19.default.isIdentifier(node2.expression)) {
         const arg = node2.arguments[0];
-        if (arg !== void 0 && import_typescript18.default.isStringLiteralLike(arg)) found.push({ id: arg.text, lazy: name === "createLazyFileRoute" });
+        if (arg !== void 0 && import_typescript19.default.isStringLiteralLike(arg)) found.push({ id: arg.text, lazy: name === "createLazyFileRoute" });
         else dynamic.push({ file: file2, line: sf.getLineAndCharacterOfPosition(node2.getStart(sf)).line + 1, detail: `${name} without a literal route id` });
       }
     }
-    import_typescript18.default.forEachChild(node2, visit3);
+    import_typescript19.default.forEachChild(node2, visit3);
   };
   visit3(sf);
   return found;
@@ -250684,12 +250822,12 @@ function getRouteAdapter(name) {
 }
 
 // src/cli/workspace.ts
-var SOURCE_EXTENSIONS = /* @__PURE__ */ new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs", ".json", ".graphql", ".gql"]);
+var SOURCE_EXTENSIONS2 = /* @__PURE__ */ new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs", ".json", ".graphql", ".gql"]);
 function createRepoRoleOf(ctx) {
   const roleOf = createRoleMatcher(ctx.config);
   const isInfra = createInfraMatcher(ctx.config);
   return (repoPath) => {
-    const rel = ctx.projectPrefix === "" ? repoPath : posix13.relative(ctx.projectPrefix, repoPath);
+    const rel = ctx.projectPrefix === "" ? repoPath : posix14.relative(ctx.projectPrefix, repoPath);
     if (rel.startsWith("../") || rel === "..") {
       if (roleOf(rel) === "global") return "global";
       return isInfra(repoPath) ? "infra" : "outside";
@@ -250699,7 +250837,7 @@ function createRepoRoleOf(ctx) {
   };
 }
 function projectRelative(ctx, repoPath) {
-  return ctx.projectPrefix === "" ? repoPath : posix13.relative(ctx.projectPrefix, repoPath);
+  return ctx.projectPrefix === "" ? repoPath : posix14.relative(ctx.projectPrefix, repoPath);
 }
 function createIgnoreOf(ctx, extra, base = ctx.config.ignore) {
   const ignored = createIgnoreMatcher([...base, ...extra]);
@@ -250715,10 +250853,10 @@ function createAnalysisRoleOf(ctx, graphNodes, backend) {
   };
   const prefix = ctx.projectPrefix;
   const nodeDirs = /* @__PURE__ */ new Set();
-  for (const node2 of graphNodes) for (let d = posix13.dirname(node2); d !== "." && !nodeDirs.has(d); d = posix13.dirname(d)) nodeDirs.add(d);
+  for (const node2 of graphNodes) for (let d = posix14.dirname(node2); d !== "." && !nodeDirs.has(d); d = posix14.dirname(d)) nodeDirs.add(d);
   return (repoPath) => {
-    const name = posix13.basename(repoPath);
-    const dir = posix13.dirname(repoPath) === "." ? "" : posix13.dirname(repoPath);
+    const name = posix14.basename(repoPath);
+    const dir = posix14.dirname(repoPath) === "." ? "" : posix14.dirname(repoPath);
     const inside = prefix === "" || dir === prefix || dir.startsWith(`${prefix}/`);
     const aboveOrSelf = dir === "" || dir === prefix || prefix.startsWith(`${dir}/`);
     const ours = inside || ECOSYSTEM_FILES[ctx.config.language].has(name);
@@ -250728,24 +250866,24 @@ function createAnalysisRoleOf(ctx, graphNodes, backend) {
   };
 }
 function toRepoPath(ctx, absolute) {
-  return posix13.relative(toPosix(ctx.repoRoot), toPosix(absolute));
+  return posix14.relative(toPosix(ctx.repoRoot), toPosix(absolute));
 }
 function projectToRepoPath(ctx, projectPath) {
-  return posix13.normalize(posix13.join(ctx.projectPrefix, toPosix(projectPath)));
+  return posix14.normalize(posix14.join(ctx.projectPrefix, toPosix(projectPath)));
 }
 async function createFileSystem(ctx, ref) {
   const disk = createDiskFileSystem();
   if (ref === void 0) return { fs: disk };
   const treeFiles = await listFiles(ctx.repoRoot, ref);
-  const wanted = treeFiles.filter((f) => SOURCE_EXTENSIONS.has(posix13.extname(f)));
+  const wanted = treeFiles.filter((f) => SOURCE_EXTENSIONS2.has(posix14.extname(f)));
   const contents = await readFiles(ctx.repoRoot, ref, wanted);
   return { fs: createTreeFileSystem({ repoRoot: ctx.repoRoot, files: treeFiles, contents, fallback: disk }), treeFiles };
 }
 function moduleResolver(ctx, resolver) {
   const repoRoot2 = toPosix(ctx.repoRoot);
   return (specifier, fromFile) => {
-    const r = resolveSpecifier(resolver, repoRoot2, posix13.join(repoRoot2, fromFile), specifier, void 0);
-    if (r.kind === "module" || r.kind === "asset") return { kind: "module", file: posix13.relative(repoRoot2, r.file) };
+    const r = resolveSpecifier(resolver, repoRoot2, posix14.join(repoRoot2, fromFile), specifier, void 0);
+    if (r.kind === "module" || r.kind === "asset") return { kind: "module", file: posix14.relative(repoRoot2, r.file) };
     if (r.kind === "external") return { kind: "external", specifier };
     return { kind: "unresolved" };
   };
@@ -250757,14 +250895,14 @@ function extractRoutes(ctx, resolver, routesFile, code2, files = []) {
     code: code2,
     files,
     resolve: moduleResolver(ctx, resolver),
-    read: (file2) => resolver.fs.readFile(posix13.join(repoRoot2, file2))
+    read: (file2) => resolver.fs.readFile(posix14.join(repoRoot2, file2))
   });
 }
 function routesFromDirectory(ctx) {
   return getRouteAdapter(ctx.config.routes.adapter).source === "directory";
 }
 function routesDirectory(ctx) {
-  const dir = posix13.normalize(posix13.join(ctx.projectPrefix, ctx.config.routes.dir ?? ""));
+  const dir = posix14.normalize(posix14.join(ctx.projectPrefix, ctx.config.routes.dir ?? ""));
   return dir === "." ? "" : dir;
 }
 function filesUnder(files, dir) {
@@ -250789,10 +250927,10 @@ async function loadWorkspace(ctx, ref, timings, now = () => performance.now()) {
   const projectDir = toPosix(ctx.projectDir);
   if (ctx.config.surface === "backend") return loadBackendWorkspace(ctx, fs2, treeFiles, lap);
   if (routesFromDirectory(ctx)) return loadDirectoryRoutesWorkspace(ctx, fs2, treeFiles, lap);
-  const routesAbs = posix13.join(projectDir, ctx.config.routes.file);
+  const routesAbs = posix14.join(projectDir, ctx.config.routes.file);
   const routesCode = fs2.readFile(routesAbs);
   if (routesCode === void 0) throw new RoutesFileMissingError(ctx.config.routes.file, ref);
-  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix13.join(projectDir, ctx.config.tsconfig), anchorFile: routesAbs });
+  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix14.join(projectDir, ctx.config.tsconfig), anchorFile: routesAbs });
   lap("program");
   const roleOf = createRepoRoleOf(ctx);
   const graph = buildImportGraph(project, {
@@ -250812,7 +250950,7 @@ function loadDirectoryRoutesWorkspace(ctx, fs2, treeFiles, lap) {
   const repoRoot2 = toPosix(ctx.repoRoot);
   const dir = routesDirectory(ctx);
   const files = filesUnder(treeFiles ?? diskFiles(projectDir, repoRoot2), dir);
-  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix13.join(projectDir, ctx.config.tsconfig) });
+  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix14.join(projectDir, ctx.config.tsconfig) });
   lap("program");
   const roleOf = createRepoRoleOf(ctx);
   const graph = buildImportGraph(project, {
@@ -250832,9 +250970,9 @@ function diskFiles(dir, repoRoot2) {
   const walk = (d) => {
     for (const entry of readdirSync3(d, { withFileTypes: true })) {
       if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
-      const full = posix13.join(d, entry.name);
+      const full = posix14.join(d, entry.name);
       if (entry.isDirectory()) walk(full);
-      else out.push(posix13.relative(repoRoot2, full));
+      else out.push(posix14.relative(repoRoot2, full));
     }
   };
   walk(dir);
@@ -250846,7 +250984,7 @@ function projectGlobs(ctx, context) {
 function loadBackendWorkspace(ctx, fs2, treeFiles, lap) {
   const projectDir = toPosix(ctx.projectDir);
   const repoRoot2 = toPosix(ctx.repoRoot);
-  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix13.join(projectDir, ctx.config.tsconfig) });
+  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix14.join(projectDir, ctx.config.tsconfig) });
   lap("program");
   const roleOf = createRepoRoleOf(ctx);
   const isOrigin = (path3) => {
@@ -250856,8 +250994,8 @@ function loadBackendWorkspace(ctx, fs2, treeFiles, lap) {
   const graph = buildImportGraph(project, { repoRoot: ctx.repoRoot, isOrigin: (path3) => isOrigin(path3) || roleOf(path3) === "outside" });
   lap("graph");
   const files = (treeFiles ?? diskFiles(projectDir, repoRoot2)).filter((f) => ctx.projectPrefix === "" || f.startsWith(`${ctx.projectPrefix}/`));
-  const backend = buildBackendTable({ project, repoRoot: repoRoot2, files, read: (f) => fs2.readFile(posix13.join(repoRoot2, f)), isOrigin, graphql: ctx.config.backend.graphql, rest: ctx.config.backend.rest, context: projectGlobs(ctx, ctx.config.backend.context) });
-  const rel = (fileName) => posix13.relative(repoRoot2, toPosix(fileName));
+  const backend = buildBackendTable({ project, repoRoot: repoRoot2, files, read: (f) => fs2.readFile(posix14.join(repoRoot2, f)), isOrigin, graphql: ctx.config.backend.graphql, rest: ctx.config.backend.rest, context: projectGlobs(ctx, ctx.config.backend.context) });
+  const rel = (fileName) => posix14.relative(repoRoot2, toPosix(fileName));
   const isProjectFile = (fileName) => toPosix(fileName).startsWith(`${repoRoot2}/`) && !toPosix(fileName).includes("/node_modules/");
   const extra = globalUses(project, backend.globals, rel, isProjectFile);
   if (extra.length > 0) {
@@ -250875,26 +251013,26 @@ function loadBackendWorkspace(ctx, fs2, treeFiles, lap) {
 }
 
 // src/classify/declarations-only.ts
-var import_typescript19 = __toESM(require_typescript(), 1);
+var import_typescript20 = __toESM(require_typescript(), 1);
 var SCRIPT = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
 var isScriptFile = (file2) => SCRIPT.test(file2);
 function isStaticValue(e, depth = 0, calls = true) {
   if (depth > 20) return false;
   const value = (x) => isStaticValue(x, depth + 1, calls);
-  if (import_typescript19.default.isArrowFunction(e)) return !import_typescript19.default.isBlock(e.body) && value(e.body);
-  if (import_typescript19.default.isCallExpression(e)) return calls && (import_typescript19.default.isIdentifier(e.expression) || import_typescript19.default.isPropertyAccessExpression(e.expression)) && value(e.expression) && e.arguments.length > 0 && e.arguments.every((a) => !import_typescript19.default.isSpreadElement(a) && isStaticValue(a, depth + 1, false));
-  if (import_typescript19.default.isStringLiteral(e) || import_typescript19.default.isNumericLiteral(e) || import_typescript19.default.isNoSubstitutionTemplateLiteral(e) || import_typescript19.default.isBigIntLiteral(e) || import_typescript19.default.isRegularExpressionLiteral(e)) return true;
-  if (e.kind === import_typescript19.default.SyntaxKind.TrueKeyword || e.kind === import_typescript19.default.SyntaxKind.FalseKeyword || e.kind === import_typescript19.default.SyntaxKind.NullKeyword) return true;
-  if (import_typescript19.default.isIdentifier(e) || import_typescript19.default.isPropertyAccessExpression(e)) return import_typescript19.default.isIdentifier(e) || value(e.expression);
-  if (import_typescript19.default.isPrefixUnaryExpression(e)) return (e.operator === import_typescript19.default.SyntaxKind.MinusToken || e.operator === import_typescript19.default.SyntaxKind.PlusToken) && value(e.operand);
-  if (import_typescript19.default.isParenthesizedExpression(e) || import_typescript19.default.isAsExpression(e) || import_typescript19.default.isSatisfiesExpression(e) || import_typescript19.default.isTypeAssertionExpression(e)) return value(e.expression);
-  if (import_typescript19.default.isTemplateExpression(e)) return e.templateSpans.every((s) => value(s.expression));
-  if (import_typescript19.default.isArrayLiteralExpression(e)) return e.elements.every((x) => import_typescript19.default.isSpreadElement(x) ? value(x.expression) : value(x));
-  if (import_typescript19.default.isObjectLiteralExpression(e)) {
+  if (import_typescript20.default.isArrowFunction(e)) return !import_typescript20.default.isBlock(e.body) && value(e.body);
+  if (import_typescript20.default.isCallExpression(e)) return calls && (import_typescript20.default.isIdentifier(e.expression) || import_typescript20.default.isPropertyAccessExpression(e.expression)) && value(e.expression) && e.arguments.length > 0 && e.arguments.every((a) => !import_typescript20.default.isSpreadElement(a) && isStaticValue(a, depth + 1, false));
+  if (import_typescript20.default.isStringLiteral(e) || import_typescript20.default.isNumericLiteral(e) || import_typescript20.default.isNoSubstitutionTemplateLiteral(e) || import_typescript20.default.isBigIntLiteral(e) || import_typescript20.default.isRegularExpressionLiteral(e)) return true;
+  if (e.kind === import_typescript20.default.SyntaxKind.TrueKeyword || e.kind === import_typescript20.default.SyntaxKind.FalseKeyword || e.kind === import_typescript20.default.SyntaxKind.NullKeyword) return true;
+  if (import_typescript20.default.isIdentifier(e) || import_typescript20.default.isPropertyAccessExpression(e)) return import_typescript20.default.isIdentifier(e) || value(e.expression);
+  if (import_typescript20.default.isPrefixUnaryExpression(e)) return (e.operator === import_typescript20.default.SyntaxKind.MinusToken || e.operator === import_typescript20.default.SyntaxKind.PlusToken) && value(e.operand);
+  if (import_typescript20.default.isParenthesizedExpression(e) || import_typescript20.default.isAsExpression(e) || import_typescript20.default.isSatisfiesExpression(e) || import_typescript20.default.isTypeAssertionExpression(e)) return value(e.expression);
+  if (import_typescript20.default.isTemplateExpression(e)) return e.templateSpans.every((s) => value(s.expression));
+  if (import_typescript20.default.isArrayLiteralExpression(e)) return e.elements.every((x) => import_typescript20.default.isSpreadElement(x) ? value(x.expression) : value(x));
+  if (import_typescript20.default.isObjectLiteralExpression(e)) {
     return e.properties.every((p) => {
-      if (import_typescript19.default.isPropertyAssignment(p)) return (!import_typescript19.default.isComputedPropertyName(p.name) || value(p.name.expression)) && value(p.initializer);
-      if (import_typescript19.default.isShorthandPropertyAssignment(p)) return true;
-      if (import_typescript19.default.isSpreadAssignment(p)) return value(p.expression);
+      if (import_typescript20.default.isPropertyAssignment(p)) return (!import_typescript20.default.isComputedPropertyName(p.name) || value(p.name.expression)) && value(p.initializer);
+      if (import_typescript20.default.isShorthandPropertyAssignment(p)) return true;
+      if (import_typescript20.default.isSpreadAssignment(p)) return value(p.expression);
       return false;
     });
   }
@@ -250905,15 +251043,15 @@ function isDeclarationsOnlyModule(file2, code2) {
   const { sourceFile: sf, errors } = parseIsolated(file2, code2);
   if (errors.length > 0) return false;
   return sf.statements.every((s) => {
-    if (import_typescript19.default.isInterfaceDeclaration(s) || import_typescript19.default.isTypeAliasDeclaration(s) || import_typescript19.default.isEnumDeclaration(s)) return true;
-    if (import_typescript19.default.isImportDeclaration(s)) return s.importClause !== void 0;
-    if (import_typescript19.default.isExportDeclaration(s)) return true;
-    if (import_typescript19.default.isExportAssignment(s)) return isStaticValue(s.expression);
-    const modifiers = import_typescript19.default.canHaveModifiers(s) ? import_typescript19.default.getModifiers(s) ?? [] : [];
-    if (modifiers.some((m) => m.kind === import_typescript19.default.SyntaxKind.DeclareKeyword)) return true;
-    if (import_typescript19.default.isVariableStatement(s)) {
-      const isConst = (s.declarationList.flags & import_typescript19.default.NodeFlags.Const) !== 0;
-      return isConst && s.declarationList.declarations.every((d) => d.initializer !== void 0 && import_typescript19.default.isIdentifier(d.name) && isStaticValue(d.initializer));
+    if (import_typescript20.default.isInterfaceDeclaration(s) || import_typescript20.default.isTypeAliasDeclaration(s) || import_typescript20.default.isEnumDeclaration(s)) return true;
+    if (import_typescript20.default.isImportDeclaration(s)) return s.importClause !== void 0;
+    if (import_typescript20.default.isExportDeclaration(s)) return true;
+    if (import_typescript20.default.isExportAssignment(s)) return isStaticValue(s.expression);
+    const modifiers = import_typescript20.default.canHaveModifiers(s) ? import_typescript20.default.getModifiers(s) ?? [] : [];
+    if (modifiers.some((m) => m.kind === import_typescript20.default.SyntaxKind.DeclareKeyword)) return true;
+    if (import_typescript20.default.isVariableStatement(s)) {
+      const isConst = (s.declarationList.flags & import_typescript20.default.NodeFlags.Const) !== 0;
+      return isConst && s.declarationList.declarations.every((d) => d.initializer !== void 0 && import_typescript20.default.isIdentifier(d.name) && isStaticValue(d.initializer));
     }
     return false;
   });
@@ -251146,44 +251284,44 @@ function diffGoMod(manifest, baseText, headText) {
 }
 
 // src/project/decls.ts
-var import_typescript20 = __toESM(require_typescript(), 1);
+var import_typescript21 = __toESM(require_typescript(), 1);
 import { createHash as createHash2 } from "crypto";
-import { posix as posix14 } from "path";
+import { posix as posix15 } from "path";
 function tokenHash(sf, node2) {
   const text = sf.text.slice(node2.getStart(sf), node2.end);
-  const scanner = import_typescript20.default.createScanner(import_typescript20.default.ScriptTarget.Latest, true, sf.languageVariant, text);
+  const scanner = import_typescript21.default.createScanner(import_typescript21.default.ScriptTarget.Latest, true, sf.languageVariant, text);
   const hash2 = createHash2("sha1");
-  for (let kind = scanner.scan(); kind !== import_typescript20.default.SyntaxKind.EndOfFileToken; kind = scanner.scan()) hash2.update(`${kind}:${scanner.getTokenText()}\0`);
+  for (let kind = scanner.scan(); kind !== import_typescript21.default.SyntaxKind.EndOfFileToken; kind = scanner.scan()) hash2.update(`${kind}:${scanner.getTokenText()}\0`);
   return hash2.digest("hex").slice(0, 16);
 }
-var isTypeDecl = (s) => import_typescript20.default.isInterfaceDeclaration(s) || import_typescript20.default.isTypeAliasDeclaration(s);
+var isTypeDecl = (s) => import_typescript21.default.isInterfaceDeclaration(s) || import_typescript21.default.isTypeAliasDeclaration(s);
 function nameOf3(node2) {
   const n = node2.name;
-  return n !== void 0 && (import_typescript20.default.isIdentifier(n) || import_typescript20.default.isStringLiteral(n) || import_typescript20.default.isPrivateIdentifier(n)) ? n.text : void 0;
+  return n !== void 0 && (import_typescript21.default.isIdentifier(n) || import_typescript21.default.isStringLiteral(n) || import_typescript21.default.isPrivateIdentifier(n)) ? n.text : void 0;
 }
 function moduleDecls(sf) {
   const out = [];
   const code2 = [];
   for (const s of sf.statements) {
-    if (import_typescript20.default.isImportDeclaration(s) || import_typescript20.default.isImportEqualsDeclaration(s) || import_typescript20.default.isExportDeclaration(s) && s.moduleSpecifier !== void 0) continue;
-    if (import_typescript20.default.isFunctionDeclaration(s)) out.push({ name: s.name?.text ?? "default", kind: "func", node: s });
-    else if (import_typescript20.default.isClassDeclaration(s)) {
+    if (import_typescript21.default.isImportDeclaration(s) || import_typescript21.default.isImportEqualsDeclaration(s) || import_typescript21.default.isExportDeclaration(s) && s.moduleSpecifier !== void 0) continue;
+    if (import_typescript21.default.isFunctionDeclaration(s)) out.push({ name: s.name?.text ?? "default", kind: "func", node: s });
+    else if (import_typescript21.default.isClassDeclaration(s)) {
       const cls = s.name?.text ?? "default";
       out.push({ name: cls, kind: "class", node: s });
       for (const m of s.members) {
         const name = nameOf3(m);
-        if (name !== void 0 && (import_typescript20.default.isMethodDeclaration(m) || import_typescript20.default.isGetAccessor(m) || import_typescript20.default.isSetAccessor(m) || import_typescript20.default.isConstructorDeclaration(m) || import_typescript20.default.isPropertyDeclaration(m) && m.initializer !== void 0 && (import_typescript20.default.isArrowFunction(m.initializer) || import_typescript20.default.isFunctionExpression(m.initializer)))) {
+        if (name !== void 0 && (import_typescript21.default.isMethodDeclaration(m) || import_typescript21.default.isGetAccessor(m) || import_typescript21.default.isSetAccessor(m) || import_typescript21.default.isConstructorDeclaration(m) || import_typescript21.default.isPropertyDeclaration(m) && m.initializer !== void 0 && (import_typescript21.default.isArrowFunction(m.initializer) || import_typescript21.default.isFunctionExpression(m.initializer)))) {
           out.push({ name: `${cls}.${name}`, kind: "method", node: m, owner: cls });
-        } else if (import_typescript20.default.isConstructorDeclaration(m)) out.push({ name: `${cls}.constructor`, kind: "method", node: m, owner: cls });
+        } else if (import_typescript21.default.isConstructorDeclaration(m)) out.push({ name: `${cls}.constructor`, kind: "method", node: m, owner: cls });
       }
-    } else if (import_typescript20.default.isVariableStatement(s)) {
+    } else if (import_typescript21.default.isVariableStatement(s)) {
       for (const d of s.declarationList.declarations) {
-        if (import_typescript20.default.isIdentifier(d.name)) out.push({ name: d.name.text, kind: "var", node: d });
+        if (import_typescript21.default.isIdentifier(d.name)) out.push({ name: d.name.text, kind: "var", node: d });
         else code2.push(s);
       }
-    } else if (import_typescript20.default.isEnumDeclaration(s)) out.push({ name: s.name.text, kind: "var", node: s });
+    } else if (import_typescript21.default.isEnumDeclaration(s)) out.push({ name: s.name.text, kind: "var", node: s });
     else if (isTypeDecl(s)) out.push({ name: s.name.text, kind: "type", node: s });
-    else if (import_typescript20.default.isModuleDeclaration(s) && s.name.kind === import_typescript20.default.SyntaxKind.Identifier) out.push({ name: s.name.text, kind: "var", node: s });
+    else if (import_typescript21.default.isModuleDeclaration(s) && s.name.kind === import_typescript21.default.SyntaxKind.Identifier) out.push({ name: s.name.text, kind: "var", node: s });
     else code2.push(s);
   }
   if (code2.length > 0) out.push({ name: "<module>", kind: "module", node: code2[0] });
@@ -251191,14 +251329,14 @@ function moduleDecls(sf) {
 }
 function declHash(sf, d) {
   if (d.kind !== "module") {
-    if (import_typescript20.default.isClassDeclaration(d.node)) {
-      const parts = [d.node.name?.text ?? "", ...(d.node.heritageClauses ?? []).map((h) => tokenHash(sf, h)), ...d.node.members.filter((m) => !import_typescript20.default.isMethodDeclaration(m) && !import_typescript20.default.isConstructorDeclaration(m) && !import_typescript20.default.isGetAccessor(m) && !import_typescript20.default.isSetAccessor(m)).map((m) => tokenHash(sf, m))];
+    if (import_typescript21.default.isClassDeclaration(d.node)) {
+      const parts = [d.node.name?.text ?? "", ...(d.node.heritageClauses ?? []).map((h) => tokenHash(sf, h)), ...d.node.members.filter((m) => !import_typescript21.default.isMethodDeclaration(m) && !import_typescript21.default.isConstructorDeclaration(m) && !import_typescript21.default.isGetAccessor(m) && !import_typescript21.default.isSetAccessor(m)).map((m) => tokenHash(sf, m))];
       return createHash2("sha1").update(parts.join("\0")).digest("hex").slice(0, 16);
     }
-    return tokenHash(sf, import_typescript20.default.isVariableDeclaration(d.node) ? d.node.parent.parent : d.node).concat(import_typescript20.default.isVariableDeclaration(d.node) ? `:${d.node.name.getText(sf)}` : "");
+    return tokenHash(sf, import_typescript21.default.isVariableDeclaration(d.node) ? d.node.parent.parent : d.node).concat(import_typescript21.default.isVariableDeclaration(d.node) ? `:${d.node.name.getText(sf)}` : "");
   }
-  const names = new Set(moduleDecls(sf).filter((x) => x.kind !== "module").map((x) => import_typescript20.default.isVariableDeclaration(x.node) ? x.node.parent.parent : x.node));
-  const code2 = sf.statements.filter((s) => !names.has(s) && !import_typescript20.default.isImportDeclaration(s) && !(import_typescript20.default.isExportDeclaration(s) && s.moduleSpecifier !== void 0));
+  const names = new Set(moduleDecls(sf).filter((x) => x.kind !== "module").map((x) => import_typescript21.default.isVariableDeclaration(x.node) ? x.node.parent.parent : x.node));
+  const code2 = sf.statements.filter((s) => !names.has(s) && !import_typescript21.default.isImportDeclaration(s) && !(import_typescript21.default.isExportDeclaration(s) && s.moduleSpecifier !== void 0));
   return createHash2("sha1").update(code2.map((s) => tokenHash(sf, s)).join("\0")).digest("hex").slice(0, 16);
 }
 function toDecl(sf, file2, d) {
@@ -251213,7 +251351,7 @@ function baseDecls(file2, code2) {
 }
 function tsDeclGraph(input2) {
   const root = input2.repoRoot.replaceAll("\\", "/");
-  const rel = (f) => posix14.relative(root, f.replaceAll("\\", "/"));
+  const rel = (f) => posix15.relative(root, f.replaceAll("\\", "/"));
   const isProject = (f) => f.replaceAll("\\", "/").startsWith(`${root}/`) && !f.includes("/node_modules/") && input2.isOrigin(rel(f));
   const checker = input2.project.program.getTypeChecker();
   const decls = [];
@@ -251233,15 +251371,15 @@ function tsDeclGraph(input2) {
     }
     if (decls.length > 0 && moduleDecls(sf).some((d) => d.kind === "module")) {
       const moduleIndex = decls.findIndex((d) => d.id === `${file2}#<module>`);
-      const named = new Set(moduleDecls(sf).filter((x) => x.kind !== "module").map((x) => import_typescript20.default.isVariableDeclaration(x.node) ? x.node.parent.parent : x.node));
-      for (const s of sf.statements) if (!named.has(s) && !import_typescript20.default.isImportDeclaration(s)) byNode.set(s, moduleIndex);
+      const named = new Set(moduleDecls(sf).filter((x) => x.kind !== "module").map((x) => import_typescript21.default.isVariableDeclaration(x.node) ? x.node.parent.parent : x.node));
+      for (const s of sf.statements) if (!named.has(s) && !import_typescript21.default.isImportDeclaration(s)) byNode.set(s, moduleIndex);
     }
   }
   const ownerOf = (node2) => {
     for (let n = node2; ; n = n.parent) {
       const i = byNode.get(n);
       if (i !== void 0) return i;
-      if (import_typescript20.default.isSourceFile(n)) return void 0;
+      if (import_typescript21.default.isSourceFile(n)) return void 0;
     }
   };
   const edges = /* @__PURE__ */ new Set();
@@ -251250,11 +251388,11 @@ function tsDeclGraph(input2) {
     if (d.kind === "type") return;
     const roots = d.kind === "module" ? d.sf.statements.filter((s) => byNode.get(s) === i) : [d.node];
     const visit3 = (n) => {
-      if (import_typescript20.default.isTypeNode(n) || isTypeDecl(n) || import_typescript20.default.isHeritageClause(n) && n.token === import_typescript20.default.SyntaxKind.ImplementsKeyword) return;
+      if (import_typescript21.default.isTypeNode(n) || isTypeDecl(n) || import_typescript21.default.isHeritageClause(n) && n.token === import_typescript21.default.SyntaxKind.ImplementsKeyword) return;
       if (n !== d.node && byNode.has(n) && d.kind === "class") return;
-      if (import_typescript20.default.isIdentifier(n) || import_typescript20.default.isPrivateIdentifier(n)) {
-        let symbol2 = import_typescript20.default.isShorthandPropertyAssignment(n.parent) && n.parent.name === n ? checker.getShorthandAssignmentValueSymbol(n.parent) : checker.getSymbolAtLocation(n);
-        if (symbol2 && symbol2.flags & import_typescript20.default.SymbolFlags.Alias) symbol2 = checker.getAliasedSymbol(symbol2);
+      if (import_typescript21.default.isIdentifier(n) || import_typescript21.default.isPrivateIdentifier(n)) {
+        let symbol2 = import_typescript21.default.isShorthandPropertyAssignment(n.parent) && n.parent.name === n ? checker.getShorthandAssignmentValueSymbol(n.parent) : checker.getSymbolAtLocation(n);
+        if (symbol2 && symbol2.flags & import_typescript21.default.SymbolFlags.Alias) symbol2 = checker.getAliasedSymbol(symbol2);
         for (const decl of symbol2?.declarations ?? []) {
           if (decl.getSourceFile().isDeclarationFile || !isProject(decl.getSourceFile().fileName)) continue;
           const target = ownerOf(decl);
@@ -251263,7 +251401,7 @@ function tsDeclGraph(input2) {
           called.add(target);
         }
       }
-      import_typescript20.default.forEachChild(n, visit3);
+      import_typescript21.default.forEachChild(n, visit3);
     };
     for (const r of roots) visit3(r);
   });
@@ -251279,7 +251417,7 @@ function tsDeclGraph(input2) {
     const moduleSymbol = sf ? checker.getSymbolAtLocation(sf) : void 0;
     if (!moduleSymbol) return own2;
     const exported = checker.getExportsOfModule(moduleSymbol).flatMap((sym) => {
-      const target = sym.flags & import_typescript20.default.SymbolFlags.Alias ? checker.getAliasedSymbol(sym) : sym;
+      const target = sym.flags & import_typescript21.default.SymbolFlags.Alias ? checker.getAliasedSymbol(sym) : sym;
       return (target.declarations ?? []).filter((d) => isProject(d.getSourceFile().fileName)).flatMap((d) => {
         const owner = ownerOf(d);
         return owner === void 0 ? [] : [owner];
@@ -251337,7 +251475,7 @@ async function baseRouteTable(ctx, ws, mergeBaseSha, basePath) {
   const files = await listFiles(ctx.repoRoot, mergeBaseSha);
   const routeFiles = ws.routesFromDirectory ? filesUnder(files, basePath) : [];
   if (ws.routesFromDirectory ? routeFiles.length === 0 : !files.includes(basePath)) return { routes: [], dynamic: [], sources: [] };
-  const contents = await readFiles(ctx.repoRoot, mergeBaseSha, files.filter((f) => SOURCE_EXTENSIONS.has(posix15.extname(f)) || f === basePath));
+  const contents = await readFiles(ctx.repoRoot, mergeBaseSha, files.filter((f) => SOURCE_EXTENSIONS2.has(posix16.extname(f)) || f === basePath));
   const code2 = ws.routesFromDirectory ? "" : contents.get(basePath);
   if (code2 === void 0) throw new Error(`internal: base content of ${basePath} was not read`);
   const fs2 = createTreeFileSystem({ repoRoot: ctx.repoRoot, files, contents, fallback: createDiskFileSystem() });
@@ -251352,7 +251490,7 @@ async function manifestDiffs(ctx, files, select, baseSha, headSha) {
     try {
       const before = f.status === "added" ? null : base.get(f.oldPath ?? f.path) ?? null;
       const after = f.status === "deleted" ? null : head.get(f.path) ?? null;
-      const name = posix15.basename(f.path);
+      const name = posix16.basename(f.path);
       if (name === "pyproject.toml") return diffPyproject(f.path, before === null ? null : await parseToml(before), after === null ? null : await parseToml(after));
       if (name === "requirements.txt") return diffRequirementsTxt(f.path, before, after);
       return (name === "go.mod" ? diffGoMod : diffManifest)(f.path, before, after);
@@ -251365,7 +251503,7 @@ async function manifestDiffs(ctx, files, select, baseSha, headSha) {
 async function projectAndOtherManifests(ctx, files, roleOf, baseSha, headSha) {
   const ecosystem = ECOSYSTEM_FILES[ctx.config.language];
   const isOther = (path3) => {
-    const name = posix15.basename(path3);
+    const name = posix16.basename(path3);
     return roleOf(path3) === "outside" && MANIFESTS.has(name) && ecosystem.has(name);
   };
   const [manifests, otherManifests] = await Promise.all([manifestDiffs(ctx, files, (p) => roleOf(p) === "manifest", baseSha, headSha), manifestDiffs(ctx, files, isOther, baseSha, headSha)]);
@@ -251449,7 +251587,7 @@ async function runAnalyze(ctx, options, deps) {
       Object.assign(timings, wsTimings);
       t = deps.clock();
       roleOf = createAnalysisRoleOf(ctx, ws.graph.nodes, ws.backend);
-      readHead = (path3) => ws.fs.readFile(posix15.join(toPosix(ctx.repoRoot), path3));
+      readHead = (path3) => ws.fs.readFile(posix16.join(toPosix(ctx.repoRoot), path3));
       const compared = comparedFiles(files, roleOf);
       const baseText = await readFiles(ctx.repoRoot, mb, compared);
       const headText = await readFiles(ctx.repoRoot, meta3.head.sha, compared);
@@ -251535,7 +251673,7 @@ async function analyzeCommand(ctx, options, deps = realDeps()) {
 
 // src/cli/calibrate.ts
 import { existsSync as existsSync4, readFileSync as readFileSync5 } from "fs";
-import { join as join4, resolve as resolve4 } from "path";
+import { join as join5, resolve as resolve4 } from "path";
 
 // src/report/merge-score.ts
 var HIGH_SCORE = 60;
@@ -251645,7 +251783,7 @@ function scoreGroups(items) {
 }
 
 // src/report/verdict.ts
-import { posix as posix16 } from "path";
+import { posix as posix17 } from "path";
 var QUICK_SCORE = 25;
 var CAREFUL_SCORE = 60;
 var START_HERE_MAX = 7;
@@ -251666,7 +251804,7 @@ function computeVerdict(o) {
   for (const r of o.routes.affected) if (!r.hasChildren) for (const v of r.via) addEntry(v.file, r.path);
   for (const r of o.routes.added) if (r.entry !== null && !r.hasChildren) addEntry(r.entry, r.path);
   const count2 = (list2, path3) => list2.filter((x) => x.path === path3).length;
-  const isCode2 = (path3) => CODE2.has(posix16.extname(path3));
+  const isCode2 = (path3) => CODE2.has(posix17.extname(path3));
   const files = [];
   const other = [];
   const infra = [];
@@ -251716,7 +251854,7 @@ function computeVerdict(o) {
   const vulnerable = o.signals.vulnerabilities.related.filter((v) => v.severity === "critical" || v.severity === "high").length;
   if (vulnerable > 0) careful.push(`${vulnerable} serious vulnerabilit${vulnerable === 1 ? "y" : "ies"} in added or changed dependencies`);
   const untestedCentral = files.filter((f) => f.level === "high" && f.coverage?.ratio !== void 0 && f.coverage.ratio !== null && f.coverage.ratio < 0.5);
-  if (untestedCentral.length > 0) careful.push(`${untestedCentral.length} central file(s) with little or no diff coverage: ${untestedCentral.slice(0, 3).map((f) => posix16.basename(f.path)).join(", ")}`);
+  if (untestedCentral.length > 0) careful.push(`${untestedCentral.length} central file(s) with little or no diff coverage: ${untestedCentral.slice(0, 3).map((f) => posix17.basename(f.path)).join(", ")}`);
   const contracts = o.contracts?.entries ?? [];
   const breaking = contracts.filter((e) => e.level === "breaking");
   const dangerous = contracts.filter((e) => e.level === "dangerous");
@@ -251813,11 +251951,11 @@ function calibrate(points) {
 // src/cli/calibrate.ts
 var CODE_ROLES2 = /* @__PURE__ */ new Set(["source", "resolvers", "schema", "routes", "barrel", "i18n", "global"]);
 function historyPoints(dir, windowDays) {
-  const summaryPath = join4(dir, "summary.json");
+  const summaryPath = join5(dir, "summary.json");
   if (!existsSync4(summaryPath)) throw new UsageError(`${summaryPath} not found: run "farol history --out ${dir}" first`);
   const summary = JSON.parse(readFileSync5(summaryPath, "utf8"));
   const outputs = summary.merges.flatMap((m) => {
-    const parsed = OutputSchema.safeParse(JSON.parse(readFileSync5(join4(dir, m.file), "utf8")));
+    const parsed = OutputSchema.safeParse(JSON.parse(readFileSync5(join5(dir, m.file), "utf8")));
     return parsed.success && m.error === null ? [{ m, o: parsed.data }] : [];
   });
   const commits = outputs.map(({ m, o }) => ({ sha: m.sha, date: m.date, subject: m.subject, files: o.files.filter((f) => CODE_ROLES2.has(f.role)).map((f) => f.path) }));
@@ -252428,7 +252566,7 @@ function contractsSection2(o) {
 }
 
 // src/report/test-plan.ts
-import { posix as posix17 } from "path";
+import { posix as posix18 } from "path";
 function moduleOf(o, path3) {
   if (o.surface === "backend") {
     const parts = path3.split(" ");
@@ -252456,7 +252594,7 @@ function testPlan(o) {
   return [...groups.entries()].map(([label2, list2]) => ({ label: label2, items: list2.sort((a, b) => b.priority - a.priority || compareStrings(a.path, b.path)) })).sort((a, b) => Math.max(...b.items.map((i) => i.priority)) - Math.max(...a.items.map((i) => i.priority)) || compareStrings(a.label, b.label));
 }
 function shortFile(path3) {
-  return path3 === null ? "" : posix17.basename(path3);
+  return path3 === null ? "" : posix18.basename(path3);
 }
 
 // src/report/markdown.ts
@@ -254160,7 +254298,7 @@ async function commentCommand(options, env = process.env, fetchImpl) {
 
 // src/cli/farol-file.ts
 import { existsSync as existsSync5, readFileSync as readFileSync7 } from "fs";
-import { dirname as dirname3, isAbsolute as isAbsolute4, join as join5, resolve as resolve6 } from "path";
+import { dirname as dirname3, isAbsolute as isAbsolute4, join as join6, resolve as resolve6 } from "path";
 var FAROL_FILE = ".farol.json";
 var str = external_exports.string().min(1);
 var globs2 = external_exports.array(str);
@@ -254197,10 +254335,10 @@ var PATH_KEYS = {
 function findFarolFile(start) {
   let dir = resolve6(start);
   for (; ; ) {
-    const candidate = join5(dir, FAROL_FILE);
+    const candidate = join6(dir, FAROL_FILE);
     if (existsSync5(candidate)) return candidate;
     const parent = dirname3(dir);
-    if (existsSync5(join5(dir, ".git")) || parent === dir) return void 0;
+    if (existsSync5(join6(dir, ".git")) || parent === dir) return void 0;
     dir = parent;
   }
 }
@@ -254239,7 +254377,7 @@ function required2(value, flag, command) {
 }
 
 // src/cli/history.ts
-import { join as join6, resolve as resolve7 } from "path";
+import { join as join7, resolve as resolve7 } from "path";
 async function runHistory(ctx, options, deps, progress) {
   const mode = options.firstParent === true ? "first-parent" : "merges";
   const merges = await listMerges(ctx.repoRoot, options.branch, options.since, mode === "first-parent");
@@ -254249,13 +254387,13 @@ async function runHistory(ctx, options, deps, progress) {
   for (const [i, merge2] of merges.entries()) {
     const { output: output2, failed } = await runAnalyze(ctx, { base: merge2.firstParent, head: merge2.sha, ...options.ignore ? { ignore: options.ignore } : {} }, deps);
     const file2 = `${merge2.sha}.json`;
-    writeTextFile(join6(outDir, file2), serializeOutput(output2));
+    writeTextFile(join7(outDir, file2), serializeOutput(output2));
     byClass[output2.classification]++;
     if (failed) summary.failed++;
     summary.merges.push({ sha: merge2.sha, firstParent: merge2.firstParent, date: merge2.date, subject: merge2.subject, classification: output2.classification, file: file2, error: output2.diagnostics.error });
     progress(`[${i + 1}/${merges.length}] ${merge2.sha.slice(0, 12)} ${output2.classification}${failed ? " (analysis failed)" : ""} ${merge2.subject.slice(0, 80)}`);
   }
-  writeTextFile(join6(outDir, "summary.json"), `${JSON.stringify(summary, null, 2)}
+  writeTextFile(join7(outDir, "summary.json"), `${JSON.stringify(summary, null, 2)}
 `);
   return summary;
 }
@@ -254575,7 +254713,7 @@ async function runUsage(ctx, options, env, now, fetchImpl) {
     });
   }
   await mapLimit(tasks, DATADOG_CONCURRENCY, (task) => task());
-  for (const join7 of after) join7();
+  for (const join8 of after) join8();
   if (dd.errors) ctx.log(`Error Tracking: ${issues.length} issue(s) with a file`);
   const sortedIssues = issues.sort((a, b) => compareStrings(a.file, b.file) || compareStrings(a.type, b.type) || b.count - a.count);
   const sortedCallers = callers.filter((c) => c.name !== "" && c.service !== "").sort((a, b) => compareStrings(a.service, b.service) || compareStrings(a.name, b.name));
@@ -254590,7 +254728,7 @@ async function usageCommand(ctx, options, env = process.env, now = /* @__PURE__ 
 }
 
 // src/cli/reviewers-run.ts
-import { posix as posix18, resolve as resolve9 } from "path";
+import { posix as posix19, resolve as resolve9 } from "path";
 
 // src/git/authors.ts
 function parseBlameAuthors(output2) {
@@ -254698,7 +254836,7 @@ async function runReviewers(ctx, options) {
   const files = await mapLimit(code2, BLAME_CONCURRENCY, async (f) => {
     const weight = Math.max(1, points.get(f.path) ?? 0);
     if (f.status === "added") {
-      const dir = posix18.dirname(f.path);
+      const dir = posix19.dirname(f.path);
       return { path: f.path, weight, whole: dir === "." ? /* @__PURE__ */ new Map() : await addedLinesByAuthor(ctx.repoRoot, base, dir, "12 months ago"), touched: null };
     }
     const basePath = f.oldPath ?? f.path;
