@@ -213,7 +213,8 @@ names. Dynamic segments (`[id]`), catch-alls, route groups and parallel slots ar
 
 `pages/` and `app/` are found in the project or in its `src/`; set `"dir"` when they live elsewhere. Reports and CI
 are the same as for [React Router](#react-frontend-react-router) (Jest or Vitest coverage, ESLint, audit). In a
-monorepo whose tsconfig extends a workspace package (`"extends": "tsconfig/nextjs.json"`), install dependencies
+monorepo whose tsconfig extends a workspace package (`"extends": "tsconfig/nextjs.json"`) declared with
+`workspace:` (pnpm), farol reads the package from the commit; with npm or yarn v1 workspaces, install dependencies
 before analyzing, so the package is in `node_modules`.
 
 ### TanStack Router
@@ -442,6 +443,7 @@ The details per language are in [docs/how-it-works.md](docs/how-it-works.md), an
 - Static reading: values built at runtime are invisible (computed route paths, `getattr`, `importlib`, DI containers, registries filled in loops). When an entry point cannot be read, the PR is `unknown`; when a call cannot be resolved, farol assumes it reaches more, never less.
 - TypeScript frontends: React Router, Next.js and TanStack Router (file-based) only: no code-based TanStack route trees, Remix/React Router file conventions, Vue or Svelte. JavaScript files, renamed files and TypeScript backends use module-level reach.
 - Go: route prefixes from middleware stacks other than chi/gin/echo groups are not applied, and project types that wrap a router with their own registration API (Gitea's `web.Router`) are not read. Python: Django REST Framework routers are not read.
+- Monorepos: a workspace package that ships only its build output is read from its sources when it follows the `src/` → `dist/` layout and is declared with `workspace:` (pnpm); other layouts make a change to the package `unknown`. The package sources are compiled with the importing project's compiler options.
 - The score and verdict thresholds are heuristics checked on a few repositories. Calibrate them on yours.
 
 ## FAQ
