@@ -7,6 +7,7 @@ import { runUsage } from '../../src/cli/usage.js'
 import type { Context } from '../../src/cli/context.js'
 import { DatadogClient } from '../../src/datadog/client.js'
 import { OutputSchema } from '../../src/output/schema.js'
+import { detailsOf, workbenchOf } from '../helpers/html.js'
 import { renderHtml } from '../../src/report/html.js'
 import { renderReport } from '../../src/report/markdown.js'
 import { compactNumber } from '../../src/report/usage.js'
@@ -224,8 +225,10 @@ describe('analyze --usage', () => {
     expect(md).toContain('**Traffic:** the affected pages get 90% of page views (1.8k of 2.0k attributed to pages; Datadog RUM, last 14 days); 2 distinct errors on them (Error Tracking issues)')
     expect(md).toContain('`/` 1.5k views, 2 distinct errors')
     const html = renderHtml(output)
-    expect(html).toContain('90% of page views')
-    expect(html).toContain('<span class="chip traffic">1.5k views, 2 distinct errors</span>')
+    const { D } = workbenchOf(html)
+    expect(D.usage).toContain('the affected pages get 90% of page views (1.8k of 2.0k attributed to pages')
+    expect((D.ops as { key: string; hits: number; errors: number }[]).find((op) => op.key === '/ > (index)')).toMatchObject({ hits: 1500, errors: 2 })
+    expect(detailsOf(html)).toContain('<span class="chip traffic">1.5k views, 2 distinct errors</span>')
 
     // With the Datadog site, distinct errors link to the explorer filtered by their issue ids.
     const linked = join(tmp, 'linked.json')
@@ -233,10 +236,10 @@ describe('analyze --usage', () => {
     const out = (await analyzeRepo(s.repo, { usage: linked })).output
     const url = 'https://app.datadoghq.eu/rum/sessions?query=%40type%3Aerror%20%40issue.id%3A(a%20OR%20b)&from_ts=1791072000000&to_ts=1792281600000&live=false'
     expect(renderReport(out)).toContain(`[2 distinct errors](${url})`)
-    expect(renderHtml(out)).toContain(`<a class="dd-link" href="${url.replaceAll('&', '&amp;')}"`)
+    expect(detailsOf(renderHtml(out))).toContain(`<a class="dd-link" href="${url.replaceAll('&', '&amp;')}"`)
+    expect((workbenchOf(renderHtml(out)).D.ops as { errorsUrl: string | null }[])[0]?.errorsUrl).toBe(url)
     expect(md).toContain('**Errors in changed files:** 1 changed file threw errors')
-    expect(html).toContain('1.2k errors thrown here')
-    expect(html).toContain('>1.8k views<')
+    expect(D.fileErrors).toEqual({ 'src/components/Card.tsx': { errors: 1200, url: null } })
 
     const broken = join(tmp, 'broken.json')
     writeFileSync(broken, '{}')

@@ -3,7 +3,6 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { OutputSchema, type Output } from '../../src/output/schema.js'
 import { moduleOf, testPlan } from '../../src/report/test-plan.js'
-import { testPlanSection } from '../../src/report/html-test-plan.js'
 import { FIXTURES_DIR } from '../helpers/repo.js'
 
 function golden(scenario: string): Output {
@@ -29,9 +28,6 @@ describe('manual test checklist', () => {
       ['/', ['src/components/Card.tsx']],
       ['/products', ['src/components/Card.tsx']],
     ])
-    const html = testPlanSection(golden('05-shared-component'))
-    expect(html).toContain('data-files="src/components/Card.tsx"')
-    expect(html).toContain('data-reviewed-note=')
   })
 
   it('groups pages by their first URL segment and services by service and method', () => {

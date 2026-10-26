@@ -4241,9 +4241,9 @@ Node ${formatSyntaxKind(node2.kind)} was unexpected.`,
           );
         }
         Debug2.formatSignatureCheckMode = formatSignatureCheckMode;
-        function formatTypeFacts(facts2) {
+        function formatTypeFacts(facts) {
           return formatEnum(
-            facts2,
+            facts,
             TypeFacts,
             /*isFlags*/
             true
@@ -5205,14 +5205,14 @@ ${lanes.join("\n")}
       var nullTimer = { enter: noop, exit: noop };
       var enabled = false;
       var timeorigin = timestamp();
-      var marks2 = /* @__PURE__ */ new Map();
+      var marks = /* @__PURE__ */ new Map();
       var counts = /* @__PURE__ */ new Map();
       var durations = /* @__PURE__ */ new Map();
       function mark(markName) {
         if (enabled) {
           const count2 = counts.get(markName) ?? 0;
           counts.set(markName, count2 + 1);
-          marks2.set(markName, timestamp());
+          marks.set(markName, timestamp());
           performanceImpl == null ? void 0 : performanceImpl.mark(markName);
           if (typeof onProfilerEvent === "function") {
             onProfilerEvent(markName);
@@ -5221,8 +5221,8 @@ ${lanes.join("\n")}
       }
       function measure(measureName, startMarkName, endMarkName) {
         if (enabled) {
-          const end = (endMarkName !== void 0 ? marks2.get(endMarkName) : void 0) ?? timestamp();
-          const start = (startMarkName !== void 0 ? marks2.get(startMarkName) : void 0) ?? timeorigin;
+          const end = (endMarkName !== void 0 ? marks.get(endMarkName) : void 0) ?? timestamp();
+          const start = (startMarkName !== void 0 ? marks.get(startMarkName) : void 0) ?? timeorigin;
           const previousDuration = durations.get(measureName) || 0;
           durations.set(measureName, previousDuration + (end - start));
           performanceImpl == null ? void 0 : performanceImpl.measure(measureName, startMarkName, endMarkName);
@@ -5238,7 +5238,7 @@ ${lanes.join("\n")}
         durations.forEach((duration3, measureName) => cb(measureName, duration3));
       }
       function forEachMark(cb) {
-        marks2.forEach((_time, markName) => cb(markName));
+        marks.forEach((_time, markName) => cb(markName));
       }
       function clearMeasures(name) {
         if (name !== void 0) durations.delete(name);
@@ -5248,10 +5248,10 @@ ${lanes.join("\n")}
       function clearMarks(name) {
         if (name !== void 0) {
           counts.delete(name);
-          marks2.delete(name);
+          marks.delete(name);
         } else {
           counts.clear();
-          marks2.clear();
+          marks.clear();
         }
         performanceImpl == null ? void 0 : performanceImpl.clearMarks(name);
       }
@@ -5274,7 +5274,7 @@ ${lanes.join("\n")}
       }
       function disable() {
         if (enabled) {
-          marks2.clear();
+          marks.clear();
           counts.clear();
           durations.clear();
           performanceImpl = void 0;
@@ -46360,8 +46360,8 @@ ${lanes.join("\n")}
         function newline() {
           result.push("");
         }
-        function emitHeader(header3) {
-          result.push(`${tab}${tab}// ${getLocaleSpecificMessage(header3)}`);
+        function emitHeader(header2) {
+          result.push(`${tab}${tab}// ${getLocaleSpecificMessage(header2)}`);
         }
         function emitOption(setting, defaultValue, commented = "never") {
           const existingOptionIndex = allSetOptions.indexOf(setting);
@@ -79614,7 +79614,7 @@ ${lanes.join("\n")}
           if (flags & 134217728) {
             return reduceLeft(
               type.types,
-              (facts2, t) => facts2 | getTypeFactsWorker(t, callerOnlyNeeds),
+              (facts, t) => facts | getTypeFactsWorker(t, callerOnlyNeeds),
               0
               /* None */
             );
@@ -79644,10 +79644,10 @@ ${lanes.join("\n")}
         function getTypeWithFacts(type, include) {
           return filterType(type, (t) => hasTypeFacts(t, include));
         }
-        function getAdjustedTypeWithFacts(type, facts2) {
-          const reduced = recombineUnknownType(getTypeWithFacts(strictNullChecks && type.flags & 2 ? unknownUnionType : type, facts2));
+        function getAdjustedTypeWithFacts(type, facts) {
+          const reduced = recombineUnknownType(getTypeWithFacts(strictNullChecks && type.flags & 2 ? unknownUnionType : type, facts));
           if (strictNullChecks) {
-            switch (facts2) {
+            switch (facts) {
               case 524288:
                 return removeNullableByIntersection(reduced, 65536, 131072, 33554432, nullType);
               case 1048576:
@@ -79664,16 +79664,16 @@ ${lanes.join("\n")}
           return reduced;
         }
         function removeNullableByIntersection(type, targetFacts, otherFacts, otherIncludesFacts, otherType) {
-          const facts2 = getTypeFacts(
+          const facts = getTypeFacts(
             type,
             65536 | 131072 | 16777216 | 33554432
             /* IsNull */
           );
-          if (!(facts2 & targetFacts)) {
+          if (!(facts & targetFacts)) {
             return type;
           }
           const emptyAndOtherUnion = getUnionType([emptyObjectType, otherType]);
-          return mapType(type, (t) => hasTypeFacts(t, targetFacts) ? getIntersectionType([t, !(facts2 & otherIncludesFacts) && hasTypeFacts(t, otherFacts) ? emptyAndOtherUnion : emptyObjectType]) : t);
+          return mapType(type, (t) => hasTypeFacts(t, targetFacts) ? getIntersectionType([t, !(facts & otherIncludesFacts) && hasTypeFacts(t, otherFacts) ? emptyAndOtherUnion : emptyObjectType]) : t);
         }
         function recombineUnknownType(type) {
           return type === unknownUnionType ? unknownType : type;
@@ -81024,8 +81024,8 @@ ${lanes.join("\n")}
               if (!strictNullChecks) {
                 return type;
               }
-              const facts2 = doubleEquals ? assumeTrue ? 262144 : 2097152 : valueType.flags & 8 ? assumeTrue ? 131072 : 1048576 : assumeTrue ? 65536 : 524288;
-              return getAdjustedTypeWithFacts(type, facts2);
+              const facts = doubleEquals ? assumeTrue ? 262144 : 2097152 : valueType.flags & 8 ? assumeTrue ? 131072 : 1048576 : assumeTrue ? 65536 : 524288;
+              return getAdjustedTypeWithFacts(type, facts);
             }
             if (assumeTrue) {
               if (!doubleEquals && (type.flags & 2 || someType(type, isEmptyAnonymousObjectType))) {
@@ -81185,20 +81185,20 @@ ${lanes.join("\n")}
               /* TypeofEQHostObject */
             );
           }
-          function narrowTypeByTypeFacts(type, impliedType, facts2) {
+          function narrowTypeByTypeFacts(type, impliedType, facts) {
             return mapType(type, (t) => (
               // We first check if a constituent is a subtype of the implied type. If so, we either keep or eliminate
               // the constituent based on its type facts. We use the strict subtype relation because it treats `object`
               // as a subtype of `{}`, and we need the type facts check because function types are subtypes of `object`,
               // but are classified as "function" according to `typeof`.
-              isTypeRelatedTo(t, impliedType, strictSubtypeRelation) ? hasTypeFacts(t, facts2) ? t : neverType : (
+              isTypeRelatedTo(t, impliedType, strictSubtypeRelation) ? hasTypeFacts(t, facts) ? t : neverType : (
                 // We next check if the consituent is a supertype of the implied type. If so, we substitute the implied
                 // type. This handles top types like `unknown` and `{}`, and supertypes like `{ toString(): string }`.
                 isTypeSubtypeOf(impliedType, t) ? impliedType : (
                   // Neither the constituent nor the implied type is a subtype of the other, however their domains may still
                   // overlap. For example, an unconstrained type parameter and type `string`. If the type facts indicate
                   // possible overlap, we form an intersection. Otherwise, we eliminate the constituent.
-                  hasTypeFacts(t, facts2) ? getIntersectionType([t, impliedType]) : neverType
+                  hasTypeFacts(t, facts) ? getIntersectionType([t, impliedType]) : neverType
                 )
               )
             ));
@@ -85286,7 +85286,7 @@ ${lanes.join("\n")}
         function getNonNullableTypeIfNeeded(type) {
           return isNullableType2(type) ? getNonNullableType(type) : type;
         }
-        function reportObjectPossiblyNullOrUndefinedError(node2, facts2) {
+        function reportObjectPossiblyNullOrUndefinedError(node2, facts) {
           const nodeText2 = isEntityNameExpression(node2) ? entityNameToString(node2) : void 0;
           if (node2.kind === 106) {
             error210(node2, Diagnostics.The_value_0_cannot_be_used_here, "null");
@@ -85299,20 +85299,20 @@ ${lanes.join("\n")}
             }
             error210(
               node2,
-              facts2 & 16777216 ? facts2 & 33554432 ? Diagnostics._0_is_possibly_null_or_undefined : Diagnostics._0_is_possibly_undefined : Diagnostics._0_is_possibly_null,
+              facts & 16777216 ? facts & 33554432 ? Diagnostics._0_is_possibly_null_or_undefined : Diagnostics._0_is_possibly_undefined : Diagnostics._0_is_possibly_null,
               nodeText2
             );
           } else {
             error210(
               node2,
-              facts2 & 16777216 ? facts2 & 33554432 ? Diagnostics.Object_is_possibly_null_or_undefined : Diagnostics.Object_is_possibly_undefined : Diagnostics.Object_is_possibly_null
+              facts & 16777216 ? facts & 33554432 ? Diagnostics.Object_is_possibly_null_or_undefined : Diagnostics.Object_is_possibly_undefined : Diagnostics.Object_is_possibly_null
             );
           }
         }
-        function reportCannotInvokePossiblyNullOrUndefinedError(node2, facts2) {
+        function reportCannotInvokePossiblyNullOrUndefinedError(node2, facts) {
           error210(
             node2,
-            facts2 & 16777216 ? facts2 & 33554432 ? Diagnostics.Cannot_invoke_an_object_which_is_possibly_null_or_undefined : Diagnostics.Cannot_invoke_an_object_which_is_possibly_undefined : Diagnostics.Cannot_invoke_an_object_which_is_possibly_null
+            facts & 16777216 ? facts & 33554432 ? Diagnostics.Cannot_invoke_an_object_which_is_possibly_null_or_undefined : Diagnostics.Cannot_invoke_an_object_which_is_possibly_undefined : Diagnostics.Cannot_invoke_an_object_which_is_possibly_null
           );
         }
         function checkNonNullTypeWithReporter(type, node2, reportError) {
@@ -85327,13 +85327,13 @@ ${lanes.join("\n")}
             error210(node2, Diagnostics.Object_is_of_type_unknown);
             return errorType;
           }
-          const facts2 = getTypeFacts(
+          const facts = getTypeFacts(
             type,
             50331648
             /* IsUndefinedOrNull */
           );
-          if (facts2 & 50331648) {
-            reportError(node2, facts2);
+          if (facts & 50331648) {
+            reportError(node2, facts);
             const t = getNonNullableType(type);
             return t.flags & (12 | 262144) ? errorType : t;
           }
@@ -89521,12 +89521,12 @@ ${lanes.join("\n")}
           );
         }
         function getNotEqualFactsFromTypeofSwitch(start, end, witnesses) {
-          let facts2 = 0;
+          let facts = 0;
           for (let i = 0; i < witnesses.length; i++) {
             const witness = i < start || i >= end ? witnesses[i] : void 0;
-            facts2 |= witness !== void 0 ? typeofNEFacts.get(witness) || 32768 : 0;
+            facts |= witness !== void 0 ? typeofNEFacts.get(witness) || 32768 : 0;
           }
-          return facts2;
+          return facts;
         }
         function isExhaustiveSwitchStatement(node2) {
           const links = getNodeLinks(node2);
@@ -90103,12 +90103,12 @@ ${lanes.join("\n")}
               return getUnaryResultType(operandType);
             case 54:
               checkTruthinessOfType(operandType, node2.operand);
-              const facts2 = getTypeFacts(
+              const facts = getTypeFacts(
                 operandType,
                 4194304 | 8388608
                 /* Falsy */
               );
-              return facts2 === 4194304 ? falseType : facts2 === 8388608 ? trueType : booleanType;
+              return facts === 4194304 ? falseType : facts === 8388608 ? trueType : booleanType;
             case 46:
             case 47:
               const ok = checkArithmeticOperandType(node2.operand, checkNonNullType(operandType, node2.operand), Diagnostics.An_arithmetic_operand_must_be_of_type_any_number_bigint_or_an_enum_type);
@@ -106521,22 +106521,22 @@ ${lanes.join("\n")}
           );
         }
         function getClassFacts(node2) {
-          let facts2 = 0;
+          let facts = 0;
           if (some(getProperties(
             node2,
             /*requireInitializer*/
             true,
             /*isStatic*/
             true
-          ))) facts2 |= 1;
+          ))) facts |= 1;
           const extendsClauseElement = getEffectiveBaseTypeNode(node2);
-          if (extendsClauseElement && skipOuterExpressions(extendsClauseElement.expression).kind !== 106) facts2 |= 64;
-          if (classOrConstructorParameterIsDecorated(legacyDecorators, node2)) facts2 |= 2;
-          if (childIsDecorated(legacyDecorators, node2)) facts2 |= 4;
-          if (isExportOfNamespace(node2)) facts2 |= 8;
-          else if (isDefaultExternalModuleExport(node2)) facts2 |= 32;
-          else if (isNamedExternalModuleExport(node2)) facts2 |= 16;
-          return facts2;
+          if (extendsClauseElement && skipOuterExpressions(extendsClauseElement.expression).kind !== 106) facts |= 64;
+          if (classOrConstructorParameterIsDecorated(legacyDecorators, node2)) facts |= 2;
+          if (childIsDecorated(legacyDecorators, node2)) facts |= 4;
+          if (isExportOfNamespace(node2)) facts |= 8;
+          else if (isDefaultExternalModuleExport(node2)) facts |= 32;
+          else if (isNamedExternalModuleExport(node2)) facts |= 16;
+          return facts;
         }
         function hasTypeScriptClassSyntax(node2) {
           return !!(node2.transformFlags & 8192);
@@ -106545,8 +106545,8 @@ ${lanes.join("\n")}
           return hasDecorators(node2) || some(node2.typeParameters) || some(node2.heritageClauses, hasTypeScriptClassSyntax) || some(node2.members, hasTypeScriptClassSyntax);
         }
         function visitClassDeclaration(node2) {
-          const facts2 = getClassFacts(node2);
-          const promoteToIIFE = languageVersion < 2 && !!(facts2 & 7);
+          const facts = getClassFacts(node2);
+          const promoteToIIFE = languageVersion < 2 && !!(facts & 7);
           if (!isClassLikeDeclarationWithTypeScriptSyntax(node2) && !classOrConstructorParameterIsDecorated(legacyDecorators, node2) && !isExportOfNamespace(node2)) {
             return factory2.updateClassDeclaration(
               node2,
@@ -106561,12 +106561,12 @@ ${lanes.join("\n")}
           if (promoteToIIFE) {
             context.startLexicalEnvironment();
           }
-          const moveModifiers = promoteToIIFE || facts2 & 8;
+          const moveModifiers = promoteToIIFE || facts & 8;
           let modifiers = moveModifiers ? visitNodes2(node2.modifiers, modifierElidingVisitor, isModifierLike) : visitNodes2(node2.modifiers, visitor, isModifierLike);
-          if (facts2 & 2) {
+          if (facts & 2) {
             modifiers = injectClassTypeMetadata(modifiers, node2);
           }
-          const needsName = moveModifiers && !node2.name || facts2 & 4 || facts2 & 1;
+          const needsName = moveModifiers && !node2.name || facts & 4 || facts & 1;
           const name = needsName ? node2.name ?? factory2.getGeneratedNameForNode(node2) : node2.name;
           const classDeclaration = factory2.updateClassDeclaration(
             node2,
@@ -106578,7 +106578,7 @@ ${lanes.join("\n")}
             transformClassMembers(node2)
           );
           let emitFlags = getEmitFlags(node2);
-          if (facts2 & 1) {
+          if (facts & 1) {
             emitFlags |= 64;
           }
           setEmitFlags(classDeclaration, emitFlags);
@@ -106646,13 +106646,13 @@ ${lanes.join("\n")}
             statement = classDeclaration;
           }
           if (moveModifiers) {
-            if (facts2 & 8) {
+            if (facts & 8) {
               return [
                 statement,
                 createExportMemberAssignmentStatement(node2)
               ];
             }
-            if (facts2 & 32) {
+            if (facts & 32) {
               return [
                 statement,
                 factory2.createExportDefault(factory2.getLocalName(
@@ -106664,7 +106664,7 @@ ${lanes.join("\n")}
                 ))
               ];
             }
-            if (facts2 & 16) {
+            if (facts & 16) {
               return [
                 statement,
                 factory2.createExternalModuleExport(factory2.getDeclarationName(
@@ -108661,8 +108661,8 @@ ${lanes.join("\n")}
             }
           }
           if (shouldTransformSuperInStaticInitializers && currentClassElement && isSuperProperty(node2) && isIdentifier(node2.name) && isStaticPropertyDeclarationOrClassStaticBlock(currentClassElement) && (lexicalEnvironment == null ? void 0 : lexicalEnvironment.data)) {
-            const { classConstructor, superClassReference, facts: facts2 } = lexicalEnvironment.data;
-            if (facts2 & 1) {
+            const { classConstructor, superClassReference, facts } = lexicalEnvironment.data;
+            if (facts & 1) {
               return visitInvalidSuperProperty(node2);
             }
             if (classConstructor && superClassReference) {
@@ -108680,8 +108680,8 @@ ${lanes.join("\n")}
         }
         function visitElementAccessExpression(node2) {
           if (shouldTransformSuperInStaticInitializers && currentClassElement && isSuperProperty(node2) && isStaticPropertyDeclarationOrClassStaticBlock(currentClassElement) && (lexicalEnvironment == null ? void 0 : lexicalEnvironment.data)) {
-            const { classConstructor, superClassReference, facts: facts2 } = lexicalEnvironment.data;
-            if (facts2 & 1) {
+            const { classConstructor, superClassReference, facts } = lexicalEnvironment.data;
+            if (facts & 1) {
               return visitInvalidSuperProperty(node2);
             }
             if (classConstructor && superClassReference) {
@@ -108725,8 +108725,8 @@ ${lanes.join("\n")}
                 return expression;
               }
             } else if (shouldTransformSuperInStaticInitializers && currentClassElement && isSuperProperty(operand) && isStaticPropertyDeclarationOrClassStaticBlock(currentClassElement) && (lexicalEnvironment == null ? void 0 : lexicalEnvironment.data)) {
-              const { classConstructor, superClassReference, facts: facts2 } = lexicalEnvironment.data;
-              if (facts2 & 1) {
+              const { classConstructor, superClassReference, facts } = lexicalEnvironment.data;
+              if (facts & 1) {
                 const expression = visitInvalidSuperProperty(operand);
                 return isPrefixUnaryExpression(node2) ? factory2.updatePrefixUnaryExpression(node2, expression) : factory2.updatePostfixUnaryExpression(node2, expression);
               }
@@ -108946,8 +108946,8 @@ ${lanes.join("\n")}
                 );
               }
             } else if (shouldTransformSuperInStaticInitializers && currentClassElement && isSuperProperty(node2.left) && isStaticPropertyDeclarationOrClassStaticBlock(currentClassElement) && (lexicalEnvironment == null ? void 0 : lexicalEnvironment.data)) {
-              const { classConstructor, superClassReference, facts: facts2 } = lexicalEnvironment.data;
-              if (facts2 & 1) {
+              const { classConstructor, superClassReference, facts } = lexicalEnvironment.data;
+              if (facts & 1) {
                 return factory2.updateBinaryExpression(
                   node2,
                   visitInvalidSuperProperty(node2.left),
@@ -109066,13 +109066,13 @@ ${lanes.join("\n")}
         }
         function getClassFacts(node2) {
           var _a3;
-          let facts2 = 0;
+          let facts = 0;
           const original = getOriginalNode(node2);
           if (isClassLike(original) && classOrConstructorParameterIsDecorated(legacyDecorators, original)) {
-            facts2 |= 1;
+            facts |= 1;
           }
           if (shouldTransformPrivateElementsOrClassStaticBlocks && (classHasClassThisAssignment(node2) || classHasExplicitlyAssignedName(node2))) {
-            facts2 |= 2;
+            facts |= 2;
           }
           let containsPublicInstanceFields = false;
           let containsInitializedPublicInstanceFields = false;
@@ -109081,20 +109081,20 @@ ${lanes.join("\n")}
           for (const member of node2.members) {
             if (isStatic(member)) {
               if (member.name && (isPrivateIdentifier(member.name) || isAutoAccessorPropertyDeclaration(member)) && shouldTransformPrivateElementsOrClassStaticBlocks) {
-                facts2 |= 2;
+                facts |= 2;
               } else if (isAutoAccessorPropertyDeclaration(member) && shouldTransformAutoAccessors === -1 && !node2.name && !((_a3 = node2.emitNode) == null ? void 0 : _a3.classThis)) {
-                facts2 |= 2;
+                facts |= 2;
               }
               if (isPropertyDeclaration(member) || isClassStaticBlockDeclaration(member)) {
                 if (shouldTransformThisInStaticInitializers && member.transformFlags & 16384) {
-                  facts2 |= 8;
-                  if (!(facts2 & 1)) {
-                    facts2 |= 2;
+                  facts |= 8;
+                  if (!(facts & 1)) {
+                    facts |= 2;
                   }
                 }
                 if (shouldTransformSuperInStaticInitializers && member.transformFlags & 134217728) {
-                  if (!(facts2 & 1)) {
-                    facts2 |= 2 | 4;
+                  if (!(facts & 1)) {
+                    facts |= 2 | 4;
                   }
                 }
               }
@@ -109109,7 +109109,7 @@ ${lanes.join("\n")}
                   262144
                   /* ContainsConstructorReference */
                 )) {
-                  facts2 |= 2;
+                  facts |= 2;
                 }
               } else if (isPropertyDeclaration(member)) {
                 containsPublicInstanceFields = true;
@@ -109119,14 +109119,14 @@ ${lanes.join("\n")}
           }
           const willHoistInitializersToConstructor = shouldTransformInitializersUsingDefine && containsPublicInstanceFields || shouldTransformInitializersUsingSet && containsInitializedPublicInstanceFields || shouldTransformPrivateElementsOrClassStaticBlocks && containsInstancePrivateElements || shouldTransformPrivateElementsOrClassStaticBlocks && containsInstanceAutoAccessors && shouldTransformAutoAccessors === -1;
           if (willHoistInitializersToConstructor) {
-            facts2 |= 16;
+            facts |= 16;
           }
-          return facts2;
+          return facts;
         }
         function visitExpressionWithTypeArgumentsInHeritageClause(node2) {
           var _a3;
-          const facts2 = ((_a3 = lexicalEnvironment == null ? void 0 : lexicalEnvironment.data) == null ? void 0 : _a3.facts) || 0;
-          if (facts2 & 4) {
+          const facts = ((_a3 = lexicalEnvironment == null ? void 0 : lexicalEnvironment.data) == null ? void 0 : _a3.facts) || 0;
+          if (facts & 4) {
             const temp = factory2.createTempVariable(
               hoistVariableDeclaration,
               /*reservedInNestedScopes*/
@@ -109178,14 +109178,14 @@ ${lanes.join("\n")}
               );
             }
           }
-          const facts2 = getClassFacts(node2);
-          if (facts2) {
-            getClassLexicalEnvironment().facts = facts2;
+          const facts = getClassFacts(node2);
+          if (facts) {
+            getClassLexicalEnvironment().facts = facts;
           }
-          if (facts2 & 8) {
+          if (facts & 8) {
             enableSubstitutionForClassStaticThisOrSuperReference();
           }
-          const result = visitor2(node2, facts2);
+          const result = visitor2(node2, facts);
           endClassLexicalEnvironment();
           Debug.assert(lexicalEnvironment === savedLexicalEnvironment);
           currentClassContainer = savedCurrentClassContainer;
@@ -109195,10 +109195,10 @@ ${lanes.join("\n")}
         function visitClassDeclaration(node2) {
           return visitInNewClassLexicalEnvironment(node2, visitClassDeclarationInNewClassLexicalEnvironment);
         }
-        function visitClassDeclarationInNewClassLexicalEnvironment(node2, facts2) {
+        function visitClassDeclarationInNewClassLexicalEnvironment(node2, facts) {
           var _a3, _b;
           let pendingClassReferenceAssignment;
-          if (facts2 & 2) {
+          if (facts & 2) {
             if (shouldTransformPrivateElementsOrClassStaticBlocks && ((_a3 = node2.emitNode) == null ? void 0 : _a3.classThis)) {
               getClassLexicalEnvironment().classConstructor = node2.emitNode.classThis;
               pendingClassReferenceAssignment = factory2.createAssignment(node2.emitNode.classThis, factory2.getInternalName(node2));
@@ -109285,9 +109285,9 @@ ${lanes.join("\n")}
         function visitClassExpression(node2) {
           return visitInNewClassLexicalEnvironment(node2, visitClassExpressionInNewClassLexicalEnvironment);
         }
-        function visitClassExpressionInNewClassLexicalEnvironment(node2, facts2) {
+        function visitClassExpressionInNewClassLexicalEnvironment(node2, facts) {
           var _a3, _b, _c;
-          const isDecoratedClassDeclaration = !!(facts2 & 1);
+          const isDecoratedClassDeclaration = !!(facts & 1);
           const staticPropertiesOrClassStaticBlocks = getStaticPropertiesAndClassStaticBlock(node2);
           const isClassWithConstructorReference = resolver.hasNodeCheckFlag(
             node2,
@@ -109316,7 +109316,7 @@ ${lanes.join("\n")}
           if ((_a3 = node2.emitNode) == null ? void 0 : _a3.classThis) {
             getClassLexicalEnvironment().classThis = node2.emitNode.classThis;
           }
-          if (facts2 & 2) {
+          if (facts & 2) {
             temp ?? (temp = createClassTempVar());
           }
           const modifiers = visitNodes2(node2.modifiers, modifierVisitor, isModifier);
@@ -110149,8 +110149,8 @@ ${lanes.join("\n")}
           if (isPrivateIdentifierPropertyAccessExpression(node2)) {
             return wrapPrivateIdentifierForDestructuringTarget(node2);
           } else if (shouldTransformSuperInStaticInitializers && currentClassElement && isSuperProperty(node2) && isStaticPropertyDeclarationOrClassStaticBlock(currentClassElement) && (lexicalEnvironment == null ? void 0 : lexicalEnvironment.data)) {
-            const { classConstructor, superClassReference, facts: facts2 } = lexicalEnvironment.data;
-            if (facts2 & 1) {
+            const { classConstructor, superClassReference, facts } = lexicalEnvironment.data;
+            if (facts & 1) {
               return visitInvalidSuperProperty(node2);
             } else if (classConstructor && superClassReference) {
               const name = isElementAccessExpression(node2) ? visitNode(node2.argumentExpression, visitor, isExpression) : isIdentifier(node2.name) ? factory2.createStringLiteralFromNode(node2.name) : void 0;
@@ -110320,7 +110320,7 @@ ${lanes.join("\n")}
         }
         function substituteThisExpression(node2) {
           if (enabledSubstitutions & 2 && (lexicalEnvironment == null ? void 0 : lexicalEnvironment.data) && !noSubstitution.has(node2)) {
-            const { facts: facts2, classConstructor, classThis } = lexicalEnvironment.data;
+            const { facts, classConstructor, classThis } = lexicalEnvironment.data;
             const substituteThis = shouldSubstituteThisWithClassThis ? classThis ?? classConstructor : classConstructor;
             if (substituteThis) {
               return setTextRange(
@@ -110331,7 +110331,7 @@ ${lanes.join("\n")}
                 node2
               );
             }
-            if (facts2 & 1 && legacyDecorators) {
+            if (facts & 1 && legacyDecorators) {
               return factory2.createParenthesizedExpression(factory2.createVoidZero());
             }
           }
@@ -146882,7 +146882,7 @@ ${lanes.join("\n")}
       function getHeader(sys2, message) {
         var _a3;
         const colors = createColors(sys2);
-        const header3 = [];
+        const header2 = [];
         const terminalWidth = ((_a3 = sys2.getWidthOfTerminal) == null ? void 0 : _a3.call(sys2)) ?? 0;
         const tsIconLength = 5;
         const tsIconFirstLine = colors.blueBackground("".padStart(tsIconLength));
@@ -146890,13 +146890,13 @@ ${lanes.join("\n")}
         if (terminalWidth >= message.length + tsIconLength) {
           const rightAlign = terminalWidth > 120 ? 120 : terminalWidth;
           const leftAlign = rightAlign - tsIconLength;
-          header3.push(message.padEnd(leftAlign) + tsIconFirstLine + sys2.newLine);
-          header3.push("".padStart(leftAlign) + tsIconSecondLine + sys2.newLine);
+          header2.push(message.padEnd(leftAlign) + tsIconFirstLine + sys2.newLine);
+          header2.push("".padStart(leftAlign) + tsIconSecondLine + sys2.newLine);
         } else {
-          header3.push(message + sys2.newLine);
-          header3.push(sys2.newLine);
+          header2.push(message + sys2.newLine);
+          header2.push(sys2.newLine);
         }
-        return header3;
+        return header2;
       }
       function printHelp(sys2, commandLine) {
         if (!commandLine.options.all) {
@@ -212617,14 +212617,14 @@ var require_parse = __commonJS({
       };
       if (opts.fastpaths !== false && !/(^[*!]|[/()[\]{}"])/.test(input2)) {
         let backslashes = false;
-        let output2 = input2.replace(REGEX_SPECIAL_CHARS_BACKREF, (m, esc11, chars, first, rest, index) => {
+        let output2 = input2.replace(REGEX_SPECIAL_CHARS_BACKREF, (m, esc9, chars, first, rest, index) => {
           if (first === "\\") {
             backslashes = true;
             return m;
           }
           if (first === "?") {
-            if (esc11) {
-              return esc11 + first + (rest ? QMARK.repeat(rest.length) : "");
+            if (esc9) {
+              return esc9 + first + (rest ? QMARK.repeat(rest.length) : "");
             }
             if (index === 0) {
               return qmarkNoDot + (rest ? QMARK.repeat(rest.length) : "");
@@ -212635,12 +212635,12 @@ var require_parse = __commonJS({
             return DOT_LITERAL.repeat(chars.length);
           }
           if (first === "*") {
-            if (esc11) {
-              return esc11 + first + (rest ? star : "");
+            if (esc9) {
+              return esc9 + first + (rest ? star : "");
             }
             return star;
           }
-          return esc11 ? m : `\\${m}`;
+          return esc9 ? m : `\\${m}`;
         });
         if (backslashes === true) {
           if (opts.unescape === true) {
@@ -219865,10 +219865,10 @@ function isValidJWT(token, algorithm = null) {
     const tokensParts = token.split(".");
     if (tokensParts.length !== 3)
       return false;
-    const [header3] = tokensParts;
-    if (!header3)
+    const [header2] = tokensParts;
+    if (!header2)
       return false;
-    const parsedHeader = JSON.parse(atob(header3));
+    const parsedHeader = JSON.parse(atob(header2));
     if ("typ" in parsedHeader && parsedHeader?.typ !== "JWT")
       return false;
     if (!parsedHeader.alg)
@@ -236651,7 +236651,7 @@ function loadConfig(projectDir, configPath) {
 // package.json
 var package_default = {
   name: "@winninjs/farol",
-  version: "0.1.3",
+  version: "0.2.0",
   description: "Tells code reviewers how much attention a pull request needs and where to look first: what the change reaches, a merge risk score and a review plan. TypeScript/React, Go and Python. Shadow mode: never blocks.",
   keywords: [
     "code-review",
@@ -236921,9 +236921,9 @@ function parseContextDiff(output2) {
       continue;
     }
     if (line3.startsWith("--- ") && current.hunks.length === 0) continue;
-    const header3 = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line3);
-    if (header3) {
-      current.hunks.push({ header: line3, oldStart: Number(header3[1]), newStart: Number(header3[2]), lines: [] });
+    const header2 = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line3);
+    if (header2) {
+      current.hunks.push({ header: line3, oldStart: Number(header2[1]), newStart: Number(header2[2]), lines: [] });
       continue;
     }
     const hunk = current.hunks[current.hunks.length - 1];
@@ -237017,12 +237017,12 @@ async function readFiles(cwd, ref, paths) {
   for (const path3 of paths) {
     const newline = out.indexOf(10, offset);
     if (newline === -1) throw new Error(`unexpected end of git cat-file output while reading ${path3}`);
-    const header3 = out.subarray(offset, newline).toString("utf8");
+    const header2 = out.subarray(offset, newline).toString("utf8");
     offset = newline + 1;
-    if (header3.endsWith(" missing") || header3.endsWith(" ambiguous")) continue;
-    const size = Number(header3.split(" ")[2]);
-    if (!Number.isFinite(size)) throw new Error(`unexpected git cat-file header "${header3}"`);
-    if (header3.split(" ")[1] === "blob") result.set(path3, out.subarray(offset, offset + size).toString("utf8"));
+    if (header2.endsWith(" missing") || header2.endsWith(" ambiguous")) continue;
+    const size = Number(header2.split(" ")[2]);
+    if (!Number.isFinite(size)) throw new Error(`unexpected git cat-file header "${header2}"`);
+    if (header2.split(" ")[1] === "blob") result.set(path3, out.subarray(offset, offset + size).toString("utf8"));
     offset += size + 1;
   }
   return result;
@@ -250614,7 +250614,7 @@ function ancestorIds(id) {
 }
 function extract3(input2) {
   const dynamic = [];
-  const filesOf2 = /* @__PURE__ */ new Map();
+  const filesOf = /* @__PURE__ */ new Map();
   const sources = [];
   for (const file2 of input2.files) {
     const rel = routeModulePath(input2.file, file2);
@@ -250622,23 +250622,23 @@ function extract3(input2) {
     const code2 = input2.read(file2);
     if (code2 === void 0) throw new Error(`internal: ${file2} is listed but cannot be read`);
     for (const f of routesOf(file2, code2, dynamic)) {
-      const entry = filesOf2.get(f.id) ?? { main: [], lazy: [] };
+      const entry = filesOf.get(f.id) ?? { main: [], lazy: [] };
       (f.lazy ? entry.lazy : entry.main).push(file2);
-      filesOf2.set(f.id, entry);
+      filesOf.set(f.id, entry);
       sources.push(file2);
     }
   }
   const moduleOf2 = (id) => {
-    const e = filesOf2.get(id);
+    const e = filesOf.get(id);
     return e === void 0 ? null : [...e.lazy, ...e.main].sort(compareStrings)[0] ?? null;
   };
   const root = moduleOf2(ROOT_ID);
-  const ids = [...filesOf2.keys()].filter((id) => id !== ROOT_ID);
+  const ids = [...filesOf.keys()].filter((id) => id !== ROOT_ID);
   const parents = new Set(ids.flatMap(ancestorIds));
   const routes = [];
   for (const id of ids) {
     if (parents.has(id) && !id.endsWith("/")) continue;
-    const own2 = filesOf2.get(id) ?? { main: [], lazy: [] };
+    const own2 = filesOf.get(id) ?? { main: [], lazy: [] };
     const modules = [...own2.main, ...own2.lazy].sort(compareStrings);
     const layouts = [...root === null ? [] : [root], ...ancestorIds(id).flatMap((a) => {
       const m = moduleOf2(a);
@@ -251512,7 +251512,13 @@ var INFRA_WEIGHT = 0.12;
 var DECLARATIONS_FILE_WEIGHT = 0.01;
 var DECLARATIONS_TOTAL_WEIGHT = 0.05;
 var CONTRACT_WEIGHT = { breaking: 0.4, dangerous: 0.1 };
-var CRITICAL_DEPENDENCY_WEIGHT = 0.25;
+var DEPENDENCY_WEIGHT = { breaking: 0.15, unknown: 0.1, mayBreak: 0.08, compatible: 0.02 };
+function dependencyWeight(c) {
+  if (!c.critical) return DEPENDENCY_WEIGHT.compatible;
+  if (c.change === "removed" || c.bump === "major") return DEPENDENCY_WEIGHT.breaking;
+  if (c.bump === "unknown") return DEPENDENCY_WEIGHT.unknown;
+  return DEPENDENCY_WEIGHT.mayBreak;
+}
 var SECURITY_WEIGHT = { high: 0.3, medium: 0.1, low: 0.02 };
 var VULN_WEIGHT = { critical: 0.5, high: 0.35, moderate: 0.12, low: 0.03, info: 0 };
 var round = (n) => Math.round(n * 1e3) / 1e3;
@@ -251562,11 +251568,14 @@ function scoreItems(o) {
   }
   const infra = o.files.filter((f) => f.role === "infra");
   for (const f of infra) add(f.path, "infra", 1 - (1 - INFRA_WEIGHT) ** (1 / infra.length), `${f.status} environment, infrastructure or CI file: check it per environment`);
-  for (const s of o.signals.security.findings) add(s.path, "security", SECURITY_WEIGHT[s.severity], `${s.severity} ${s.rule} at line ${s.line}`);
-  for (const l of o.signals.lint.findings) if (l.severity === "error") add(l.path, "lint", 0.05, `lint error ${l.rule} at line ${l.line}`);
-  for (const s of o.signals.suppressions.items) add(s.path, "suppression", 0.02, `${s.kind} at line ${s.line}`);
+  const outside = new Set(o.files.filter((f) => f.role === "excluded").map((f) => f.path));
+  const security = o.signals.security.findings.filter((s) => !outside.has(s.path));
+  for (const s of security) add(s.path, "security", SECURITY_WEIGHT[s.severity], `${s.severity} ${s.rule} at line ${s.line}`);
+  const securityLines = new Set(security.map((s) => `${s.path}:${s.line}`));
+  for (const l of o.signals.lint.findings) if (l.severity === "error" && !outside.has(l.path) && !securityLines.has(`${l.path}:${l.line}`)) add(l.path, "lint", 0.05, `lint error ${l.rule} at line ${l.line}`);
+  for (const s of o.signals.suppressions.items) if (!outside.has(s.path)) add(s.path, "suppression", 0.02, `${s.kind} at line ${s.line}`);
   for (const t of o.signals.testsModified.files) if (t.linesRemoved > 0) add(t.path, "tests", t.status === "deleted" ? 0.1 : t.linesRemoved >= 10 ? 0.05 : 0.02, `existing test ${t.status}, ${t.linesRemoved} line(s) removed`);
-  for (const c of o.dependencies.changes) add(c.manifest, "dependency", c.critical ? CRITICAL_DEPENDENCY_WEIGHT : 0.03, `${c.name} ${c.change}${c.bump ? ` (${c.bump})` : ""}${c.critical ? ", critical" : ""}`);
+  for (const c of o.dependencies.changes) add(c.manifest, "dependency", dependencyWeight(c), `${c.name} ${c.change}${c.bump ? ` (${c.bump})` : ""}${c.critical ? ", critical" : ""}`);
   for (const v of o.signals.vulnerabilities.related) add(null, "vulnerability", VULN_WEIGHT[v.severity] * (v.kind === "direct" ? 1 : 0.6), `${v.severity} advisory on ${v.package}: ${v.title}`);
   for (const level of ["breaking", "dangerous"]) {
     const list2 = (o.contracts?.entries ?? []).filter((e) => e.level === level);
@@ -251904,7 +251913,7 @@ var PLAN_TEXT = {
   classTitle: "Classification (see Details)",
   codeFiles: (code2, other) => `${code2} code file${code2 === 1 ? "" : "s"}${other > 0 ? ` + ${other} other` : ""}`,
   affected: (affected, added, many) => `${affected} existing ${many} affected${added > 0 ? `, ${added} new` : ""}`,
-  coverageFact: (percent3) => percent3 === null ? "diff coverage not verified" : `${percent3}% diff coverage`,
+  coverageFact: (percent2) => percent2 === null ? "diff coverage not verified" : `${percent2}% diff coverage`,
   securityFact: (n) => n === 0 ? "no security finding" : `${n} security finding${n === 1 ? "" : "s"}`,
   dependencyFact: (n) => n === 0 ? "no critical dependency change" : `${n} critical dependency change${n === 1 ? "" : "s"}`,
   lintFact: (n) => n === 0 ? "no lint error" : `${n} lint error${n === 1 ? "" : "s"}`,
@@ -251935,7 +251944,7 @@ var PLAN_TEXT = {
   noReviewers: "no CODEOWNERS entry and no recent author outside this PR",
   pointsTitle: "Risk of this file on its own (0\u2013100): reach \xD7 what its diff coverage leaves, plus its findings",
   reach: (n, total, many) => `${n}/${total} ${many}`,
-  covered: (percent3) => `${percent3}% covered`,
+  covered: (percent2) => `${percent2}% covered`,
   coverageNone: "declarations only",
   coverageUnverified: "coverage not verified",
   security: (n) => `${n} security`,
@@ -251978,14 +251987,6 @@ var USAGE_TEXT = {
   pillTitle: (days) => `Traffic of the affected pages or operations this file reaches, last ${days} days`,
   error: (message) => `usage report not read: ${message}`
 };
-var FLAG_TEXT = {
-  toggle: "\u{1F6A9} Behind a feature flag",
-  title: "Mark as behind a feature flag: changed files that only flagged pages/operations use no longer count in the review (score, Start here, files left). Click again to undo.",
-  fileNote: "\u{1F6A9} behind a flag",
-  fileNoteTitle: "Only used by pages/operations marked as behind a feature flag: left out of the review",
-  status: (n, files) => `\xB7 ${n} behind a flag (${files} file(s) out of the review)`,
-  hint: "Behind a feature flag? Use \u{1F6A9} on a page in the pages/operations section: the files only it uses leave the review."
-};
 var OWNER_TEXT = {
   title: "Suggested reviewers",
   intro: "Who wrote the code this PR changes (git blame at the base, weighed by each file's risk). PR authors and bots are left out.",
@@ -251999,41 +252000,6 @@ var OWNER_TEXT = {
   owner: (name, share2) => `\u270D ${name} ${share2}%`,
   ownerTitle: "Main author of this file at the base (git blame); new files: of its directory",
   comment: (name, score, files, inactive) => `${name} (${score}%${files ? `: ${files}` : ""}${inactive ? ", inactive" : ""})`
-};
-var ACK_TEXT = {
-  security: "Checked: this finding was looked at",
-  vulnerability: "Checked: this advisory was looked at",
-  contract: "Checked with the clients of this endpoint",
-  contractLabel: "checked with clients"
-};
-var FLAG_PANEL_TEXT = {
-  title: "\u{1F6A9} Pages/operations behind a feature flag",
-  intro: "Mark the pages, routes or operations that are entirely behind a feature flag: changed files that only they use leave the review (score, Start here, files left). Same state as the \u{1F6A9} buttons in the pages/operations section.",
-  search: "Search pages/operations",
-  files: (n) => `${n} changed file${n === 1 ? "" : "s"}`,
-  newTag: "new"
-};
-var RESULT_TEXT = {
-  intro: "What you marked in this report, as Markdown to paste in the pull request: the initial risk, the risk left, flags, reviewed files and checked findings. It updates as you mark things.",
-  copy: "Copy as Markdown",
-  copied: "Copied \u2713",
-  heading: "### farol review",
-  of: (repo, pr2, commit) => `${repo}${pr2} at \`${commit}\``,
-  initial: "Initial risk",
-  now: "After review",
-  score: (score, level) => `merge risk score **${score}/100** (${level})`,
-  files: (done, total) => `${done} of ${total} risky files reviewed`,
-  entries: (left, total, many) => `${left} of ${total} ${many} still to review`,
-  flagged: (n) => `\u{1F6A9} Behind a feature flag (${n})`,
-  flaggedFiles: (n) => `${n} file(s) left out of the review because only flagged entry points use them`,
-  reviewed: (n) => `\u2705 Files reviewed (${n})`,
-  security: (done, total) => `\u{1F512} Security findings checked (${done}/${total})`,
-  vulns: (done, total) => `\u{1F4E6} Vulnerable dependencies checked (${done}/${total})`,
-  contracts: (done, total) => `\u{1F50C} Contract changes checked with clients (${done}/${total})`,
-  pending: "Not checked yet",
-  nothing: "Nothing marked yet.",
-  more: (n) => `and ${n} more`,
-  footer: (version2) => `<sub>Recorded with farol ${version2}</sub>`
 };
 var SINCE_TEXT = {
   title: (from, to) => `\u{1F501} **Since the last push** (\`${from}..${to}\`)`,
@@ -252074,7 +252040,7 @@ var TEXT = {
   reportError: (message) => `could not read the report (${message})`,
   andMore: (n) => `and ${n} more`,
   coverageLabel: "Diff coverage",
-  coverageValue: (percent3, covered, total) => `${percent3} (${covered} of ${total} changed executable lines covered)`,
+  coverageValue: (percent2, covered, total) => `${percent2} (${covered} of ${total} changed executable lines covered)`,
   coverageNoLines: "no changed executable lines",
   coverageUncoveredTitle: "uncovered ranges:",
   coverageMissing: "missing from the coverage report",
@@ -252196,7 +252162,7 @@ var HTML_TEXT = {
   coverageCols: ["File", "Changed executable lines", "Covered", "Uncovered ranges"],
   missing: "missing from the report",
   coverageIgnoredTitle: (n) => `Ignored for coverage only (${n}; signals.coverageIgnore / --coverage-ignore)`,
-  reportedOnly: (percent3, covered, total) => `Files present in the report only: ${percent3} (${covered} / ${total}).`,
+  reportedOnly: (percent2, covered, total) => `Files present in the report only: ${percent2} (${covered} / ${total}).`,
   lintTitle: "Lint on changed lines",
   lintCols: ["Location", "Severity", "Rule", "Message"],
   lintSummary: (e, w, oe, ow) => `${e} error(s) and ${w} warning(s) on changed lines; ${oe} error(s) and ${ow} warning(s) elsewhere in the files.`,
@@ -252313,58 +252279,6 @@ var HTML_TEXT = {
   more: (n) => `and ${n} more`,
   footer: (version2) => `Generated by farol ${version2}.`
 };
-var FINDINGS_TEXT = {
-  analysisError: "The analysis failed",
-  dynamicRoutes: (n) => `${plural2(n, "route construct", "route constructs")} farol cannot read`,
-  parseErrors: (n) => `Syntax error in ${plural2(n, "changed file", "changed files")}`,
-  unresolved: (n) => `${plural2(n, "unresolved import", "unresolved imports")} involving changed files`,
-  unknownDetail: 'That is why the class is "unknown": review the whole PR.',
-  criticalDependencies: (n) => plural2(n, "critical dependency change", "critical dependency changes"),
-  criticalDependenciesDetail: (list2) => `Removed packages, major bumps or versions that cannot be compared: ${list2}.`,
-  otherDependencies: (n) => plural2(n, "non-critical dependency change", "non-critical dependency changes"),
-  otherDependenciesDetail: (list2) => `Patch/minor bumps, range-only changes or new packages: ${list2}.`,
-  lockfileOnly: "Lockfile changed without any manifest change",
-  lockfileOnlyDetail: "Resolved versions of direct or transitive dependencies may have changed.",
-  manifestChanged: (n) => `${plural2(n, "package manifest", "package manifests")} changed beyond dependencies`,
-  globalFiles: (n) => `${plural2(n, "global file", "global files")} changed`,
-  globalDetail: "Configuration or app entry: the change may affect everything.",
-  routesChanged: (n) => `${plural2(n, "existing route", "existing routes")} removed or changed`,
-  testsLoosened: (n, removed) => `${plural2(n, "existing test", "existing tests")} modified, ${plural2(removed, "line", "lines")} removed`,
-  testsDeleted: (n) => `includes ${plural2(n, "deleted test file", "deleted test files")}`,
-  testsDetail: "Check that code and tests were not loosened together.",
-  lintErrors: (n) => `${plural2(n, "lint error", "lint errors")} on changed lines`,
-  lintWarnings: (n) => `${plural2(n, "lint warning", "lint warnings")} on changed lines`,
-  suppressions: (n) => plural2(n, "added suppression", "added suppressions"),
-  suppressionKinds: (kinds) => `Kinds: ${kinds}.`,
-  coverageLow: (percent3) => `Diff coverage of ${percent3} in the files present in the report`,
-  coverageDetail: (uncovered, files) => `${plural2(uncovered, "changed executable line", "changed executable lines")} not covered in ${plural2(files, "file", "files")}.`,
-  coverageMissing: (n) => `${plural2(n, "changed file", "changed files")} missing from the coverage report`,
-  coverageMissingDetail: "No test loaded these files, or the Vitest coverage configuration excludes them (coverage.exclude). They count as fully uncovered in the total.",
-  notVerified: (what) => `${what} not verified`,
-  coverageName: "Coverage",
-  lintName: "Lint",
-  vulnCritical: (n) => `${plural2(n, "critical/high vulnerability", "critical/high vulnerabilities")} in added or changed dependencies`,
-  vulnOther: (n) => `${plural2(n, "moderate/low vulnerability", "moderate/low vulnerabilities")} in added or changed dependencies`,
-  vulnDetail: (list2) => `${list2}.`,
-  auditName: "Dependency audit",
-  sastHigh: (n) => `${plural2(n, "high-severity security finding", "high-severity security findings")} on added lines`,
-  sastMedium: (n) => `${plural2(n, "medium-severity security finding", "medium-severity security findings")} on added lines`,
-  sastLow: (n) => `${plural2(n, "low-severity security finding", "low-severity security findings")} on added lines`,
-  sastDetail: (rules) => `Rules: ${rules}.`,
-  highRisk: (n, t = FRONTEND_TERMS) => `${plural2(n, "high-risk change", "high-risk changes")}: central files used by many existing ${t.many}`,
-  mediumRisk: (n) => plural2(n, "medium-risk change", "medium-risk changes"),
-  riskDetail: (list2, t = FRONTEND_TERMS) => `Review carefully and test the ${t.many} that use them: ${list2}.`,
-  newReached: (n, t = FRONTEND_TERMS) => `${plural2(n, "new file", "new files")} already used by existing ${t.many}`,
-  newReachedDetail: (t = FRONTEND_TERMS) => `New code that existing ${t.many} already run.`,
-  barrel: (n) => `${plural2(n, "barrel", "barrels")} with existing exports changed`,
-  i18n: (n) => `${plural2(n, "translation file", "translation files")} with existing values changed`,
-  removedFiles: (deleted, renamed) => `${plural2(deleted, "file", "files")} deleted, ${renamed} renamed`,
-  unreachable: (n) => `${plural2(n, "modified existing file", "modified existing files")} no route reaches`,
-  unreachableDetail: "Still a change to existing code (utilities, configuration, code outside the import graph).",
-  ignored: (n) => `${plural2(n, "changed file", "changed files")} ignored by configuration`,
-  isolated: "No existing code touched",
-  isolatedDetail: "The PR only adds routes, files, exports or keys (or changes tests)."
-};
 
 // src/github/comment.ts
 var LEGACY_MARKER = "<!-- revscope -->";
@@ -252463,8 +252377,7 @@ function entryRow(o, e) {
   const rows = e.changes.map((c) => `<tr><td><span class="chip ${CHIP[c.level]}">${CONTRACT_TEXT.levels[c.level]}</span></td><td><code>${esc2(c.where)}</code></td><td>${esc2(c.detail)}</td></tr>`).join("");
   const more = e.omitted > 0 ? `<p class="muted small">${esc2(CONTRACT_TEXT.more(e.omitted))}</p>` : "";
   const first = e.changes[0];
-  const ack = e.level === "safe" ? "" : `<label class="ack-label small" title="${esc2(ACK_TEXT.contract)}"><input type="checkbox" class="ack" data-ack="${esc2(`contract:${e.key}`)}"> ${ACK_TEXT.contractLabel}</label>`;
-  return `<details class="contract"><summary>${ack}<span class="chip ${CHIP[e.level]}">${CONTRACT_TEXT.levels[e.level]}</span><code class="route-path">${esc2(e.key)}</code><span class="small muted">${esc2(first ? `${first.where}: ${first.detail}` : "")}${e.changes.length + e.omitted > 1 ? ` \xB7 ${esc2(CONTRACT_TEXT.more(e.changes.length + e.omitted - 1))}` : ""}</span><span class="small contract-callers">${esc2(callersText(o, e.key))}</span></summary>
+  return `<details class="contract"><summary><span class="chip ${CHIP[e.level]}">${CONTRACT_TEXT.levels[e.level]}</span><code class="route-path">${esc2(e.key)}</code><span class="small muted">${esc2(first ? `${first.where}: ${first.detail}` : "")}${e.changes.length + e.omitted > 1 ? ` \xB7 ${esc2(CONTRACT_TEXT.more(e.changes.length + e.omitted - 1))}` : ""}</span><span class="small contract-callers">${esc2(callersText(o, e.key))}</span></summary>
 <div class="contract-body"><table class="contract-table"><thead><tr><th>${CONTRACT_TEXT.columns.level}</th><th>${CONTRACT_TEXT.columns.where}</th><th>${CONTRACT_TEXT.columns.change}</th></tr></thead><tbody>${rows}</tbody></table>${more}</div></details>`;
 }
 function contractsSection2(o) {
@@ -252623,10 +252536,10 @@ function signalsSection(o, limit, l) {
   else if (coverage.total.changedExecutableLines === 0) lines.push(`- **${TEXT.coverageLabel}:** ${TEXT.coverageNoLines}`);
   else {
     const { coveredLines, changedExecutableLines } = coverage.total;
-    const percent3 = `${(coveredLines / changedExecutableLines * 100).toFixed(1)}%`;
+    const percent2 = `${(coveredLines / changedExecutableLines * 100).toFixed(1)}%`;
     const gaps = coverage.files.filter((f) => f.uncovered.length > 0);
     const ignoredNote = coverage.ignoredFiles.length > 0 ? ` (${TEXT.coverageIgnored(coverage.ignoredFiles.length)})` : "";
-    lines.push(`- **${TEXT.coverageLabel}:** ${TEXT.coverageValue(percent3, coveredLines, changedExecutableLines)}${ignoredNote}${gaps.length > 0 ? ` \u2014 ${TEXT.coverageUncoveredTitle}` : ""}`);
+    lines.push(`- **${TEXT.coverageLabel}:** ${TEXT.coverageValue(percent2, coveredLines, changedExecutableLines)}${ignoredNote}${gaps.length > 0 ? ` \u2014 ${TEXT.coverageUncoveredTitle}` : ""}`);
     if (gaps.length > 0) {
       lines.push(...limited(gaps, limit, (f) => `${fileMd(l, f.path)}${f.missingFromReport ? ` (${TEXT.coverageMissing})` : ""}: ${rangesMd(l, f.path, f.uncovered)}`, "  "));
     }
@@ -252727,140 +252640,10 @@ function renderReport(output2, maxLength = MAX_COMMENT_LENGTH, links = NO_LINKS,
 import { readFileSync as readFileSync6 } from "fs";
 import { resolve as resolve5 } from "path";
 
-// src/report/findings.ts
-var COVERAGE_HIGH = 0.5;
-var COVERAGE_MEDIUM = 0.8;
-var RANK5 = { high: 0, medium: 1, low: 2 };
-function filesOf(output2, ...codes) {
-  return sortedUnique(output2.reasons.filter((r) => codes.includes(r.code) && r.file !== void 0).map((r) => r.file ?? ""));
-}
-function percent2(ratio) {
-  return `${(ratio * 100).toFixed(1)}%`;
-}
-function dependencyFindings(o, out) {
-  const label2 = (c) => c.change === "removed" ? `${c.name} removed` : c.change === "added" ? `${c.name} added` : `${c.name} ${c.from ?? ""} \u2192 ${c.to ?? ""}${c.bump ? ` (${c.bump})` : ""}`;
-  const critical = o.dependencies.changes.filter((c) => c.critical);
-  const other = o.dependencies.changes.filter((c) => !c.critical);
-  if (critical.length > 0) out.push({ severity: "high", title: FINDINGS_TEXT.criticalDependencies(critical.length), detail: FINDINGS_TEXT.criticalDependenciesDetail(critical.slice(0, 8).map(label2).join(", ")), files: sortedUnique(critical.map((c) => c.manifest)), section: "dependencies" });
-  const manifests = filesOf(o, "manifest-changed");
-  if (manifests.length > 0) out.push({ severity: "high", title: FINDINGS_TEXT.manifestChanged(manifests.length), detail: o.reasons.filter((r) => r.code === "manifest-changed").map((r) => r.detail).join("; "), files: manifests, section: "dependencies" });
-  const lockOnly = filesOf(o, "lockfile-only-change");
-  if (lockOnly.length > 0) out.push({ severity: "high", title: FINDINGS_TEXT.lockfileOnly, detail: FINDINGS_TEXT.lockfileOnlyDetail, files: lockOnly, section: "dependencies" });
-  if (other.length > 0) out.push({ severity: "low", title: FINDINGS_TEXT.otherDependencies(other.length), detail: FINDINGS_TEXT.otherDependenciesDetail(other.slice(0, 8).map(label2).join(", ")), files: sortedUnique(other.map((c) => c.manifest)), section: "dependencies" });
-}
-function classificationFindings(o, out) {
-  if (o.diagnostics.error !== null) out.push({ severity: "high", title: FINDINGS_TEXT.analysisError, detail: o.diagnostics.error, files: [], section: "details" });
-  const dynamic = o.reasons.filter((r) => r.code === "dynamic-route");
-  if (dynamic.length > 0) out.push({ severity: "high", title: FINDINGS_TEXT.dynamicRoutes(dynamic.length), detail: FINDINGS_TEXT.unknownDetail, files: filesOf(o, "dynamic-route"), section: "details" });
-  const parse4 = filesOf(o, "parse-error");
-  if (parse4.length > 0) out.push({ severity: "high", title: FINDINGS_TEXT.parseErrors(parse4.length), detail: FINDINGS_TEXT.unknownDetail, files: parse4, section: "details" });
-  const unresolved = o.reasons.filter((r) => r.code === "unresolved-import");
-  if (unresolved.length > 0) out.push({ severity: "high", title: FINDINGS_TEXT.unresolved(unresolved.length), detail: FINDINGS_TEXT.unknownDetail, files: filesOf(o, "unresolved-import"), section: "details" });
-  dependencyFindings(o, out);
-  const globals = filesOf(o, "global-file-changed");
-  if (globals.length > 0) out.push({ severity: "high", title: FINDINGS_TEXT.globalFiles(globals.length), detail: FINDINGS_TEXT.globalDetail, files: globals, section: "files" });
-  const routeChanges = o.reasons.filter((r) => r.code === "routes-not-additive" && r.detail.startsWith("route "));
-  if (routeChanges.length > 0) out.push({ severity: "high", title: FINDINGS_TEXT.routesChanged(routeChanges.length), detail: routeChanges.map((r) => r.detail).slice(0, 3).join("; "), files: [], section: "routes" });
-}
-function securityFindings(o, out) {
-  const v = o.signals.vulnerabilities;
-  if (v.status !== "ok") out.push({ severity: "low", title: FINDINGS_TEXT.notVerified(FINDINGS_TEXT.auditName), detail: v.message, files: [], section: "security" });
-  const label2 = (r) => `${r.package} (${r.severity}, ${r.id}${r.kind === "transitive" ? `, via ${r.relatedTo.join("/")}` : ""})`;
-  const severe = v.related.filter((r) => r.severity === "critical" || r.severity === "high");
-  const other = v.related.filter((r) => r.severity !== "critical" && r.severity !== "high");
-  if (severe.length > 0) out.push({ severity: "high", title: FINDINGS_TEXT.vulnCritical(severe.length), detail: FINDINGS_TEXT.vulnDetail(severe.slice(0, 6).map(label2).join(", ")), files: [], section: "security" });
-  if (other.length > 0) out.push({ severity: "medium", title: FINDINGS_TEXT.vulnOther(other.length), detail: FINDINGS_TEXT.vulnDetail(other.slice(0, 6).map(label2).join(", ")), files: [], section: "security" });
-  const s = o.signals.security;
-  for (const level of ["high", "medium", "low"]) {
-    const list2 = s.findings.filter((f) => f.severity === level);
-    if (list2.length === 0) continue;
-    const title = level === "high" ? FINDINGS_TEXT.sastHigh(list2.length) : level === "medium" ? FINDINGS_TEXT.sastMedium(list2.length) : FINDINGS_TEXT.sastLow(list2.length);
-    out.push({ severity: level, title, detail: FINDINGS_TEXT.sastDetail(sortedUnique(list2.map((f) => f.rule)).join(", ")), files: sortedUnique(list2.map((f) => f.path)), section: "security" });
-  }
-}
-function signalFindings(o, out) {
-  securityFindings(o, out);
-  const tests = o.signals.testsModified.files;
-  const removed = tests.reduce((n, t) => n + t.linesRemoved, 0);
-  if (tests.length > 0) {
-    const deleted = tests.filter((t) => t.status === "deleted").length;
-    const severity = deleted > 0 || removed >= 10 ? "high" : removed > 0 ? "medium" : "low";
-    const detail = deleted > 0 ? `${FINDINGS_TEXT.testsDeleted(deleted)}. ${FINDINGS_TEXT.testsDetail}` : FINDINGS_TEXT.testsDetail;
-    out.push({ severity, title: FINDINGS_TEXT.testsLoosened(tests.length, removed), detail, files: tests.map((t) => t.path), section: "signals" });
-  }
-  const lint = o.signals.lint;
-  if (lint.status === "ok" && lint.changedLines) {
-    const errorFiles2 = sortedUnique(lint.findings.filter((f) => f.severity === "error").map((f) => f.path));
-    const warningFiles = sortedUnique(lint.findings.filter((f) => f.severity === "warning").map((f) => f.path));
-    if (lint.changedLines.errors > 0) out.push({ severity: "high", title: FINDINGS_TEXT.lintErrors(lint.changedLines.errors), files: errorFiles2, section: "signals" });
-    if (lint.changedLines.warnings > 0) out.push({ severity: "low", title: FINDINGS_TEXT.lintWarnings(lint.changedLines.warnings), files: warningFiles, section: "signals" });
-  } else {
-    out.push({ severity: "low", title: FINDINGS_TEXT.notVerified(FINDINGS_TEXT.lintName), detail: lint.message, files: [], section: "signals" });
-  }
-  const sup = o.signals.suppressions;
-  if (sup.items.length > 0) {
-    const strong = sup.items.some((i) => i.kind === "ts-nocheck" || i.kind === "eslint-disable" || i.kind === "ts-ignore");
-    out.push({
-      severity: strong ? "high" : "medium",
-      title: FINDINGS_TEXT.suppressions(sup.items.length),
-      detail: FINDINGS_TEXT.suppressionKinds(sortedUnique(sup.items.map((i) => i.kind)).join(", ")),
-      files: sortedUnique(sup.items.map((i) => i.path)),
-      section: "signals"
-    });
-  }
-  const cov = o.signals.coverage;
-  if (cov.status !== "ok" || cov.total === null) {
-    out.push({ severity: "low", title: FINDINGS_TEXT.notVerified(FINDINGS_TEXT.coverageName), detail: cov.message, files: [], section: "signals" });
-    return;
-  }
-  const reported = cov.files.filter((f) => !f.missingFromReport);
-  const total = reported.reduce((n, f) => n + f.changedExecutableLines, 0);
-  const coveredLines = reported.reduce((n, f) => n + f.coveredLines, 0);
-  if (total > 0 && coveredLines / total < COVERAGE_MEDIUM) {
-    const gaps = reported.filter((f) => f.uncovered.length > 0).sort((a, b) => b.changedExecutableLines - b.coveredLines - (a.changedExecutableLines - a.coveredLines));
-    out.push({
-      severity: coveredLines / total < COVERAGE_HIGH ? "high" : "medium",
-      title: FINDINGS_TEXT.coverageLow(percent2(coveredLines / total)),
-      detail: FINDINGS_TEXT.coverageDetail(total - coveredLines, gaps.length),
-      files: gaps.slice(0, 8).map((f) => f.path),
-      section: "signals"
-    });
-  }
-  const missing = cov.files.filter((f) => f.missingFromReport);
-  if (missing.length > 0) out.push({ severity: "medium", title: FINDINGS_TEXT.coverageMissing(missing.length), detail: FINDINGS_TEXT.coverageMissingDetail, files: missing.map((f) => f.path), section: "signals" });
-}
-function impactFindings(o, out) {
-  const describe4 = (f) => `${f.path.split("/").pop() ?? f.path} (${f.pagesReached}/${o.risk.totalPages} ${terms(o.surface).many}, ${f.transitiveDependents} dependents)`;
-  const high = o.risk.files.filter((f) => f.level === "high");
-  const medium = o.risk.files.filter((f) => f.level === "medium");
-  if (high.length > 0) out.push({ severity: "high", title: FINDINGS_TEXT.highRisk(high.length, terms(o.surface)), detail: FINDINGS_TEXT.riskDetail(high.slice(0, 6).map(describe4).join(", "), terms(o.surface)), files: high.map((f) => f.path), section: "risk" });
-  if (medium.length > 0) out.push({ severity: "medium", title: FINDINGS_TEXT.mediumRisk(medium.length), detail: FINDINGS_TEXT.riskDetail(medium.slice(0, 6).map(describe4).join(", "), terms(o.surface)), files: medium.map((f) => f.path), section: "risk" });
-  const reached = filesOf(o, "new-file-reached-by-existing-route");
-  if (reached.length > 0) out.push({ severity: "medium", title: FINDINGS_TEXT.newReached(reached.length, terms(o.surface)), detail: FINDINGS_TEXT.newReachedDetail(terms(o.surface)), files: reached, section: "routes" });
-  const barrels = filesOf(o, "barrel-not-additive");
-  if (barrels.length > 0) out.push({ severity: "medium", title: FINDINGS_TEXT.barrel(barrels.length), files: barrels, section: "files" });
-  const i18n = filesOf(o, "i18n-not-additive");
-  if (i18n.length > 0) out.push({ severity: "medium", title: FINDINGS_TEXT.i18n(i18n.length), files: i18n, section: "files" });
-  const deleted = filesOf(o, "existing-file-deleted");
-  const renamed = filesOf(o, "existing-file-renamed");
-  if (deleted.length + renamed.length > 0) out.push({ severity: "medium", title: FINDINGS_TEXT.removedFiles(deleted.length, renamed.length), files: [...deleted, ...renamed], section: "files" });
-  const unreachable = filesOf(o, "existing-file-unreachable");
-  if (unreachable.length > 0) out.push({ severity: "low", title: FINDINGS_TEXT.unreachable(unreachable.length), detail: FINDINGS_TEXT.unreachableDetail, files: unreachable, section: "files" });
-  if (o.ignoredFiles.length > 0) out.push({ severity: "low", title: FINDINGS_TEXT.ignored(o.ignoredFiles.length), files: o.ignoredFiles, section: "files" });
-  if (o.classification === "isolated" && !o.reasons.some((r) => REASONS[r.code] !== "info")) out.push({ severity: "low", title: FINDINGS_TEXT.isolated, detail: FINDINGS_TEXT.isolatedDetail, files: [], section: "overview" });
-}
-function keyFindings(output2) {
-  const out = [];
-  classificationFindings(output2, out);
-  signalFindings(output2, out);
-  impactFindings(output2, out);
-  return out.map((f, i) => ({ f, i })).sort((a, b) => RANK5[a.f.severity] - RANK5[b.f.severity] || a.i - b.i).map(({ f }) => f);
-}
-
 // src/report/html-style-theme.ts
 var THEME_STYLE = `
-body { font: 14.5px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; background: radial-gradient(1100px 420px at 0% -8%, var(--accent-bg), transparent 62%), var(--bg); background-attachment: fixed; }
-main { max-width: 1240px; padding: 28px 20px 64px; }
+body { font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; background: var(--bg); }
+main { max-width: 1240px; padding: 8px 20px 48px; }
 h1 { font-size: 20px; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 /* The logo follows the theme: the light variant by default, the dark one under the dark tokens. */
 .logo { display: inline-flex; line-height: 0; }
@@ -252872,11 +252655,11 @@ h1 { font-size: 20px; letter-spacing: -.01em; display: flex; align-items: center
 .h1-repo { padding-left: 14px; border-left: 1px solid var(--line); font-weight: 600; line-height: 30px; }
 h3 { font-size: 14.5px; letter-spacing: -.005em; }
 header.top { padding: 16px 22px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); align-items: center; }
-section.panel { border-radius: 16px; padding: 22px 24px; box-shadow: var(--shadow); }
+section.panel { border-radius: 10px; padding: 18px 20px; box-shadow: var(--shadow); }
 .section { margin-top: 34px; }
 .section-title { display: flex; align-items: center; gap: 10px; font-size: 18px; letter-spacing: -.01em; margin-bottom: 2px; }
-.section-title::before { content: ''; width: 4px; height: 18px; border-radius: 4px; background: var(--accent); }
-.sectionbar { top: 10px; margin-top: 18px; padding: 6px; gap: 2px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--panel) 82%, transparent); backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); box-shadow: var(--shadow); }
+.section-title::before { content: none; }
+.sectionbar { top: 10px; margin-top: 18px; padding: 6px; gap: 2px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--panel) 82%, transparent);  }
 .sectionbar a { border-radius: 10px; padding: 6px 12px; font-size: 13.5px; transition: background .15s, color .15s; }
 .sectionbar a:hover { background: var(--accent-bg); color: var(--accent); }
 .count { background: var(--code); font-weight: 600; }
@@ -252978,30 +252761,30 @@ details.route.is-flagged .route-path { opacity: .7; }
 // src/report/html-style.ts
 var HTML_STYLE = `
 :root {
-  --bg: #f5f7fb; --panel: #ffffff; --text: #0f172a; --muted: #64748b; --line: #e2e8f0; --code: #f1f5f9;
-  --high: #dc2626; --high-bg: #fef2f2; --medium: #d97706; --medium-bg: #fffbeb; --low: #64748b; --low-bg: #f1f5f9;
-  --global: #7c3aed; --unknown: #d97706; --touches: #ea580c; --isolated: #059669; --accent: #4f46e5; --accent-bg: #eef2ff;
-  --shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 4px 18px rgba(15, 23, 42, .06); --ring: rgba(79, 70, 229, .35);
+  --bg: #ffffff; --panel: #ffffff; --text: #1c1c1e; --muted: #8e8e95; --line: #e8e6e3; --code: #f2f1ef;
+  --high: #b42318; --high-bg: #fcefed; --medium: #9a5b00; --medium-bg: #fbf3e6; --low: #8e8e95; --low-bg: #f2f1ef;
+  --global: #6b4fbb; --unknown: #9a5b00; --touches: #b4501b; --isolated: #2e7d4f; --accent: #3056c9; --accent-bg: #eef1fb;
+  --shadow: none; --ring: rgba(48, 86, 201, .35);
 }
 /* Dark tokens: follow the system unless the viewer picked a theme (data-theme on <html>). */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0b1020; --panel: #121a2b; --text: #e2e8f0; --muted: #94a3b8; --line: #1f2a3d; --code: #18233a;
-    --high: #f87171; --high-bg: #2a1416; --medium: #fbbf24; --medium-bg: #2a2010; --low: #94a3b8; --low-bg: #1a2336;
-    --global: #a78bfa; --unknown: #fbbf24; --touches: #fb923c; --isolated: #34d399; --accent: #818cf8; --accent-bg: #1c2145;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25); --ring: rgba(129, 140, 248, .45);
+    --bg: #121214; --panel: #18181b; --text: #ececee; --muted: #7d7d86; --line: #2a2a2f; --code: #222226;
+    --high: #f4796b; --high-bg: #2a1715; --medium: #e0a54b; --medium-bg: #2a2010; --low: #7d7d86; --low-bg: #222226;
+    --global: #b39cf5; --unknown: #e0a54b; --touches: #f0965b; --isolated: #6cc495; --accent: #91a9ff; --accent-bg: #1d2238;
+    --shadow: none; --ring: rgba(145, 169, 255, .45);
   }
 }
 :root[data-theme="dark"] {
-    --bg: #0b1020; --panel: #121a2b; --text: #e2e8f0; --muted: #94a3b8; --line: #1f2a3d; --code: #18233a;
-    --high: #f87171; --high-bg: #2a1416; --medium: #fbbf24; --medium-bg: #2a2010; --low: #94a3b8; --low-bg: #1a2336;
-    --global: #a78bfa; --unknown: #fbbf24; --touches: #fb923c; --isolated: #34d399; --accent: #818cf8; --accent-bg: #1c2145;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25); --ring: rgba(129, 140, 248, .45);
+    --bg: #121214; --panel: #18181b; --text: #ececee; --muted: #7d7d86; --line: #2a2a2f; --code: #222226;
+    --high: #f4796b; --high-bg: #2a1715; --medium: #e0a54b; --medium-bg: #2a2010; --low: #7d7d86; --low-bg: #222226;
+    --global: #b39cf5; --unknown: #e0a54b; --touches: #f0965b; --isolated: #6cc495; --accent: #91a9ff; --accent-bg: #1d2238;
+    --shadow: none; --ring: rgba(145, 169, 255, .45);
 }
 .theme-toggle { border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
 .theme-toggle:hover { border-color: var(--accent); }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
 header.top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: baseline; }
 h1 { font-size: 22px; margin: 0; }
@@ -253243,11 +253026,11 @@ function status2(signal) {
 var VULN_CHIP = { critical: "high", high: "high", moderate: "medium", low: "low", info: "low" };
 function securitySection(o, h) {
   const s = o.signals.security;
-  const sast = status2(s) ?? h.table(HTML_TEXT.sastCols, s.findings, (f) => `<tr><td><input type="checkbox" class="ack" data-ack="${esc4(`security:${f.path}:${f.line}:${f.rule}`)}" title="${esc4(ACK_TEXT.security)}"> ${h.loc(f.path, f.line)}</td><td><span class="chip ${f.severity}">${f.severity}</span></td><td><code>${esc4(f.rule)}</code></td><td class="small">${esc4(f.message)}</td><td><code class="small">${esc4(f.text)}</code></td></tr>`);
+  const sast = status2(s) ?? h.table(HTML_TEXT.sastCols, s.findings, (f) => `<tr><td>${h.loc(f.path, f.line)}</td><td><span class="chip ${f.severity}">${f.severity}</span></td><td><code>${esc4(f.rule)}</code></td><td class="small">${esc4(f.message)}</td><td><code class="small">${esc4(f.text)}</code></td></tr>`);
   const v = o.signals.vulnerabilities;
   const vulns = status2(v) ?? `${h.table(HTML_TEXT.vulnCols, v.related, (r) => {
     const advisory = `${r.url ? `<a href="${esc4(r.url)}" target="_blank" rel="noopener">${esc4(r.id)}</a>` : esc4(r.id)}${r.cves.length > 0 ? ` <span class="muted small">${esc4(r.cves.join(", "))}</span>` : ""}<div class="small">${esc4(r.title)}</div>`;
-    return `<tr><td><input type="checkbox" class="ack" data-ack="${esc4(`vuln:${r.package}:${r.id}`)}" title="${esc4(ACK_TEXT.vulnerability)}"> <code>${esc4(r.package)}</code></td><td><span class="chip ${VULN_CHIP[r.severity] ?? "low"}">${r.severity}</span></td><td>${advisory}</td><td><code class="small">${esc4(r.vulnerableRange ?? "")}</code></td><td><code class="small">${esc4(r.patchedVersions ?? "")}</code></td><td class="small">${esc4(r.relatedTo.join(", "))}</td><td><span class="tag">${HTML_TEXT.vulnKinds[r.kind]}</span></td></tr>`;
+    return `<tr><td><code>${esc4(r.package)}</code></td><td><span class="chip ${VULN_CHIP[r.severity] ?? "low"}">${r.severity}</span></td><td>${advisory}</td><td><code class="small">${esc4(r.vulnerableRange ?? "")}</code></td><td><code class="small">${esc4(r.patchedVersions ?? "")}</code></td><td class="small">${esc4(r.relatedTo.join(", "))}</td><td><span class="tag">${HTML_TEXT.vulnKinds[r.kind]}</span></td></tr>`;
   })}${v.total ? `<p class="small muted">${esc4(HTML_TEXT.vulnTotal(v.total))}</p>` : ""}`;
   return `<section class="panel"><h3>${HTML_TEXT.sastTitle}</h3><p class="small muted">${HTML_TEXT.sastIntro}</p>${sast}<h3>${HTML_TEXT.vulnTitle}</h3><p class="small muted">${HTML_TEXT.vulnIntro}</p>${vulns}</section>`;
 }
@@ -253316,63 +253099,34 @@ function changedRoutes(output2, links, shorten) {
   return [...affected, ...added];
 }
 
-// src/report/html-score.ts
-var SHOWN_DRIVERS = 6;
-function esc5(text) {
-  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
-}
-function scoreByFile(o) {
-  return new Map(scoreGroups(mergeScore(o).items).flatMap((g) => g.file === null ? [] : [[g.file, g.points]]));
-}
-function driver(g, h, hidden) {
-  const [top] = g.items;
-  const what = g.file === null ? esc5(top?.title ?? "") : `${h.path(g.file)} <span class="muted small">${esc5(top?.title ?? "")}${g.items.length > 1 ? esc5(HTML_TEXT.scoreMoreItems(g.items.length - 1)) : ""}</span>`;
-  const weights = g.items.map((i) => i.weight).join(",");
-  return `<li data-file="${esc5(g.file ?? "")}" data-weights="${weights}"${hidden ? " hidden" : ""}><span class="score-points">${g.points}</span> ${what}</li>`;
-}
-function scoreBox(o, h) {
-  const { score, level, items } = mergeScore(o);
-  const groups = scoreGroups(items);
-  const drivers = groups.length === 0 ? `<p class="muted small">${HTML_TEXT.scoreNone}</p>` : `<ol class="score-drivers" id="score-drivers">${groups.map((g, i) => driver(g, h, i >= SHOWN_DRIVERS)).join("")}</ol>`;
-  const more = groups.length > SHOWN_DRIVERS ? groups.length - SHOWN_DRIVERS : 0;
-  return `<div class="score-box" id="merge-score" data-high="${HIGH_SCORE}" data-medium="${MEDIUM_SCORE}" data-shown="${SHOWN_DRIVERS}">
-<div class="muted small">${HTML_TEXT.scoreTitle}</div>
-<div class="score-value ${level}"><span id="score-value">${score}</span><span class="score-max">/100</span></div>
-<div><span class="chip ${level}" id="score-level">${HTML_TEXT.severity[scoreLevel(score)]}</span><span class="small muted" id="score-reviewed"></span></div>
-<div class="small" id="score-progress" data-template="${esc5(HTML_TEXT.scoreProgress)}" hidden></div>
-<div class="bar score-bar ${level === "high" ? "bad" : level === "medium" ? "warn" : ""}" id="score-bar"><span style="width:${score}%"></span></div>
-<details class="small score-details"><summary>${HTML_TEXT.scoreDrivers(groups.length)}</summary><p class="muted">${HTML_TEXT.scoreIntro}</p>${drivers}<p class="small muted" id="score-more"${more === 0 ? " hidden" : ""} data-template="${esc5(HTML_TEXT.scoreMore)}">${esc5(HTML_TEXT.scoreMore.replace("{n}", String(more)))}</p></details>
-</div>`;
-}
-
 // src/report/html-routes.ts
 var MAX_ROWS = 200;
 var RISK_ORDER = { high: 0, medium: 1, low: 2 };
-function esc6(text) {
+function esc5(text) {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
 function riskChip(risk) {
-  return risk ? `<span class="chip ${risk}" title="${esc6(HTML_TEXT.routeRiskTitle)}">${HTML_TEXT.severity[risk]}</span>` : "";
+  return risk ? `<span class="chip ${risk}" title="${esc5(HTML_TEXT.routeRiskTitle)}">${HTML_TEXT.severity[risk]}</span>` : "";
 }
-function routeRow(r, h, label2, showKey, flaggable = true) {
-  const key = showKey ? `<span class="muted small route-key">${esc6(h.shortKey(r.key))}</span>` : "";
+function routeRow(r, h, label2, showKey) {
+  const key = showKey ? `<span class="muted small route-key">${esc5(h.shortKey(r.key))}</span>` : "";
   const hits = h.traffic?.hits.get(r.key);
   const issues = h.traffic?.errors.get(r.key) ?? 0;
   const link2 = h.traffic?.links.get(r.key);
-  const errors = issues === 0 ? "" : link2 === void 0 ? `, ${esc6(USAGE_TEXT.distinct(issues))}` : `, <a class="dd-link" href="${esc6(link2)}" target="_blank" rel="noopener" title="${esc6(USAGE_TEXT.openInDatadog)}">${esc6(USAGE_TEXT.distinct(issues))} \u2197</a>`;
-  const traffic2 = hits === void 0 || !h.traffic ? "" : `<span class="chip traffic">${esc6(USAGE_TEXT.hits(compactNumber(hits), h.traffic.kind))}${errors}</span>`;
-  return `<details class="route" data-files="${esc6(r.files.join("|"))}"><summary title="${esc6(r.key)}"><span class="tag ${r.kind}">${HTML_TEXT.routeKinds[r.kind]}</span><code class="route-path">${esc6(label2)}</code>${key}${traffic2}<span class="small route-files" data-total="${r.files.length}">${esc6(HTML_TEXT.routeFiles(r.files.length))}</span>${riskChip(r.risk)}${flaggable && r.files.length > 0 ? `<button type="button" class="flag-toggle" data-flag-key="${esc6(r.key)}" aria-pressed="false" title="${esc6(FLAG_TEXT.title)}">${FLAG_TEXT.toggle}</button>` : ""}</summary>
-<div class="route-body">${r.chains.length > 0 ? `<div class="fs-target graph-wrap"><button type="button" class="fullscreen" title="${esc6(HTML_TEXT.fullscreenTitle)}">${HTML_TEXT.fullscreen}</button><pre class="mermaid">${esc6(r.mermaid)}</pre></div><p class="muted small diagram-note">${HTML_TEXT.diagramNote}</p>` : `<p class="muted small">${HTML_TEXT.noEntry}</p>`}</div></details>`;
+  const errors = issues === 0 ? "" : link2 === void 0 ? `, ${esc5(USAGE_TEXT.distinct(issues))}` : `, <a class="dd-link" href="${esc5(link2)}" target="_blank" rel="noopener" title="${esc5(USAGE_TEXT.openInDatadog)}">${esc5(USAGE_TEXT.distinct(issues))} \u2197</a>`;
+  const traffic = hits === void 0 || !h.traffic ? "" : `<span class="chip traffic">${esc5(USAGE_TEXT.hits(compactNumber(hits), h.traffic.kind))}${errors}</span>`;
+  return `<details class="route" data-files="${esc5(r.files.join("|"))}"><summary title="${esc5(r.key)}"><span class="tag ${r.kind}">${HTML_TEXT.routeKinds[r.kind]}</span><code class="route-path">${esc5(label2)}</code>${key}${traffic}<span class="small route-files" data-total="${r.files.length}">${esc5(HTML_TEXT.routeFiles(r.files.length))}</span>${riskChip(r.risk)}</summary>
+<div class="route-body">${r.chains.length > 0 ? `<div class="fs-target graph-wrap"><button type="button" class="fullscreen" title="${esc5(HTML_TEXT.fullscreenTitle)}">${HTML_TEXT.fullscreen}</button><pre class="mermaid">${esc5(r.mermaid)}</pre></div><p class="muted small diagram-note">${HTML_TEXT.diagramNote}</p>` : `<p class="muted small">${HTML_TEXT.noEntry}</p>`}</div></details>`;
 }
 function sharedPaths(routes) {
   return new Set(routes.filter((r, i) => routes.findIndex((o) => o.path === r.path) !== i).map((r) => r.path));
 }
-function routeRows(list2, h, flaggable = true) {
+function routeRows(list2, h) {
   const hits = h.traffic?.hits;
   const routes = hits && hits.size > 0 ? [...list2].sort((a, b) => (hits.get(b.key) ?? -1) - (hits.get(a.key) ?? -1)) : list2;
   const more = routes.length > MAX_ROWS ? `<p class="muted">${HTML_TEXT.more(routes.length - MAX_ROWS)}</p>` : "";
   const shared = sharedPaths(routes);
-  return `<div class="routes-list">${routes.slice(0, MAX_ROWS).map((r) => routeRow(r, h, r.path, shared.has(r.path), flaggable)).join("\n")}</div>${more}`;
+  return `<div class="routes-list">${routes.slice(0, MAX_ROWS).map((r) => routeRow(r, h, r.path, shared.has(r.path))).join("\n")}</div>${more}`;
 }
 function urlSegments(path3) {
   return path3.split("/").filter((s) => s !== "");
@@ -253420,36 +253174,7 @@ function renderTree(node2, h, depth, t) {
   const children = node2.children.map((c) => renderTree(c, h, depth + 1, t)).join("\n");
   if (depth === 0) return `<div class="tree">${pages}${children}</div>`;
   if (node2.children.length === 0 && node2.pages.length === 1) return pages;
-  return `<details class="tree-node"${depth === 1 ? " open" : ""}><summary><span class="tree-label">${esc6(node2.label)}</span><span class="muted small tree-count" data-one="${esc6(t.one)}" data-many="${esc6(t.many)}">${esc6(HTML_TEXT.treePages(countPages(node2), t))}</span>${riskChip(maxRisk(node2))}</summary><div class="tree-children">${pages}${children}</div></details>`;
-}
-function reviewPanel(pages, points, h, t, key) {
-  const counts = /* @__PURE__ */ new Map();
-  for (const p of pages) for (const f of p.files) counts.set(f, (counts.get(f) ?? 0) + 1);
-  for (const f of points.keys()) if (!counts.has(f)) counts.set(f, 0);
-  if (counts.size === 0) return "";
-  const files = [...counts.entries()].sort((a, b) => b[1] - a[1] || (points.get(b[0]) ?? 0) - (points.get(a[0]) ?? 0) || (a[0] < b[0] ? -1 : 1));
-  const boxes = files.map(([f, n]) => {
-    const pts = points.get(f) ?? 0;
-    return `<label class="review-file"><input type="checkbox" data-file="${esc6(f)}"> ${h.path(f)} <span class="flag-note"></span><span class="muted small">${esc6(n === 0 ? HTML_TEXT.reviewNoPages(t) : HTML_TEXT.reviewAffects(n, t))}${pts > 0 ? ` \xB7 ${esc6(HTML_TEXT.reviewPoints(pts))}` : ""}</span></label>`;
-  }).join("");
-  return `<details class="review" id="review" data-key="${esc6(key)}" data-template="${esc6(HTML_TEXT.reviewRemaining(t))}" data-marked="${esc6(HTML_TEXT.reviewMarked)}" data-shown="${esc6(HTML_TEXT.reviewShown)}" data-flag-status="${esc6(FLAG_TEXT.status("{n}", "{files}"))}" data-flag-note="${esc6(FLAG_TEXT.fileNote)}" data-flag-title="${esc6(FLAG_TEXT.fileNoteTitle)}"><summary>${HTML_TEXT.reviewTitle} <span class="muted small" id="review-status"></span></summary>
-<p class="small muted">${HTML_TEXT.reviewIntro(t)} ${esc6(FLAG_TEXT.hint)}</p>
-<div class="review-tools"><input type="search" id="review-search" placeholder="${esc6(HTML_TEXT.reviewSearch)}" spellcheck="false"><button type="button" id="review-mark-shown">${HTML_TEXT.reviewMarkShown}</button><button type="button" id="review-unmark-shown">${HTML_TEXT.reviewUnmarkShown}</button><label class="small"><input type="checkbox" id="review-hide-done"> ${HTML_TEXT.reviewHideDone}</label><span class="small muted" id="review-shown"></span></div>
-<div class="review-tools"><input type="text" id="review-regex" placeholder="${esc6(HTML_TEXT.reviewRegex)}" spellcheck="false"><button type="button" id="review-clear">${HTML_TEXT.reviewClear}</button><span class="small" id="review-error" hidden>${HTML_TEXT.reviewBadRegex}</span></div>
-<div class="review-files">${boxes}</div></details>`;
-}
-function flagSection(o, h, links) {
-  const pages = changedRoutes(o, links, (p) => h.shortPath(p)).filter((r) => !r.hasChildren && r.files.length > 0);
-  if (pages.length === 0) return "";
-  const items = pages.map((r) => `<div class="flag-item" data-search="${esc6(`${r.path} ${r.key}`.toLowerCase())}"><button type="button" class="flag-toggle" data-flag-key="${esc6(r.key)}" aria-pressed="false" title="${esc6(FLAG_TEXT.title)}">${FLAG_TEXT.toggle}</button><code class="route-path">${esc6(r.path)}</code>${r.kind === "added" ? `<span class="tag added">${FLAG_PANEL_TEXT.newTag}</span>` : ""}<span class="muted small">${esc6(FLAG_PANEL_TEXT.files(r.files.length))}</span></div>`).join("");
-  return `<details class="review flags" id="flags"><summary>${FLAG_PANEL_TEXT.title} <span class="muted small" id="flags-status"></span></summary>
-<p class="small muted">${FLAG_PANEL_TEXT.intro}</p>
-<div class="review-tools"><input type="search" id="flags-search" placeholder="${esc6(FLAG_PANEL_TEXT.search)}" spellcheck="false"></div>
-<div class="flag-items">${items}</div></details>`;
-}
-function reviewSection(o, h, links) {
-  const pages = changedRoutes(o, links, (p) => h.shortPath(p)).filter((r) => !r.hasChildren);
-  return reviewPanel(pages, scoreByFile(o), h, terms(o.surface), o.head.sha ?? o.head.ref);
+  return `<details class="tree-node"${depth === 1 ? " open" : ""}><summary><span class="tree-label">${esc5(node2.label)}</span><span class="muted small tree-count" data-one="${esc5(t.one)}" data-many="${esc5(t.many)}">${esc5(HTML_TEXT.treePages(countPages(node2), t))}</span>${riskChip(maxRisk(node2))}</summary><div class="tree-children">${pages}${children}</div></details>`;
 }
 function routesSection(o, h, links) {
   const t = terms(o.surface);
@@ -253458,123 +253183,14 @@ function routesSection(o, h, links) {
   const layouts = routes.filter((r) => r.hasChildren);
   const count2 = (kind) => pages.filter((r) => r.kind === kind).length;
   const legend = `<div class="legend"><span class="lg lg-route">${t.one}</span><span class="lg lg-module">${HTML_TEXT.legend.module}</span><span class="lg lg-changed">${HTML_TEXT.legend.changed}</span><span class="lg lg-added">${HTML_TEXT.legend.added}</span><span class="lg lg-high">${HTML_TEXT.legend.high}</span><span class="lg lg-medium">${HTML_TEXT.legend.medium}</span><span class="muted small">${HTML_TEXT.legend.arrow}</span></div>`;
-  const review = scoreByFile(o).size > 0 || pages.length > 0 ? `<p class="small"><a href="#review">${HTML_TEXT.reviewJump}</a></p>` : "";
-  const views = pages.length === 0 ? `${review}<p class="muted">${HTML_TEXT.noneFound}</p>` : `<p class="small muted">${HTML_TEXT.routesIntro(t)}</p>${review}${legend}
+  const views = pages.length === 0 ? `<p class="muted">${HTML_TEXT.noneFound}</p>` : `<p class="small muted">${HTML_TEXT.routesIntro(t)}</p>${legend}
 <input type="radio" name="routes-view" id="routes-view-list" class="view-input" checked><input type="radio" name="routes-view" id="routes-view-tree" class="view-input">
 <div class="view-switch"><label for="routes-view-list">${HTML_TEXT.viewList}</label><label for="routes-view-tree">${HTML_TEXT.viewTree}</label></div>
 <div class="view view-list">${routeRows(pages, h)}</div><div class="view view-tree">${renderTree(buildRouteTree(pages, o.surface === "backend" ? backendSegments : urlSegments), h, 0, t)}</div>`;
-  const layoutBlock = layouts.length > 0 ? `<details class="layouts"><summary>${HTML_TEXT.layoutsTitle(layouts.length)}</summary><p class="small muted">${HTML_TEXT.layoutsIntro}</p>${routeRows(layouts, h, false)}</details>` : "";
+  const layoutBlock = layouts.length > 0 ? `<details class="layouts"><summary>${HTML_TEXT.layoutsTitle(layouts.length)}</summary><p class="small muted">${HTML_TEXT.layoutsIntro}</p>${routeRows(layouts, h)}</details>` : "";
   const disconnected = o.routes.disconnectedNewFiles.length > 0 ? `<h3>${HTML_TEXT.disconnectedTitle}</h3><div class="finding-files">${o.routes.disconnectedNewFiles.map((p) => h.path(p)).join("")}</div>` : "";
   return `<section class="panel"><h3>${HTML_TEXT.changedRoutesTitle(`<span id="routes-affected">${count2("affected")}</span>`, count2("added"), t)}</h3>${views}${layoutBlock}${disconnected}</section>`;
 }
-
-// src/report/html-result.ts
-function scriptJson(value) {
-  return JSON.stringify(value).replaceAll("<", "\\u003c");
-}
-function resultSection(o) {
-  const score = mergeScore(o);
-  const verdict = computeVerdict(o);
-  const commit = (o.head.sha ?? o.head.ref).slice(0, 12);
-  const data = {
-    of: RESULT_TEXT.of(o.repo ?? "", o.pr === null ? "" : `#${o.pr}`, commit),
-    version: o.tool.version,
-    verdict: PLAN_TEXT.levels[verdict.level],
-    score: String(score.score),
-    level: HTML_TEXT.severity[score.level],
-    many: terms(o.surface).many,
-    security: o.signals.security.findings.map((f) => ({ id: `security:${f.path}:${f.line}:${f.rule}`, label: `${f.path}:${f.line} ${f.severity} ${f.rule}` })),
-    vulns: o.signals.vulnerabilities.related.map((r) => ({ id: `vuln:${r.package}:${r.id}`, label: `${r.package} ${r.severity} ${r.id}` })),
-    contracts: (o.contracts?.entries ?? []).filter((e) => e.level !== "safe").map((e) => ({ id: `contract:${e.key}`, label: `${e.key} (${e.level})` })),
-    t: {
-      heading: RESULT_TEXT.heading,
-      initial: RESULT_TEXT.initial,
-      now: RESULT_TEXT.now,
-      score: RESULT_TEXT.score("{score}", "{level}"),
-      files: RESULT_TEXT.files("{done}", "{total}"),
-      entries: RESULT_TEXT.entries("{left}", "{total}", "{many}"),
-      flagged: RESULT_TEXT.flagged("{n}"),
-      flaggedFiles: RESULT_TEXT.flaggedFiles("{n}"),
-      reviewed: RESULT_TEXT.reviewed("{n}"),
-      security: RESULT_TEXT.security("{done}", "{total}"),
-      vulns: RESULT_TEXT.vulns("{done}", "{total}"),
-      contracts: RESULT_TEXT.contracts("{done}", "{total}"),
-      nothing: RESULT_TEXT.nothing,
-      more: RESULT_TEXT.more("{n}"),
-      footer: RESULT_TEXT.footer("{version}")
-    }
-  };
-  return `<section class="panel"><p class="small muted">${RESULT_TEXT.intro}</p><div class="result-tools"><button type="button" id="result-copy">${RESULT_TEXT.copy}</button><span class="small" id="result-copied" hidden>${RESULT_TEXT.copied}</span></div><pre class="result-text" id="result-text"></pre><script type="application/json" id="result-data">${scriptJson(data)}</script></section>`;
-}
-var RESULT_SCRIPT = `<script>
-(() => {
-  const data = document.getElementById('result-data')
-  if (!data) return
-  const d = JSON.parse(data.textContent)
-  const out = document.getElementById('result-text')
-  const fill = (text, values) => text.replace(/\\{(\\w+)\\}/g, (m, k) => (values[k] === undefined ? m : String(values[k])))
-  const code = (text) => '\`' + String(text).replaceAll('\`', "'") + '\`'
-  const bullets = (items, max) => [...items.slice(0, max).map((x) => '- ' + code(x)), ...(items.length > max ? ['- ' + fill(d.t.more, { n: items.length - max })] : [])]
-  const checks = (title, list, acks) => {
-    if (list.length === 0) return []
-    const done = list.filter((x) => acks.has(x.id)).length
-    return ['', '**' + fill(title, { done, total: list.length }) + '**', ...list.map((x) => '- [' + (acks.has(x.id) ? 'x' : ' ') + '] ' + code(x.label))]
-  }
-  const pathOf = (key) => {
-    for (const b of document.querySelectorAll('button.flag-toggle')) {
-      if (b.dataset.flagKey !== key) continue
-      const path = b.parentElement && b.parentElement.querySelector('.route-path')
-      if (path) return path.textContent
-    }
-    return key
-  }
-  const render = () => {
-    const st = window.farolState || { ticked: [], covered: [], flagged: [], acks: [], left: 0, total: 0, files: 0 }
-    const acks = new Set(st.acks)
-    const score = (document.getElementById('score-value') || {}).textContent || d.score
-    const level = (document.getElementById('score-level') || {}).textContent || d.level
-    const done = new Set([...st.ticked, ...st.covered]).size
-    const lines = [d.t.heading + ' \u2014 ' + d.of, '']
-    lines.push('- **' + d.t.initial + ':** ' + d.verdict + ' \xB7 ' + fill(d.t.score, { score: d.score, level: d.level }))
-    const now = [fill(d.t.score, { score, level })]
-    if (st.files > 0) now.push(fill(d.t.files, { done, total: st.files }))
-    if (st.total > 0) now.push(fill(d.t.entries, { left: st.left, total: st.total, many: d.many }))
-    lines.push('- **' + d.t.now + ':** ' + now.join(' \xB7 '))
-    const outOfReview = st.covered.filter((f) => !st.ticked.includes(f)).length
-    if (st.flagged.length > 0) lines.push('', '**' + fill(d.t.flagged, { n: st.flagged.length }) + '**' + (outOfReview > 0 ? ' \u2014 ' + fill(d.t.flaggedFiles, { n: outOfReview }) : ''), ...bullets(st.flagged.map(pathOf), 30))
-    if (st.ticked.length > 0) lines.push('', '**' + fill(d.t.reviewed, { n: st.ticked.length }) + '**', ...bullets(st.ticked, 30))
-    lines.push(...checks(d.t.security, d.security, acks), ...checks(d.t.vulns, d.vulns, acks), ...checks(d.t.contracts, d.contracts, acks))
-    if (st.flagged.length + st.ticked.length + st.acks.length === 0) lines.push('', d.t.nothing)
-    lines.push('', fill(d.t.footer, { version: d.version }))
-    out.textContent = lines.join('\\n')
-    const badge = document.getElementById('result-count')
-    if (badge) {
-      const n = st.flagged.length + st.ticked.length + st.acks.length
-      badge.textContent = String(n)
-      badge.hidden = n === 0
-    }
-  }
-  document.addEventListener('farol-reviewed', render)
-  document.getElementById('result-copy').addEventListener('click', async () => {
-    const text = out.textContent
-    try {
-      await navigator.clipboard.writeText(text)
-    } catch {
-      // No clipboard permission (file:// pages in some browsers): select the text for a manual copy.
-      const range = document.createRange()
-      range.selectNodeContents(out)
-      const sel = getSelection()
-      sel.removeAllRanges()
-      sel.addRange(range)
-      document.execCommand('copy')
-    }
-    const copied = document.getElementById('result-copied')
-    copied.hidden = false
-    setTimeout(() => { copied.hidden = true }, 1800)
-  })
-  render()
-})()
-</script>`;
 
 // src/report/html-assets.ts
 var ASSETS = {
@@ -253683,7 +253299,11 @@ var ASSETS = {
     font-weight="600" 
     letter-spacing="-0.04em" 
     fill="#0F172A">farol</text>
-</svg>`
+</svg>`,
+  "report/wb-core.js": "/* farol report, in the browser (1/3): review state, live score, attribution, tiers, coverage, diffs and the\n * pages/operations list. Reads window.FAROL = { D: view model (src/report/workbench-model.ts), T: texts\n * (src/report/strings-workbench.ts) }. No user-facing text here: every text comes from T. */\nconst { D, T } = window.FAROL\nconst esc = (s) => String(s ?? '').replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' })[c])\n/** Fills {name} placeholders of a text. */\nconst t = (text, values = {}) => String(text).replace(/\\{(\\w+)\\}/g, (m, k) => (values[k] === undefined ? m : String(values[k])))\n/** \"1 file\" / \"3 files\", from a [one, many] pair of T. */\nconst pl = (n, pair) => t(n === 1 ? pair[0] : pair[1], { n })\nconst short = (p) => (p && D.prefix && p.startsWith(D.prefix) ? p.slice(D.prefix.length) : p ?? '')\nconst base = (p) => (p ?? '').split('/').pop()\nconst dir = (p) => { const s = short(p).split('/'); s.pop(); return s.length ? s.join('/') + '/' : '' }\nconst pct = (r) => `${Math.round(r * 100)}%`\nconst listText = (xs) => (xs.length <= 1 ? xs.join('') : t(T.listAnd, { items: xs.slice(0, -1).join(', '), last: xs[xs.length - 1] }))\nconst TERM = D.term\n\n/* Review state, kept in this browser per commit. */\nconst KEY = `farol-review:${D.repo ?? ''}:${D.head}:${D.surface}`\nconst EMPTY = () => ({ reviewed: [], acked: [], tested: [], flagged: [], notes: {} })\nconst state = (() => { try { return { ...EMPTY(), ...JSON.parse(localStorage.getItem(KEY)) } } catch { return EMPTY() } })()\nconst save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)) } catch { /* private window: state lives until the page closes */ } }\nconst listeners = []\nconst onChange = (fn) => listeners.push(fn)\nconst emit = () => { save(); listeners.forEach((fn) => fn()) }\nconst setIn = (list, id, on) => { const set = new Set(state[list]); if (on) set.add(id); else set.delete(id); state[list] = [...set] }\nconst toggle = (list, id, on) => { setIn(list, id, on ?? !state[list].includes(id)); emit() }\nconst isReviewed = (file) => state.reviewed.includes(file)\nconst isAcked = (id) => state.acked.includes(id)\n\n/* Feature flags: a changed file whose pages/operations all ship behind a flag leaves the score, like a reviewed one. */\nconst OPS = D.ops\nconst FILE_OPS = new Map()\nfor (const op of OPS) for (const f of op.files) FILE_OPS.set(f, [...(FILE_OPS.get(f) ?? []), op.key])\nconst isFlagged = (key) => state.flagged.includes(key)\nconst flagCovered = (file) => { const keys = FILE_OPS.get(file); return !!keys?.length && keys.every(isFlagged) }\n\n/* Score groups: one per file, one per finding (security, lint: checked on their own, not by reviewing the file), and\n * one per item without a file (contract, vulnerable dependency, analysis problems). */\nconst FINDING_KINDS = new Set(['security', 'lint'])\nconst lineOf = (title) => Number(title.match(/at line (\\d+)/)?.[1] ?? 0)\nconst logOf = (items) => items.reduce((s, it) => s - Math.log(1 - it.weight), 0)\nconst GROUPS = D.groups.flatMap((g, i) => {\n  const rest = g.items.filter((it) => !(g.file && FINDING_KINDS.has(it.kind)))\n  const findings = g.file ? g.items.filter((it) => FINDING_KINDS.has(it.kind)) : []\n  return [\n    ...(rest.length ? [{ file: g.file, items: rest, id: g.file ?? `item:${g.items[0].kind}:${i}`, log: logOf(rest) }] : []),\n    ...findings.map((it) => ({ file: null, owner: g.file, items: [it], id: `finding:${it.kind}:${g.file}:${lineOf(it.title)}`, log: logOf([it]) })),\n  ]\n})\nconst groupActive = (g) => (g.file ? !isReviewed(g.file) && !flagCovered(g.file) : !isAcked(g.id))\n/** What must be checked by hand, above every file: breaking contracts, security findings, lint errors, vulnerable dependencies. */\nconst isMust = (g) => g.owner != null || g.items.every((i) => i.kind === 'contract' || i.kind === 'vulnerability')\nconst MUST = GROUPS.filter(isMust)\n/** Removable by the reviewer: files by reviewing them, the rest of Must check by checking it. */\nconst groupRemovable = (g) => g.file !== null || isMust(g)\nconst findingLine = (g) => lineOf(g.items[0].title)\nconst SCORE0 = Math.round(100 * (1 - Math.exp(-GROUPS.reduce((n, g) => n + g.log, 0))))\n\nfunction liveScore() {\n  const L = GROUPS.filter(groupActive).reduce((s, g) => s + g.log, 0)\n  return Math.round(100 * (1 - Math.exp(-L)))\n}\n/** Integer shares of the score that add up to it (log attribution, largest remainder). */\nfunction shares(groups) {\n  const L = groups.reduce((s, g) => s + g.log, 0)\n  const score = 100 * (1 - Math.exp(-L))\n  const rows = groups.map((g) => { const v = L === 0 ? 0 : (score * g.log) / L; return { group: g, v, points: Math.floor(v) } })\n  let left = Math.round(score) - rows.reduce((s, r) => s + r.points, 0)\n  ;[...rows].sort((a, b) => (b.v - b.points) - (a.v - a.points)).forEach((r) => { if (left > 0) { r.points++; left-- } })\n  return rows.sort((a, b) => b.v - a.v)\n}\n/** Share of the current score owed to each part still active. */\nconst attribution = () => shares(GROUPS.filter(groupActive))\n/** Shares with nothing reviewed: the points each part had at first. */\nconst attributionAll = () => shares(GROUPS)\nconst POINTS0 = new Map(attributionAll().map((a) => [a.group.id, a.points]))\n/** Each file's share of the current score: what ticking it removes now. */\nconst shareOf = () => new Map(attribution().filter((a) => a.group.file).map((a) => [a.group.file, a.points]))\nfunction topParts(att, max) {\n  const list = att.filter((a) => a.points > 0)\n  return list.length <= max + 1 ? { top: list, rest: [] } : { top: list.slice(0, max), rest: list.slice(max) }\n}\nconst levelOf = (s) => (s >= 60 ? 'high' : s >= 30 ? 'medium' : 'low')\n/** A low score and nothing left in Must check: what is left looks safe to approve. */\nfunction readiness() {\n  const s = liveScore()\n  const mustLeft = MUST.filter(groupActive).length\n  return { s, mustLeft, ready: levelOf(s) === 'low' && mustLeft === 0 }\n}\n\n/* Files to review: their own points leave the findings out, so tiers rank the code change itself. */\nconst FILES = D.files.map((f) => { const g = GROUPS.find((x) => x.file === f.path); return { ...f, points: g ? Math.round(100 * (1 - Math.exp(-g.log))) : 0 } })\n  .sort((a, b) => b.points - a.points || (a.path < b.path ? -1 : 1))\nconst TIERS = [{ id: 'high', min: 20 }, { id: 'medium', min: 5 }, { id: 'skim', min: -1, collapsed: true }, { id: 'tests', min: Infinity, collapsed: true }]\nconst tierOf = (f) => (f.extra === 'tests' ? 'tests' : TIERS.find((x) => f.points >= x.min).id)\nconst filesByTier = () => TIERS.map((x) => ({ ...x, label: T.tiers[x.id], files: FILES.filter((f) => tierOf(f) === x.id) })).filter((x) => x.files.length)\nconst fileDone = (f) => isReviewed(f.path) || flagCovered(f.path)\n\nfunction groupLabel(g) {\n  if (g.file) return short(g.file)\n  const it = g.items[0]\n  if (g.owner) return t(it.kind === 'security' ? T.must.securityAt : T.must.lintAt, { file: base(g.owner), line: findingLine(g) })\n  return T.kinds[it.kind] ?? it.kind\n}\nfunction groupWhy(g) {\n  const f = g.file && FILES.find((x) => x.path === g.file)\n  if (f && f.why) return f.why\n  return g.items.map((i) => i.title).join(' \xB7 ')\n}\n\n/** One sentence on where the risk comes from (the two largest parts at first) and how far the change reaches. */\nfunction riskLede() {\n  const top = attributionAll().filter((a) => a.points > 0).slice(0, 2).map(({ group: g }) => {\n    const it = g.items[0]\n    if (it.kind === 'contract') return t(T.lede.contract, { key: `<code>${esc(it.title.match(/of (.+?):/)?.[1] ?? '')}</code>` })\n    if (g.owner) return t(it.kind === 'security' ? T.lede.security : T.lede.lint, { file: `<code>${esc(base(g.owner))}</code>` })\n    if (!g.file) return esc(it.title)\n    const code = `<code>${esc(base(g.file))}</code>`\n    if (g.items.some((i) => i.kind === 'global')) return t(T.lede.global, { file: code })\n    const deps = D.dependencies.filter((c) => c.manifest === g.file && g.items.some((i) => i.kind === 'dependency' && i.title.startsWith(c.name + ' ')))\n    if (deps.length) {\n      const c = [...deps].sort((a, b) => Number(b.critical) - Number(a.critical))[0]\n      return c.from && c.to ? t(c.critical ? T.lede.bumpMayBreak : T.lede.bump, { name: `<code>${esc(c.name)}</code>`, from: esc(c.from), to: esc(c.to) }) : t(T.lede.dependency, { name: `<code>${esc(c.name)}</code>`, change: esc(c.change) })\n    }\n    if (it.kind === 'tests') return t(T.lede.tests, { file: code })\n    const f = FILES.find((x) => x.path === g.file)\n    return f?.why ? t(T.lede.file, { file: code, why: esc(f.why) }) : code\n  })\n  const code = FILES.filter((f) => !f.extra).length\n  const reach = t(T.lede.reach, { files: pl(code, T.codeFiles), n: D.routes.affected, total: D.totalEntries, many: TERM.many })\n  const added = D.routes.added ? t(T.lede.added, { what: pl(D.routes.added, T.newEntries) }) : ''\n  return `${top.length ? t(T.lede.top, { parts: listText(top) }) + ' ' : ''}${reach}${added}.`\n}\n\n/* Coverage of the changed lines. */\nconst COV = D.coverage.status === 'ok' ? D.coverage : null\nconst covOf = (path) => COV?.files.find((f) => f.path === path) ?? null\nfunction coverageSummary() {\n  if (!COV || !COV.total) return null\n  const reported = COV.files.filter((f) => !f.missing)\n  const rTotal = reported.reduce((s, f) => s + f.total, 0)\n  const rCovered = reported.reduce((s, f) => s + f.covered, 0)\n  const missing = COV.files.filter((f) => f.missing)\n  return { ratio: COV.covered / COV.total, covered: COV.covered, total: COV.total, missing, missingLines: missing.reduce((s, f) => s + f.total, 0), reportedRatio: rTotal ? rCovered / rTotal : 1 }\n}\nconst inRanges = (line, ranges) => ranges.some((r) => line >= r.start && line <= r.end)\nconst rangeText = (r) => (r.start === r.end ? `${r.start}` : `${r.start}\u2013${r.end}`)\n\n/* GitHub: a changed file in the pull request, and one line of it (where a comment can be left). */\nconst ghFile = (path) => D.links.files[path] ?? null\nconst ghLine = (path, side, n) => (D.links.files[path] ? `${D.links.files[path]}${side}${n}` : null)\n\n/** Findings on a file's lines, to annotate its diff. */\nfunction notesOf(path) {\n  const notes = []\n  for (const s of D.security) if (s.path === path) notes.push({ line: s.line, tone: 'bad', label: t(T.diff.security, { severity: s.severity }), text: s.message })\n  for (const l of D.lint) if (l.path === path && !D.security.some((s) => s.path === path && s.line === l.line)) notes.push({ line: l.line, tone: '', label: t(T.diff.lint, { rule: l.rule }), text: l.message })\n  for (const s of D.suppressions) if (s.path === path) notes.push({ line: s.line, tone: '', label: t(T.diff.suppression, { kind: s.kind }), text: s.text })\n  return notes\n}\nfunction addedLines(path) {\n  const out = new Map()\n  for (const h of D.diffs[path] ?? []) {\n    let n = h.newStart\n    for (const line of h.lines) { if (line[0] === '+') out.set(n++, line.slice(1)); else if (line[0] !== '-') n++ }\n  }\n  return out\n}\n/** One sentence on a file's diff coverage, with links that jump to each stretch that never ran. */\nfunction coverageNote(path) {\n  const cf = covOf(path)\n  if (!cf) return COV ? '' : `<div class=\"covhead\">${T.diff.noReport}</div>`\n  if (cf.missing) return `<div class=\"covhead bad\">${t(T.diff.missing, { n: cf.total })}</div>`\n  if (cf.total === 0) return `<div class=\"covhead\">${T.diff.declarations}</div>`\n  const added = addedLines(path)\n  const blocks = cf.uncovered.filter((r) => [...added.keys()].some((k) => k >= r.start && k <= r.end))\n  if (!blocks.length) return `<div class=\"covhead\">${t(T.diff.allRan, { n: cf.total })}</div>`\n  const links = blocks.map((b) => `<a href=\"#\" data-jump=\"${b.start}\">${rangeText(b)}</a>`)\n  return `<div class=\"covhead bad\">${t(T.diff.someRan, { covered: cf.covered, total: cf.total, missing: pl(cf.total - cf.covered, T.lines), ranges: listText(links) })}</div>`\n}\nconst lnk = (path, side, n) => { const url = ghLine(path, side, n); return url ? `<a class=\"d-gh\" href=\"${esc(url)}\" target=\"_blank\" rel=\"noopener\" title=\"${esc(T.diff.commentLine)}\">${n}</a>` : n }\n/** Unified diff of a file; lines the tests never ran are marked and each stretch of them is labeled. */\nfunction renderDiff(path, maxLines = 1500) {\n  const hunks = D.diffs[path]\n  if (!hunks) return `<p class=\"muted small\">${T.diff.none}${ghFile(path) ? ` <a href=\"${esc(ghFile(path))}\" target=\"_blank\" rel=\"noopener\">${T.diff.seeInPr}</a>` : ''}</p>`\n  const cf = covOf(path)\n  const marks = cf && !cf.missing && cf.total > 0\n  const notes = notesOf(path)\n  const added = addedLines(path)\n  let rows = ''\n  let count = 0\n  let inBlock = false\n  for (const h of hunks) {\n    rows += `<tr class=\"d-hunk\"><td colspan=\"3\">${esc(h.header)}</td></tr>`\n    let o = h.oldStart\n    let n = h.newStart\n    for (const line of h.lines) {\n      if (count++ > maxLines) break\n      const kind = line[0]\n      const text = esc(line.slice(1)) || ' '\n      if (kind === '+') {\n        const unc = marks && inRanges(n, cf.uncovered)\n        if (unc && !inBlock) {\n          const r = cf.uncovered.find((x) => n >= x.start && n <= x.end)\n          const shown = [...added.keys()].filter((k) => k >= r.start && k <= r.end)\n          rows += `<tr class=\"d-unclabel\" data-ln=\"${n}\"><td colspan=\"2\"></td><td>${t(T.diff.notRun, { lines: rangeText({ start: shown[0] ?? r.start, end: shown[shown.length - 1] ?? r.end }) })}</td></tr>`\n        }\n        inBlock = unc\n        rows += `<tr class=\"d-add${unc ? ' d-unc' : ''}\" data-new=\"${n}\"><td class=\"d-n\"></td><td class=\"d-n\">${lnk(path, 'R', n)}</td><td class=\"d-c\">${text}</td></tr>`\n        for (const nt of notes.filter((x) => x.line === n)) rows += `<tr class=\"d-note\"><td colspan=\"2\"></td><td><div class=\"note ${nt.tone}\"><b>${esc(nt.label)}</b> ${esc(nt.text)}</div></td></tr>`\n        n++\n      } else if (kind === '-') {\n        rows += `<tr class=\"d-del\"><td class=\"d-n\">${lnk(path, 'L', o)}</td><td class=\"d-n\"></td><td class=\"d-c\">${text}</td></tr>`\n        o++\n      } else {\n        inBlock = false\n        rows += `<tr data-new=\"${n}\"><td class=\"d-n\">${o}</td><td class=\"d-n\">${lnk(path, 'R', n)}</td><td class=\"d-c\">${text}</td></tr>`\n        o++\n        n++\n      }\n    }\n  }\n  return `<div class=\"diffbox\">${ghFile(path) ? `<div class=\"ghhint\">${T.diff.hint}</div>` : ''}${coverageNote(path)}<div class=\"diff\"><table>${rows}</table></div></div>`\n}\n/** Scrolls a diff to a line and flashes it. */\nfunction flashRow(row) {\n  if (!row) return\n  row.scrollIntoView({ behavior: 'smooth', block: 'center' })\n  row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash')\n}\ndocument.addEventListener('click', (e) => {\n  const a = e.target.closest?.('[data-jump]')\n  if (!a) return\n  e.preventDefault()\n  flashRow(document.querySelector(`tr[data-ln=\"${a.dataset.jump}\"]`) ?? document.querySelector(`tr[data-new=\"${a.dataset.jump}\"]`))\n})\n\n/* Theme: follows the system, with a manual override. */\nfunction initTheme(button) {\n  const root = document.documentElement\n  try { const saved = localStorage.getItem('farol-theme'); if (saved) root.dataset.theme = saved } catch { /* no storage */ }\n  button?.addEventListener('click', () => {\n    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches\n    root.dataset.theme = dark ? 'light' : 'dark'\n    try { localStorage.setItem('farol-theme', root.dataset.theme) } catch { /* no storage */ }\n    window.dispatchEvent(new Event('farol-theme'))\n  })\n}\n",
+  "report/wb-pages.js": "/* farol report, in the browser (3/3): what the change can affect, the API contract, the details of the analysis,\n * the results for the pull request, routing and events. Uses wb-core.js and wb-views.js. */\nconst compact = (n) => (n < 1000 ? String(n) : n < 1e6 ? `${(n / 1000).toFixed(n < 1e4 ? 1 : 0)}k` : `${(n / 1e6).toFixed(n < 1e7 ? 1 : 0)}M`)\n\n/** Pages/operations the change can affect: try them by hand, or mark the ones that ship behind a feature flag. */\nfunction renderOps(limit) {\n  if (!OPS.length) return `<p class=\"muted\">${t(T.plan.none, { many: TERM.many })}</p>`\n  const tried = OPS.filter((o) => state.tested.includes(o.key)).length\n  const flagged = OPS.filter((o) => isFlagged(o.key)).length\n  const out = GROUPS.filter((g) => g.file && flagCovered(g.file) && !isReviewed(g.file))\n  const row = (o) => {\n    const done = state.tested.includes(o.key)\n    const fl = isFlagged(o.key)\n    const files = o.files.map((f) => `<span class=\"${flagCovered(f) ? 'gone' : ''}\">${esc(base(f))}</span>`)\n    const traffic = o.hits || o.errors ? `<span class=\"op-traffic\">${[o.hits ? t(TERM.one === 'page' ? T.plan.views : T.plan.requests, { n: compact(o.hits) }) : '', o.errors ? (o.errorsUrl ? `<a href=\"${esc(o.errorsUrl)}\" target=\"_blank\" rel=\"noopener\">${pl(o.errors, T.plan.errors)}</a>` : pl(o.errors, T.plan.errors)) : ''].filter(Boolean).join(' \xB7 ')}</span>` : ''\n    return `<div class=\"op${done ? ' done' : ''}${fl ? ' flagged' : ''}\"><label class=\"op-main\"><input type=\"checkbox\" data-test=\"${esc(o.key)}\" ${done ? 'checked' : ''} aria-label=\"${esc(T.plan.triedBox)}\">\n      <span class=\"op-txt\"><span class=\"op-path\">${esc(o.path)}</span>${o.kind === 'new' ? `<span class=\"op-new\">${T.plan.newTag}</span>` : ''}${traffic}\n      <span class=\"op-via\">${o.kind === 'new' ? T.plan.servedBy : T.plan.runs} ${files.slice(0, 2).join(', ')}${files.length > 2 ? ' ' + t(T.andMore, { n: files.length - 2 }) : ''}</span></span></label>\n      <button type=\"button\" class=\"op-flag\" data-flag=\"${esc(o.key)}\" aria-pressed=\"${fl}\" title=\"${esc(t(T.plan.flagTitle, { one: TERM.one }))}\">${fl ? T.plan.flagOn : T.plan.flagOff}</button></div>`\n  }\n  const first = OPS.slice(0, limit)\n  const rest = OPS.slice(limit)\n  return `<div class=\"ops-status\"><span>${t(T.plan.tried, { done: tried, total: OPS.length })}</span><span>${t(T.plan.flagged, { n: flagged })}</span>${out.length ? `<span class=\"ops-out\">${out.map((g) => t(T.plan.left, { file: esc(base(g.file)), points: POINTS0.get(g.id) ?? 0 })).join(' \xB7 ')}</span>` : ''}</div>\n  <div class=\"ops-head\"><span>${t(T.plan.head, { one: TERM.one })}</span><span>${T.plan.flagHead}</span></div>\n  <div class=\"ops\">${first.map(row).join('')}</div>\n  ${rest.length ? `<details class=\"ops-more\"><summary>${t(T.plan.more, { what: pl(rest.length, T.entriesPair) })}</summary><div class=\"ops\">${rest.map(row).join('')}</div></details>` : ''}`\n}\n\nfunction planView() {\n  const nNew = OPS.filter((o) => o.kind === 'new').length\n  return `<h1>${T.plan.title}</h1><p class=\"lead\">${t(T.plan.lead, { n: OPS.length - nNew, many: TERM.many, added: nNew ? t(T.plan.leadNew, { what: pl(nNew, T.newEntries) }) : '', one: TERM.one })}</p>\n  <div class=\"opsbox\">${renderOps(10)}</div>`\n}\n\nfunction contractView() {\n  const list = D.contracts ?? []\n  const ids = contractGroups.map((g) => g.id).join('|')\n  const acked = contractGroups.length > 0 && contractGroups.every((g) => isAcked(g.id))\n  const callers = (key) => { const c = D.callers[key]; return c?.length ? `<div class=\"small muted\">${t(T.contract.callers, { services: c.map((x) => esc(x.service)).join(', ') })}</div>` : '' }\n  const row = (e) => `<div class=\"contract\"><span class=\"k\">${esc(e.key)}</span>${e.level !== 'safe' ? `<span class=\"pill\">${esc(T.contract.levels[e.level])}</span>` : ''}${callers(e.key)}<ul>${e.changes.map((c) => `<li class=\"${c.level}\"><span class=\"w\">${esc(c.where)}</span><span class=\"d\">${esc(c.detail)}</span></li>`).join('')}</ul>${e.omitted ? `<div class=\"small muted\">${t(T.andMore, { n: e.omitted })}</div>` : ''}</div>`\n  const bad = list.filter((e) => e.level !== 'safe')\n  return `<h1>${T.contract.title}</h1><p class=\"lead\">${T.contract.lead}</p>\n  ${contractGroups.length ? `<label class=\"ack big\"><input type=\"checkbox\" data-ack=\"${esc(ids)}\" ${acked ? 'checked' : ''}> ${T.contract.ack}</label>` : ''}\n  <h2>${T.contract.breaking}</h2>${bad.map(row).join('') || `<p class=\"muted\">${T.none}</p>`}<h2>${T.contract.safe}</h2>${list.filter((e) => e.level === 'safe').map(row).join('') || `<p class=\"muted\">${T.none}</p>`}`\n}\n\n/** The full analysis (routes, reach, signals, dependencies, reasons, diagnostics), in a frame of its own. */\nfunction detailsView() {\n  return `<h1>${T.details.title}</h1><p class=\"lead\">${T.details.lead}</p><iframe class=\"details-frame\" id=\"details-frame\" title=\"${esc(T.details.title)}\"></iframe>`\n}\nfunction fillDetails() {\n  const frame = document.getElementById('details-frame')\n  const src = document.getElementById('farol-details')\n  if (!frame || !src) return\n  const html = JSON.parse(src.textContent)\n  const theme = document.documentElement.dataset.theme\n  frame.srcdoc = theme ? html.replace('<html ', `<html data-theme=\"${theme}\" `) : html\n}\nwindow.addEventListener('farol-theme', () => { if (ui.view === 'details') fillDetails() })\n\n/** Just for curiosity: how much of the pull request needed a careful read, and the time that saves. */\nfunction savedTime() {\n  const lines = new Map(D.allFiles.map((f) => [f.path, f.added + f.removed]))\n  const total = [...lines.values()].reduce((a, b) => a + b, 0)\n  if (!total) return ''\n  const needed = new Set([...FILES.filter((f) => tierOf(f) === 'high' || tierOf(f) === 'medium').map((f) => f.path), ...MUST.filter((g) => g.owner).map((g) => g.owner)])\n  const read = [...needed].reduce((a, p) => a + (lines.get(p) ?? 0), 0)\n  const PACE = 400 // lines an hour: the usual upper bound of a careful code review\n  const time = (n) => { const m = Math.max(1, Math.round((n / PACE) * 60)); return m < 60 ? t(T.results.minutes, { m }) : t(T.results.hours, { h: Math.floor(m / 60), m: String(m % 60).padStart(2, '0') }) }\n  return `<div class=\"saved\"><div class=\"big\">${pct(read / total)}</div><p>${t(T.results.saved, { read, total, files: needed.size, all: D.allFiles.length, pace: PACE, time: time(read), full: time(total) })}</p>\n    <div class=\"bar track\"><span style=\"width:${(read / total) * 100}%\"></span></div><small>${T.results.curiosity}</small></div>`\n}\n\n/** Everything the reviewer did, as GitHub Markdown for a pull request comment. */\nfunction resultsMd() {\n  const s = liveScore()\n  const code = (x) => '`' + x + '`'\n  const L = [T.md.title, '', t(T.md.score, { from: SCORE0, to: s, level: T.levels[levelOf(s)].toLowerCase() }), '']\n  const must = mustList()\n  if (must.length) {\n    L.push(T.md.must)\n    for (const m of must) {\n      const g = m.groups[0]\n      const what = m.contract ? t(T.md.contract, { keys: breakingKeys().map(code).join(', ') }) : g.owner ? t(g.items[0].kind === 'security' ? T.md.security : T.md.lint, { where: code(`${short(g.owner)}:${findingLine(g)}`) }) : g.items[0].title\n      L.push(`- [${mustDone(m) ? 'x' : ' '}] ${what}`)\n    }\n    L.push('')\n  }\n  L.push(t(T.md.files, { done: FILES.filter(fileDone).length, total: FILES.length }))\n  for (const x of filesByTier()) L.push(`- ${x.label}: ${x.files.filter(fileDone).length}/${x.files.length}`)\n  const left = FILES.filter((f) => !fileDone(f) && (tierOf(f) === 'high' || tierOf(f) === 'medium'))\n  if (left.length) L.push('', t(T.md.left, { files: left.slice(0, 10).map((f) => code(base(f.path))).join(', ') + (left.length > 10 ? ' ' + t(T.andMore, { n: left.length - 10 }) : '') }))\n  const flaggedFiles = FILES.filter((f) => flagCovered(f.path) && !isReviewed(f.path))\n  if (flaggedFiles.length) L.push(t(T.md.flaggedFiles, { files: flaggedFiles.map((f) => code(base(f.path))).join(', ') }))\n  if (OPS.length) {\n    const tried = OPS.filter((o) => state.tested.includes(o.key))\n    L.push('', t(T.md.tried, { done: tried.length, total: OPS.length, many: TERM.many }))\n    for (const o of tried.slice(0, 15)) L.push(`- [x] ${code(o.path)}${isFlagged(o.key) ? ' ' + T.md.behindFlag : ''}`)\n    for (const o of OPS.filter((x) => isFlagged(x.key) && !state.tested.includes(x.key)).slice(0, 15)) L.push(`- ${T.md.flagged} ${code(o.path)}`)\n  }\n  if (S) L.push('', t(T.md.coverage, { ratio: pct(S.ratio), covered: S.covered, total: S.total }) + (S.missing.length ? t(T.md.coverageWithout, { ratio: pct(S.reportedRatio), files: pl(S.missing.length, T.files) }) : '') + '.')\n  const notes = Object.entries(state.notes).filter(([, v]) => v.trim())\n  if (notes.length) { L.push('', T.md.notes); for (const [p, v] of notes) L.push(`- ${code(short(p))}: ${v.trim().replace(/\\s*\\n\\s*/g, ' ')}`) }\n  L.push('', `<sub>${t(T.md.footer, { version: D.version, base: D.base, head: D.head })}</sub>`)\n  return L.join('\\n')\n}\nfunction resultsView() {\n  return `<div class=\"results\"><h1>${T.results.title}</h1><p class=\"lead\">${T.results.lead}</p>${savedTime()}\n  <div class=\"btns\"><button class=\"primary\" data-copyresults>${T.results.copy}</button>${D.links.pr ? `<a class=\"secondary\" href=\"${esc(D.links.pr)}\" target=\"_blank\" rel=\"noopener\">${T.results.openPr}</a>` : ''}</div>\n  <pre>${esc(resultsMd())}</pre></div>`\n}\nasync function copyResults() {\n  const text = resultsMd()\n  try { await navigator.clipboard.writeText(text) } catch {\n    const area = document.createElement('textarea'); area.value = text; document.body.append(area); area.select(); document.execCommand('copy'); area.remove()\n  }\n  document.querySelectorAll('[data-copyresults]').forEach((b) => { const was = b.textContent; b.textContent = T.results.copied; setTimeout(() => { b.textContent = was }, 1600) })\n}\n\nfunction render() {\n  ui.view = decodeURIComponent(location.hash.slice(1)) || 'summary'\n  const railEl = document.getElementById('rail')\n  const y = railEl.scrollTop\n  rail()\n  railEl.scrollTop = y\n  const v = ui.view\n  document.getElementById('main').innerHTML = v.startsWith('file:') ? fileView(v.slice(5)) : v.startsWith('finding:') ? findingView(v.slice(8)) : v === 'contract' ? contractView() : v === 'plan' ? planView() : v === 'details' ? detailsView() : v === 'results' ? resultsView() : summary()\n  if (v === 'details') fillDetails()\n}\naddEventListener('hashchange', () => { render(); scrollTo(0, 0) })\ndocument.addEventListener('click', (e) => {\n  if (e.target.closest('[data-copyresults]')) { copyResults(); return }\n  const flag = e.target.closest('[data-flag]'); if (flag) { toggle('flagged', flag.dataset.flag); return }\n  const r = e.target.closest('[data-review]'); if (r) { toggle('reviewed', r.dataset.review); return }\n  const g = e.target.closest('[data-go]'); if (g) location.hash = 'file:' + g.dataset.go\n})\ndocument.addEventListener('toggle', (e) => {\n  if (e.target.id === 'cov-d') { ui.covOpen = e.target.open; const h = e.target.querySelector('.clickhint'); if (h) h.textContent = ui.covOpen ? T.cov.hide : T.cov.show }\n  const id = e.target.dataset?.tier; if (id) { if (e.target.open) ui.tierOpen.add(id); else ui.tierOpen.delete(id) }\n}, true)\ndocument.addEventListener('change', (e) => {\n  const el = e.target\n  if (el.dataset.reviewCb) { toggle('reviewed', el.dataset.reviewCb, el.checked); return }\n  if (el.dataset.ack) { el.dataset.ack.split('|').forEach((id) => setIn('acked', id, el.checked)); emit(); return }\n  if (el.dataset.test) toggle('tested', el.dataset.test, el.checked)\n})\ndocument.addEventListener('input', (e) => {\n  const p = e.target.dataset?.note\n  if (p === undefined) return\n  state.notes = Object.fromEntries(Object.entries({ ...state.notes, [p]: e.target.value }).filter(([, v]) => v.trim()))\n  save()\n})\ndocument.addEventListener('keydown', (e) => {\n  if (e.target.closest?.('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return\n  const order = ['summary', ...mustList().map((m) => (m.contract ? 'contract' : 'finding:' + m.groups[0].id)), ...FILES.map((f) => 'file:' + f.path)]\n  const i = order.indexOf(ui.view)\n  if (e.key === 'j' && i < order.length - 1) location.hash = order[i + 1]\n  if (e.key === 'k' && i > 0) location.hash = order[i - 1]\n  if (e.key === 'r' && ui.view.startsWith('file:')) toggle('reviewed', ui.view.slice(5))\n})\ninitTheme(document.getElementById('theme'))\nonChange(render)\nrender()\n",
+  "report/wb-views.js": '/* farol report, in the browser (2/3): the side rail, the summary and the views of one file, one finding and one\n * dependency manifest. Uses wb-core.js. */\nconst midCut = (s, n) => (s.length <= n ? s : `${s.slice(0, Math.ceil(n * 0.45))}\u2026${s.slice(s.length - Math.floor(n * 0.55))}`)\nconst SHADES = [\'var(--ink)\', \'color-mix(in srgb, var(--ink) 72%, var(--bg))\', \'color-mix(in srgb, var(--ink) 52%, var(--bg))\', \'color-mix(in srgb, var(--ink) 36%, var(--bg))\', \'color-mix(in srgb, var(--ink) 24%, var(--bg))\']\nconst S = coverageSummary()\nconst ui = { view: \'summary\', tierOpen: new Set(), covOpen: false }\nconst contractGroups = MUST.filter((g) => g.items[0].kind === \'contract\')\nconst breakingKeys = () => (D.contracts ?? []).filter((e) => e.level !== \'safe\').map((e) => e.key)\n/** Must check as the rail lists it: all contract changes as one item, then each finding and vulnerable dependency. */\nconst mustList = () => [...(contractGroups.length ? [{ contract: true, groups: contractGroups }] : []), ...MUST.filter((g) => !contractGroups.includes(g)).map((g) => ({ contract: false, groups: [g] }))]\nconst mustDone = (m) => m.groups.every((g) => !groupActive(g))\n\nfunction rail() {\n  const R = readiness()\n  const s = R.s\n  const done = FILES.filter(fileDone).length\n  const share = shareOf()\n  const cov = S\n    ? `<div class="metric"><div class="label"><span>${T.rail.tested}</span></div><div class="value${S.ratio < 0.5 ? \' bad\' : \'\'}">${pct(S.ratio)}</div>\n    <div class="track"><span style="width:${(S.covered / S.total) * 100}%"></span><span class="bad" style="width:${((S.total - S.covered - S.missingLines) / S.total) * 100}%"></span><span class="hatch" style="width:${(S.missingLines / S.total) * 100}%"></span></div>\n    <div class="sub">${t(T.rail.testedSub, { covered: S.covered, total: S.total })}${S.missing.length ? t(T.rail.testedWithout, { ratio: pct(S.reportedRatio), files: pl(S.missing.length, T.files) }) : \'\'}</div></div>`\n    : `<div class="metric"><div class="label"><span>${T.rail.tested}</span></div><div class="value">\u2014</div><div class="sub">${D.coverage.status === \'ok\' ? T.rail.noExecutable : T.rail.noReport}</div></div>`\n  const item = (f) => {\n    const flagged = flagCovered(f.path) && !isReviewed(f.path)\n    const on = fileDone(f)\n    return `<div class="fi${ui.view === \'file:\' + f.path ? \' on\' : \'\'}${on ? \' done\' : \'\'}"><input type="checkbox" data-review-cb="${esc(f.path)}" ${on ? \'checked\' : \'\'} ${flagged ? `disabled title="${esc(T.rail.flagged)}"` : \'\'} aria-label="${esc(T.rail.reviewedBox)}"><a href="#file:${esc(f.path)}" class="nm" title="${esc(short(f.path))}"><span class="n">${esc(midCut(base(f.path), 25))}</span><span class="dirl">${esc(dir(f.path).replace(/\\/$/, \'\')) || \'&nbsp;\'}</span></a><span class="r">${on ? \'\' : share.get(f.path) ?? 0}</span></div>`\n  }\n  const tiers = filesByTier().map((x) => {\n    const count = `${x.files.filter(fileDone).length}/${x.files.length}`\n    return x.collapsed\n      ? `<details class="tier" ${ui.tierOpen.has(x.id) ? \'open\' : \'\'} data-tier="${x.id}"><summary><span>${x.label}</span><span>${count}</span></summary>${x.files.map(item).join(\'\')}</details>`\n      : `<h4><span>${x.label}</span><span>${count}</span></h4>${x.files.map(item).join(\'\')}`\n  }).join(\'\')\n  const mustItem = (m) => {\n    const g = m.groups[0]\n    const target = m.contract ? \'contract\' : \'finding:\' + g.id\n    const title = m.contract ? T.must.contract : g.owner ? (g.items[0].kind === \'security\' ? T.must.security : T.must.lint) : T.must.vulnerability\n    const sub = m.contract ? breakingKeys().join(\', \') : g.owner ? `${base(g.owner)}:${findingLine(g)}` : g.items[0].title\n    const on = mustDone(m)\n    const points = m.groups.reduce((n, x) => n + (POINTS0.get(x.id) ?? 0), 0)\n    return `<div class="fi must${ui.view === target ? \' on\' : \'\'}${on ? \' done\' : \'\'}"><input type="checkbox" data-ack="${esc(m.groups.map((x) => x.id).join(\'|\'))}" ${on ? \'checked\' : \'\'} aria-label="${esc(T.rail.checkedBox)}"><a href="#${esc(target)}" class="nm"><span class="n">${esc(title)}</span><span class="dirl">${esc(sub)}</span></a><span class="r">${on ? \'\' : points}</span></div>`\n  }\n  const must = mustList()\n  const sub = R.ready ? `<span class="ok">${T.rail.ready}</span>` : levelOf(s) === \'low\' && R.mustLeft ? t(T.rail.lowButMust, { items: pl(R.mustLeft, T.items) }) : T.verdict[D.verdict]\n  document.getElementById(\'rail\').innerHTML = `\n  <div class="metric${R.ready ? \' ready\' : \'\'}"><div class="label"><span>${T.rail.risk}</span><span>${T.levels[levelOf(s)]}</span></div><div class="value">${s}<small>/100</small></div>\n    <div class="track"><span class="${levelOf(s) === \'high\' ? \'bad\' : \'\'}" style="width:${Math.max(s, 1)}%"></span></div>\n    <div class="sub">${sub}${s !== SCORE0 ? t(T.rail.was, { score: SCORE0 }) : \'\'}</div></div>\n  ${cov}\n  <div class="metric"><div class="label"><span>${T.rail.reviewed}</span><span>${done} / ${FILES.length}</span></div><div class="track"><span style="width:${(done / Math.max(1, FILES.length)) * 100}%"></span></div></div>\n  <nav class="nav">\n    <a href="#summary" class="${ui.view === \'summary\' ? \'on\' : \'\'}"><span class="n">${T.nav.summary}</span></a>\n    ${must.length ? `<h4 class="mustcheck"><span>${T.nav.must}</span><span>${must.filter(mustDone).length}/${must.length}</span></h4>${must.map(mustItem).join(\'\')}` : \'\'}\n    ${tiers}\n    <h4><span>${T.nav.before}</span></h4>\n    ${D.contracts && !contractGroups.length ? `<a href="#contract" class="${ui.view === \'contract\' ? \'on\' : \'\'}"><span class="n">${T.nav.contract}</span><span class="r">${T.nav.contractSafe}</span></a>` : \'\'}\n    <a href="#plan" class="${ui.view === \'plan\' ? \'on\' : \'\'}"><span class="n">${T.nav.plan}</span><span class="r">${pl(OPS.length, T.entriesPair)}</span></a>\n    <a href="#details" class="${ui.view === \'details\' ? \'on\' : \'\'}"><span class="n">${T.nav.details}</span></a>\n    <h4><span>${T.nav.finish}</span></h4>\n    <a href="#results" class="${ui.view === \'results\' ? \'on\' : \'\'}"><span class="n">${T.nav.results}</span><span class="r">${T.nav.resultsHint}</span></a>\n  </nav>`\n}\n\nfunction summary() {\n  const att = attribution()\n  const s = liveScore()\n  const R = readiness()\n  const rows = [...(COV?.files ?? [])].filter((f) => !f.missing).sort((a, b) => (b.total - b.covered) - (a.total - a.covered))\n  const missing = (COV?.files ?? []).filter((f) => f.missing).sort((a, b) => b.total - a.total)\n  const table = S ? `<table class="t"><thead><tr><th>${T.cov.file}</th><th class="num">${T.cov.tested}</th><th class="mini"></th><th>${T.cov.notRun}</th></tr></thead><tbody>${rows.map((f) => `<tr><td class="p">${esc(short(f.path))}</td><td class="num">${f.covered}/${f.total} \xB7 ${pct(f.total ? f.covered / f.total : 1)}</td>\n    <td class="mini"><div class="track"><span style="width:${f.total ? (f.covered / f.total) * 100 : 100}%"></span><span class="bad" style="width:${f.total ? ((f.total - f.covered) / f.total) * 100 : 0}%"></span></div></td>\n    <td class="small muted">${f.uncovered.map(rangeText).join(\', \') || \'\u2014\'}</td></tr>`).join(\'\')}</tbody></table>\n    ${missing.length ? `<h3 class="misshead">${t(T.cov.missingTitle, { files: pl(missing.length, T.files) })}</h3><p class="small muted">${T.cov.missingWhy}</p><table class="t"><tbody>${missing.map((f) => `<tr><td class="p">${esc(short(f.path))}</td><td class="num small muted">${pl(f.total, T.changedLines)}</td></tr>`).join(\'\')}</tbody></table>` : \'\'}`\n    : `<p class="muted">${D.coverage.status === \'ok\' ? T.rail.noExecutable : T.cov.none}</p>`\n  const parts = (() => {\n    if (!att.length) return `<p class="muted">${T.summary.allReviewed}</p>`\n    const { top, rest } = topParts(att, 11)\n    const restPts = rest.reduce((n, a) => n + a.points, 0)\n    const segs = [...top.map((a, i) => ({ pts: a.points, color: SHADES[Math.min(i, SHADES.length - 1)], label: groupLabel(a.group), why: groupWhy(a.group), file: a.group.file })), ...(rest.length ? [{ pts: restPts, color: \'color-mix(in srgb, var(--ink) 14%, var(--bg))\', label: pl(rest.length, T.otherParts), why: rest.map((a) => groupLabel(a.group)).join(\', \'), file: null }] : [])]\n    return `<div class="stack">${segs.map((x) => `<div style="flex:${x.pts};background:${x.color}" title="${esc(x.label)}: ${x.pts}">${x.pts >= 8 ? x.pts : \'\'}</div>`).join(\'\')}</div>\n    <div class="keys">${segs.map((x) => `<div><i style="background:${x.color}"></i><span title="${esc(x.why)}">${x.file ? `<a href="#file:${esc(x.file)}"><code>${esc(base(x.file))}</code></a>` : esc(x.label)}</span><b>${x.pts}</b></div>`).join(\'\')}</div>`\n  })()\n  const covLine = S ? t(T.cov.summary, { ratio: pct(S.ratio), covered: S.covered, total: S.total }) + (S.missing.length ? t(T.cov.summaryWithout, { ratio: pct(S.reportedRatio), files: pl(S.missing.length, T.files) }) : \'\') : T.cov.none\n  return `${D.incremental ? `<p class="incremental">${t(T.summary.incremental, { since: esc(D.incremental) })}</p>` : \'\'}\n  <h1>${R.ready ? T.summary.ready : T.verdict[D.verdict]}</h1><p class="lead">${riskLede()}</p>\n  ${R.ready ? \'\' : `<p class="small muted">${MUST.length ? T.summary.startMust : T.summary.start}</p>`}\n  ${R.ready ? `<div class="ready-banner"><b>${t(T.summary.readyTitle, { score: s })}</b> ${s !== SCORE0 ? t(T.summary.readyDown, { score: SCORE0 }) : T.summary.readyNothing} <a href="#results">${T.summary.copyResults}</a></div>` : \'\'}\n  ${D.usage ? `<p class="small muted">${esc(D.usage)}</p>` : \'\'}\n  <h2>${t(T.summary.makesUp, { score: s })}</h2>${parts}\n  <details class="cov" ${ui.covOpen ? \'open\' : \'\'} id="cov-d"><summary><h2>${T.cov.title}</h2><span class="sumtxt">${covLine}</span><span class="clickhint">${ui.covOpen ? T.cov.hide : T.cov.show}</span></summary>${table}</details>\n  <footer>${t(T.footer, { version: esc(D.version) })}</footer>`\n}\n\nconst factsScore = (path) => `<div><b>${shareOf().get(path) ?? 0}<span class="of"> ${t(T.file.of, { score: liveScore() })}</span></b>${T.file.part}</div>`\nconst actions = (f, i) => `<button class="primary${isReviewed(f.path) ? \' done\' : \'\'}" data-review="${esc(f.path)}">${isReviewed(f.path) ? T.file.reviewedBtn : T.file.markBtn}</button>${FILES[i + 1] ? `<button class="secondary" data-go="${esc(FILES[i + 1].path)}">${T.file.next}</button>` : \'\'}${ghFile(f.path) ? `<a class="secondary" href="${esc(ghFile(f.path))}" target="_blank" rel="noopener" title="${esc(T.file.commentTitle)}">${T.file.comment}</a>` : \'\'}`\nconst noteBox = (path) => `<h3>${T.file.note}</h3><textarea class="note-in" data-note="${esc(path)}" placeholder="${esc(T.file.notePlaceholder)}">${esc(state.notes[path] ?? \'\')}</textarea>`\n\nfunction fileView(path) {\n  const f = FILES.find((x) => x.path === path)\n  if (!f) return summary()\n  if (f.extra === \'dependency\') return depView(f)\n  const i = FILES.indexOf(f)\n  const cf = covOf(path)\n  const entries = f.entries ?? []\n  const owners = D.reviewers.filter((r) => r.files.includes(path))\n  const errors = D.fileErrors[path]\n  const covFact = cf ? (cf.missing ? `<div><b class="bad">\u2014</b>${T.file.notInReport}</div>` : cf.total === 0 ? `<div><b>\u2014</b>${T.file.declarations}</div>` : `<div><b class="${cf.covered / cf.total < 0.5 ? \'bad\' : \'\'}">${pct(cf.covered / cf.total)}</b>${t(T.file.linesTested, { covered: cf.covered, total: cf.total })}</div>`) : `<div><b>\u2014</b>${esc(f.coverage ?? T.file.noCoverage)}</div>`\n  return `<div class="fhead"><div class="grow"><div class="muted small">${t(T.file.position, { i: i + 1, n: FILES.length, change: esc(f.change ?? \'\') })}</div><div class="fpath"><span class="d">${esc(dir(path))}</span>${esc(base(path))}</div><div class="muted small">${esc(f.why ?? \'\')}</div></div>${actions(f, i)}</div>\n  ${MUST.filter((g) => g.owner === path).map(findingBox).join(\'\')}\n  ${f.extra === \'tests\' ? `<div class="mustbox done"><h3>${T.file.testTitle}</h3><p>${t(T.file.testWhy, { why: esc(f.why) })}</p></div>` : \'\'}\n  <div class="facts">${factsScore(path)}${f.extra ? \'\' : `<div><b>${f.reached}<span class="of"> / ${D.totalEntries}</span></b>${t(T.file.reach, { many: TERM.many })}</div>${covFact}`}${errors ? `<div><b class="bad">${errors.errors}</b>${errors.url ? `<a href="${esc(errors.url)}" target="_blank" rel="noopener">${T.file.errors}</a>` : T.file.errors}</div>` : \'\'}</div>\n  <div class="cols"><div>${renderDiff(path)}</div>\n  <div class="aside">${noteBox(path)}<h3>${t(T.file.entries, { Many: TERM.Many })}</h3><ul>${entries.slice(0, 12).map((e) => `<li>${esc(e)}</li>`).join(\'\') || `<li class="pp muted">${T.none}</li>`}${entries.length > 12 ? `<li class="pp muted">${t(T.andMore, { n: entries.length - 12 })}</li>` : \'\'}</ul>\n  <h3>${T.file.knows}</h3><ul>${owners.map((r) => `<li class="pp">${esc(r.name)} <span class="muted">\xB7 ${esc(r.note)}</span></li>`).join(\'\') || `<li class="pp muted">${T.file.noHistory}</li>`}</ul></div></div>`\n}\n\nfunction findingBox(g) {\n  const it = g.items[0]\n  const line = findingLine(g)\n  const sec = it.kind === \'security\' ? D.security.find((x) => x.path === g.owner && x.line === line) : null\n  const lint = D.lint.find((x) => x.path === g.owner && x.line === line)\n  const on = !groupActive(g)\n  const url = ghLine(g.owner, \'R\', line)\n  return `<div class="mustbox${on ? \' done\' : \'\'}"><h3>${it.kind === \'security\' ? t(T.finding.security, { severity: esc(sec?.severity ?? \'\') }) : t(T.finding.lint, { rule: esc(lint?.rule ?? \'\') })} <a href="#" data-jump="${line}">${t(T.finding.atLine, { line })}</a></h3>\n    <p>${esc(sec?.message ?? lint?.message ?? it.title)}</p>${sec?.text ? `<code class="snip">${esc(sec.text)}</code>` : \'\'}\n    <label class="ack"><input type="checkbox" data-ack="${esc(g.id)}" ${on ? \'checked\' : \'\'}> ${it.kind === \'security\' ? T.finding.ackSecurity : T.finding.ackLint}</label>${url ? ` <a class="small" href="${esc(url)}" target="_blank" rel="noopener">${t(T.finding.comment, { line })}</a>` : \'\'}</div>`\n}\n\nfunction findingView(id) {\n  const g = MUST.find((x) => x.id === id)\n  if (!g) return summary()\n  if (!g.owner) {\n    const on = !groupActive(g)\n    return `<div class="muted small">${T.nav.must}</div><h1>${T.must.vulnerability}</h1><div class="mustbox${on ? \' done\' : \'\'}"><p>${esc(g.items[0].title)}</p><label class="ack"><input type="checkbox" data-ack="${esc(g.id)}" ${on ? \'checked\' : \'\'}> ${T.finding.ackVulnerability}</label></div>`\n  }\n  return `<div class="muted small">${T.nav.must}</div><h1>${esc(groupLabel(g))}</h1><p class="lead">${t(T.finding.lead, { points: POINTS0.get(id) ?? 0 })}</p>\n  ${findingBox(g)}<p class="small"><a href="#file:${esc(g.owner)}">${t(T.finding.open, { file: esc(base(g.owner)) })}</a></p>${renderDiff(g.owner)}`\n}\n\nfunction depView(f) {\n  const i = FILES.indexOf(f)\n  const list = D.dependencies.filter((c) => c.manifest === f.path)\n  const card = (c) => {\n    const key = c.change === \'removed\' ? \'removed\' : c.change === \'added\' ? \'added\' : c.change === \'moved\' ? \'moved\' : /^(minor bump of a 0\\.x|patch bump of a 0\\.0)/.test(c.note ?? \'\') ? \'zeroMinor\' : c.bump ?? \'unknown\'\n    const npm = f.path.endsWith(\'package.json\') ? `https://www.npmjs.com/package/${c.name}?activeTab=versions` : null\n    const tag = key === \'zeroMinor\' ? T.dep.zeroMinorTag : c.bump ?? c.change\n    return `<div class="dep"><span class="nm">${esc(c.name)}</span><span class="sec">${esc(c.section)}</span>\n      <div class="ver">${c.from ? esc(c.from) : `<span class="muted">${T.dep.none}</span>`}<span class="arrow">\u2192</span>${c.to ? esc(c.to) : `<span class="muted">${T.dep.removed}</span>`}<span class="bump${c.critical ? \' bad\' : \'\'}">${esc(tag)}</span></div>\n      <p class="mean">${T.dep.means[key] ?? T.dep.means.unknown}</p>\n      <div class="diff"><table><tr class="d-hunk"><td colspan="2">${esc(t(T.dep.where, { section: c.section, file: base(f.path) }))}</td></tr>${c.from ? `<tr class="d-del"><td class="d-n">\u2212</td><td class="d-c">"${esc(c.name)}": "${esc(c.from)}"</td></tr>` : \'\'}${c.to ? `<tr class="d-add"><td class="d-n">+</td><td class="d-c">"${esc(c.name)}": "${esc(c.to)}"</td></tr>` : \'\'}</table></div>\n      ${c.critical ? `<h4>${T.dep.howTitle}</h4><ol><li>${t(T.dep.how1, { from: esc(c.from ?? \'\'), to: esc(c.to ?? \'\') })}${npm ? ` (<a href="${esc(npm)}" target="_blank" rel="noopener">${T.dep.npm}</a>)` : \'\'}</li><li>${t(T.dep.how2, { name: `<code>${esc(c.name)}</code>` })}</li><li>${t(T.dep.how3, { one: TERM.one })}</li></ol>` : \'\'}</div>`\n  }\n  return `<div class="fhead"><div class="grow"><div class="muted small">${t(T.file.position, { i: i + 1, n: FILES.length, change: T.dep.change })}</div><div class="fpath"><span class="d">${esc(dir(f.path))}</span>${esc(base(f.path))}</div><div class="muted small">${pl(list.length, T.packages)}</div></div>${actions(f, i)}</div>\n  <div class="facts">${factsScore(f.path)}</div>\n  <div class="cols"><div>${list.map(card).join(\'\') || `<p class="muted">${esc(f.why)}</p>`}</div><div class="aside">${noteBox(f.path)}</div></div>`\n}\n',
+  "report/workbench.css": '/* farol report: a review workbench. Sober neutrals, one accent, red only for what needs attention. */\n:root {\n  --bg: #ffffff; --rail: #f7f7f6; --surface: #ffffff; --text: #1c1c1e; --text-2: #55555c; --muted: #8e8e95; --line: #e8e6e3; --line-2: #d4d2ce;\n  --ink: #2b2b2f; --sel: #ecebe8; --accent: #3056c9; --bad: #b42318; --good: #2e7d4f; --track: #eceae7;\n  --add: #f1f8f2; --del: #fcf1f0;\n  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;\n}\n@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {\n  --bg: #121214; --rail: #18181b; --surface: #121214; --text: #ececee; --text-2: #b2b2b9; --muted: #7d7d86; --line: #2a2a2f; --line-2: #3b3b41;\n  --ink: #e6e6e9; --sel: #26262b; --accent: #91a9ff; --bad: #f4796b; --good: #6cc495; --track: #27272c; --add: #15231a; --del: #2a1616; } }\n:root[data-theme="dark"] {\n  --bg: #121214; --rail: #18181b; --surface: #121214; --text: #ececee; --text-2: #b2b2b9; --muted: #7d7d86; --line: #2a2a2f; --line-2: #3b3b41;\n  --ink: #e6e6e9; --sel: #26262b; --accent: #91a9ff; --bad: #f4796b; --good: #6cc495; --track: #27272c; --add: #15231a; --del: #2a1616; }\n* { box-sizing: border-box; }\nhtml, body { margin: 0; }\nbody { background: var(--bg); color: var(--text); font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }\na { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }\ncode { font-family: var(--mono); font-size: .9em; }\n.muted { color: var(--muted); } .small { font-size: .85rem; }\nbutton { font: inherit; color: inherit; }\ninput[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--ink); margin: 0; cursor: pointer; }\n\n.top { height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 18px; border-bottom: 1px solid var(--line); font-size: .85rem; color: var(--muted); position: sticky; top: 0; background: var(--bg); z-index: 5; }\n.top .brand { display: inline-flex; align-items: center; line-height: 0; }\n.top .brand svg { height: 28px; width: auto; }\n.top .logo-dark { display: none; }\n@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .top .logo-light { display: none; } :root:not([data-theme="light"]) .top .logo-dark { display: inline-flex; } }\n:root[data-theme="dark"] .top .logo-light { display: none; } :root[data-theme="dark"] .top .logo-dark { display: inline-flex; }\n.top .repo { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }\n.top .grow { flex: 1; }\n.kbd { font-family: var(--mono); font-size: .72rem; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; color: var(--text-2); }\n.top .act { background: none; border: 1px solid var(--line-2); border-radius: 7px; padding: 3px 10px; cursor: pointer; color: var(--text); font-size: .8rem; white-space: nowrap; }\n.top .act.dark { background: var(--ink); color: var(--bg); border-color: var(--ink); font-weight: 600; }\n.top .act:hover { text-decoration: none; }\n@media (max-width: 860px) { .top .keys-hint, .top .repo { display: none; } }\n\n.layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); min-height: calc(100vh - 48px); }\n.rail { background: var(--rail); border-right: 1px solid var(--line); position: sticky; top: 48px; height: calc(100vh - 48px); overflow: auto; padding: 18px 14px 24px; }\n@media (max-width: 860px) { .layout { grid-template-columns: 1fr; } .rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); } }\n.metric { padding: 4px 6px 14px; }\n.metric + .metric { border-top: 1px solid var(--line); padding-top: 14px; }\n.metric .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; display: flex; justify-content: space-between; }\n.metric .value { font-size: 2rem; font-weight: 650; letter-spacing: -.03em; line-height: 1.1; margin: 4px 0 6px; font-variant-numeric: tabular-nums; }\n.metric .value small { font-size: .85rem; font-weight: 500; color: var(--muted); margin-left: 2px; letter-spacing: 0; }\n.metric .value.bad { color: var(--bad); }\n.metric .sub { font-size: .8rem; color: var(--text-2); margin-top: 6px; }\n.metric.ready { background: color-mix(in srgb, var(--good) 10%, transparent); border-radius: 10px; padding: 10px 10px 14px; margin-bottom: 6px; }\n.metric.ready .value, .metric.ready .label span:last-child, .metric .ok { color: var(--good); }\n.metric .ok { font-weight: 600; }\n.metric.ready .track span { background: var(--good); }\n.track { height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; display: flex; }\n.track span { height: 100%; background: var(--ink); }\n.track span.bad { background: var(--bad); }\n.track span.hatch { background: repeating-linear-gradient(135deg, var(--bad) 0 2px, transparent 2px 4px); opacity: .6; }\n\n.nav { margin-top: 10px; }\n.nav h4 { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 16px 6px 6px; font-weight: 600; display: flex; justify-content: space-between; }\n.nav h4.mustcheck { color: var(--bad); }\n.nav > a { display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px 6px 32px; border-radius: 7px; color: var(--text); font-size: .86rem; }\n.nav > a:hover { background: var(--sel); text-decoration: none; }\n.nav > a.on { background: var(--sel); font-weight: 600; }\n.nav > a .r { font-size: .78rem; color: var(--muted); font-weight: 400; }\n.fi { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 7px; font-size: .86rem; }\n.fi:hover, .fi.on { background: var(--sel); }\n.fi.on .n { font-weight: 600; }\n.fi a.nm { display: flex; flex-direction: column; min-width: 0; color: var(--text); }\n.fi a.nm:hover { text-decoration: none; }\n.fi .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); font-size: .8rem; }\n.fi .dirl { font-size: .7rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }\n.fi .r { font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums; }\n.fi.done .n { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line-2); }\n.fi.must .n { font-family: inherit; font-size: .84rem; }\n.fi.must .dirl { direction: ltr; }\n.fi.must .r { color: var(--bad); }\n.fi.must.done .r { color: var(--muted); }\ndetails.tier > summary { list-style: none; cursor: pointer; font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 16px 6px 6px; font-weight: 600; display: flex; justify-content: space-between; }\ndetails.tier > summary::-webkit-details-marker { display: none; }\ndetails.tier > summary span:first-child::before { content: "\u25B8 "; } details.tier[open] > summary span:first-child::before { content: "\u25BE "; }\n\n.main { padding: 26px 34px 80px; max-width: 1100px; }\n@media (max-width: 860px) { .main { padding: 20px 16px 60px; } }\nh1 { font-size: 1.6rem; letter-spacing: -.02em; margin: 0 0 6px; font-weight: 650; }\nh2 { font-size: 1rem; margin: 34px 0 10px; font-weight: 650; }\n.lead { color: var(--text-2); max-width: 72ch; margin: 0 0 6px; }\n.incremental { display: inline-block; font-size: .8rem; color: var(--text-2); border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 10px; margin: 0 0 12px; }\n.ready-banner { border: 1px solid color-mix(in srgb, var(--good) 40%, var(--line)); background: color-mix(in srgb, var(--good) 8%, transparent); border-radius: 10px; padding: 12px 14px; margin: 14px 0 0; }\n.ready-banner b { color: var(--good); }\n.stack { display: flex; height: 28px; border-radius: 6px; overflow: hidden; gap: 2px; margin: 8px 0 10px; }\n.stack div { height: 100%; display: flex; align-items: center; padding: 0 8px; font-size: .75rem; color: var(--bg); font-weight: 600; white-space: nowrap; overflow: hidden; min-width: 6px; }\n.keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 18px; font-size: .82rem; }\n.keys div { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 8px; align-items: center; }\n.keys i { width: 10px; height: 10px; border-radius: 2px; }\n.keys span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n.keys a { color: var(--text); }\n.keys b { font-variant-numeric: tabular-nums; }\ndetails.cov > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 34px 0 10px; }\ndetails.cov > summary::-webkit-details-marker { display: none; }\ndetails.cov > summary h2 { margin: 0; }\ndetails.cov > summary h2::before { content: "\u25B8 "; color: var(--muted); font-weight: 400; } details.cov[open] > summary h2::before { content: "\u25BE "; }\ndetails.cov > summary .sumtxt { color: var(--text-2); font-size: .88rem; }\ndetails.cov > summary .clickhint { color: var(--accent); font-size: .82rem; }\ndetails.cov > summary:hover .clickhint { text-decoration: underline; }\n.misshead { font-size: .9rem; margin: 22px 0 4px; font-weight: 650; }\ntable.t { width: 100%; border-collapse: collapse; font-size: .85rem; }\ntable.t th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); }\ntable.t td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line); vertical-align: middle; }\ntable.t .num { text-align: right; font-variant-numeric: tabular-nums; }\ntable.t .p { font-family: var(--mono); font-size: .8rem; overflow-wrap: anywhere; }\n.mini { width: 120px; }\n\n.fhead { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }\n.fhead .grow { flex: 1; min-width: 260px; }\n.fpath { font-family: var(--mono); font-size: 1.05rem; font-weight: 600; overflow-wrap: anywhere; }\n.fpath .d { color: var(--muted); font-weight: 400; }\n.facts { display: flex; gap: 22px; margin: 16px 0 18px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); flex-wrap: wrap; }\n.facts div { font-size: .8rem; color: var(--muted); }\n.facts b { display: block; font-size: 1.15rem; color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; }\n.facts b.bad { color: var(--bad); }\n.facts .of { color: var(--muted); font-size: .8rem; font-weight: 500; }\n.primary { background: var(--ink); color: var(--bg); border: 0; border-radius: 8px; padding: 8px 14px; font-weight: 600; cursor: pointer; }\n.primary.done { background: none; color: var(--text-2); border: 1px solid var(--line-2); }\n.secondary { background: none; border: 1px solid var(--line-2); border-radius: 8px; padding: 7px 12px; cursor: pointer; color: var(--text); font-size: .9rem; }\na.secondary:hover { text-decoration: none; background: var(--sel); }\n.cols { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 26px; }\n@media (max-width: 1100px) { .cols { grid-template-columns: 1fr; } }\n.aside h3 { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 0 0 6px; font-weight: 600; }\n.aside ul { list-style: none; margin: 0 0 20px; padding: 0; }\n.aside li { padding: 4px 0; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: .76rem; overflow-wrap: anywhere; }\n.aside li.pp { font-family: inherit; font-size: .82rem; }\n.note-in { width: 100%; min-height: 64px; border: 1px solid var(--line-2); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: .85rem; background: var(--surface); color: var(--text); resize: vertical; margin-bottom: 18px; }\n\n.ghhint { font-size: .75rem; color: var(--muted); margin: 0 0 6px; }\n.covhead { font-size: .84rem; color: var(--text-2); padding: 9px 12px; border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0; }\n.covhead.bad { box-shadow: inset 3px 0 0 var(--bad); }\n.covhead b { color: var(--text); font-weight: 600; }\n.covhead + .diff { border-radius: 0 0 8px 8px; }\n.diff { border: 1px solid var(--line); border-radius: 8px; overflow: auto; background: var(--surface); }\n.diff table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; }\n.diff td { padding: 0 8px; white-space: pre; vertical-align: top; }\n.diff .d-n { width: 1%; color: var(--muted); text-align: right; user-select: none; font-size: 11.5px; }\n.diff a.d-gh { color: inherit; } .diff a.d-gh:hover { color: var(--accent); text-decoration: underline; }\n.diff .d-hunk td { color: var(--muted); background: var(--track); padding: 3px 8px; font-size: 11.5px; }\n.diff .d-add td { background: var(--add); } .diff .d-del td { background: var(--del); }\n.diff .d-unc td.d-n { color: var(--bad); font-weight: 600; box-shadow: inset 3px 0 0 var(--bad); }\n.diff .d-unclabel td { color: var(--bad); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11.5px; font-weight: 600; padding: 6px 8px 2px; white-space: normal; }\n.diff .d-note td { padding: 6px 8px 8px; white-space: normal; }\n.diff tr.flash td { animation: flash 1.4s ease-out; }\n@keyframes flash { 0% { background: color-mix(in srgb, var(--bad) 30%, transparent); } }\n.note { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12.5px; border: 1px solid var(--line); border-left: 3px solid var(--line-2); border-radius: 6px; padding: 6px 10px; color: var(--text-2); max-width: 680px; }\n.note.bad { border-left-color: var(--bad); } .note b { color: var(--text); font-weight: 600; margin-right: 6px; }\n\n.mustbox { border: 1px solid var(--line); border-left: 3px solid var(--bad); border-radius: 8px; padding: 12px 14px; margin: 14px 0; }\n.mustbox.done { border-left-color: var(--line-2); }\n.mustbox h3 { margin: 0 0 4px; font-size: .9rem; }\n.mustbox p { margin: 0 0 8px; color: var(--text-2); font-size: .85rem; }\n.mustbox code.snip { display: block; white-space: pre-wrap; background: var(--track); border-radius: 6px; padding: 6px 8px; margin: 6px 0 8px; font-size: .78rem; }\n.ack { display: inline-flex; gap: 8px; align-items: center; font-size: .85rem; cursor: pointer; }\n.ack.big { margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 8px; }\n.dep { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin: 0 0 14px; }\n.dep .nm { font-family: var(--mono); font-weight: 650; font-size: 1rem; }\n.dep .sec { font-size: .75rem; color: var(--muted); margin-left: 8px; }\n.dep .ver { font-family: var(--mono); font-size: 1.3rem; margin: 10px 0 4px; }\n.dep .ver .arrow { color: var(--muted); margin: 0 10px; }\n.dep .bump { display: inline-block; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 650; border: 1px solid var(--line-2); border-radius: 999px; padding: 1px 8px; margin-left: 10px; vertical-align: 3px; color: var(--text-2); font-family: ui-sans-serif, system-ui, sans-serif; }\n.dep .bump.bad { border-color: var(--bad); color: var(--bad); }\n.dep .mean { color: var(--text-2); margin: 6px 0 12px; max-width: 70ch; }\n.dep h4 { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 12px 0 6px; font-weight: 600; }\n.dep ol { margin: 0; padding-left: 18px; font-size: .86rem; color: var(--text-2); }\n\n.contract { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }\n.contract .k { font-family: var(--mono); font-weight: 600; }\n.contract ul { margin: 8px 0 0; padding: 0; list-style: none; font-size: .85rem; }\n.contract li { display: grid; grid-template-columns: minmax(120px, 220px) 1fr; gap: 10px; padding: 3px 0; }\n.contract li .w { font-family: var(--mono); font-size: .8rem; overflow-wrap: anywhere; }\n.contract li.breaking .d { color: var(--bad); font-weight: 600; }\n.contract li.safe { color: var(--muted); }\n.pill { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 650; color: var(--bad); margin-left: 8px; }\n\n.opsbox { margin-top: 18px; }\n.ops-status { display: flex; gap: 18px; flex-wrap: wrap; font-size: .84rem; color: var(--text-2); margin: 0 0 10px; }\n.ops-head { display: flex; justify-content: space-between; font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; padding: 0 0 6px; }\n.ops { border-top: 1px solid var(--line); }\n.op { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }\n.op-main { display: flex; gap: 10px; align-items: flex-start; flex: 1; min-width: 0; cursor: pointer; }\n.op-main input { margin-top: 3px; }\n.op-txt { min-width: 0; }\n.op-path { font-family: var(--mono); font-size: .84rem; overflow-wrap: anywhere; }\n.op-new { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); font-weight: 650; margin-left: 8px; }\n.op-traffic { font-size: .75rem; color: var(--text-2); margin-left: 8px; }\n.op-via { display: block; font-size: .78rem; color: var(--muted); }\n.op-via .gone { text-decoration: line-through; }\n.op.done .op-path { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line-2); }\n.op-flag { flex: none; background: none; border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; font-size: .76rem; color: var(--muted); cursor: pointer; white-space: nowrap; }\n.op-flag[aria-pressed="true"] { border-color: var(--ink); color: var(--text); font-weight: 600; }\n.ops-more > summary { list-style: none; cursor: pointer; font-size: .82rem; color: var(--accent); padding: 10px 0; width: fit-content; }\n.ops-more > summary::-webkit-details-marker { display: none; }\n.ops-more .ops { border-top: 0; }\n\n.details-frame { width: 100%; height: calc(100vh - 190px); min-height: 480px; border: 1px solid var(--line); border-radius: 10px; margin-top: 14px; background: var(--bg); }\n.results pre { white-space: pre-wrap; background: var(--rail); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; font-size: .8rem; line-height: 1.55; max-height: 60vh; overflow: auto; }\n.results .btns { display: flex; gap: 8px; margin: 14px 0; flex-wrap: wrap; align-items: center; }\n.saved { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 6px 0 18px; display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; align-items: center; }\n.saved .big { font-size: 2rem; font-weight: 650; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }\n.saved p { margin: 0; color: var(--text-2); font-size: .86rem; }\n.saved .bar, .saved small { grid-column: 1 / -1; }\n.saved small { color: var(--muted); font-size: .75rem; }\nfooter { color: var(--muted); font-size: .75rem; margin-top: 40px; }\n'
 };
 
 // src/report/logo.ts
@@ -253706,7 +253326,6 @@ function faviconUri(theme) {
 
 // src/report/html-scripts.ts
 var MERMAID_URL = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
-var HIGHLIGHT_URL = "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/es/highlight.min.js";
 var RISK_FILTER_SCRIPT = `<script>
 (() => {
   const box = document.getElementById('risk-filters')
@@ -253785,145 +253404,6 @@ var THEME_SCRIPT = `<script>
   })
 })()
 </script>`;
-var SCORE_SCRIPT = `<script>
-(() => {
-  const card = document.getElementById('merge-score')
-  if (!card) return
-  const drivers = [...card.querySelectorAll('#score-drivers li')].map((li) => ({ li, file: li.dataset.file, weights: li.dataset.weights.split(',').map(Number) }))
-  const combine = (groups) => Math.round(100 * (1 - groups.reduce((p, g) => g.weights.reduce((q, w) => q * (1 - w), p), 1)))
-  const initial = combine(drivers)
-  const high = Number(card.dataset.high)
-  const medium = Number(card.dataset.medium)
-  const shown = Number(card.dataset.shown)
-  const names = { high: '${HTML_TEXT.severity.high}', medium: '${HTML_TEXT.severity.medium}', low: '${HTML_TEXT.severity.low}' }
-  document.addEventListener('farol-reviewed', (event) => {
-    const reviewed = new Set(event.detail)
-    const left = drivers.filter((d) => d.file === '' || !reviewed.has(d.file))
-    const score = combine(left)
-    const level = score >= high ? 'high' : score >= medium ? 'medium' : 'low'
-    document.getElementById('score-value').textContent = String(score)
-    card.querySelector('.score-value').className = 'score-value ' + level
-    const chip = document.getElementById('score-level')
-    chip.className = 'chip ' + level
-    chip.textContent = names[level]
-    const bar = document.getElementById('score-bar')
-    bar.className = 'bar score-bar ' + (level === 'high' ? 'bad' : level === 'medium' ? 'warn' : '')
-    bar.firstElementChild.style.width = score + '%'
-    const done = drivers.filter((d) => d.file !== '' && reviewed.has(d.file)).length
-    document.getElementById('score-reviewed').textContent = done === 0 ? '' : '${HTML_TEXT.scoreReviewed}'.replace('{files}', done).replace('{initial}', initial)
-    // Progress is linear in the weights (the score itself saturates when many risky files are left).
-    const weight = (list) => list.reduce((n, d) => n + d.weights.reduce((m, w) => m + w, 0), 0)
-    const reviewable = weight(drivers.filter((d) => d.file !== ''))
-    const progress = document.getElementById('score-progress')
-    progress.hidden = done === 0 || reviewable === 0
-    progress.textContent = progress.dataset.template.replace('{percent}', reviewable === 0 ? 0 : Math.round((100 * weight(drivers.filter((d) => d.file !== '' && reviewed.has(d.file)))) / reviewable))
-    // Contributors keep their order (each one's own risk); reviewed ones leave the list.
-    left.forEach((d, i) => { d.li.hidden = i >= shown })
-    for (const d of drivers) if (!left.includes(d)) d.li.hidden = true
-    const more = document.getElementById('score-more')
-    more.hidden = left.length <= shown
-    more.textContent = more.dataset.template.replace('{n}', left.length - shown)
-  })
-})()
-</script>`;
-var PLAN_SCRIPT = `<script>
-(() => {
-  const rows = [...document.querySelectorAll('.file-row')]
-  if (rows.length === 0) return
-  const panelBox = (file) => [...document.querySelectorAll('#review input[data-file]')].find((b) => b.dataset.file === file)
-  for (const row of rows) {
-    const box = row.querySelector('input[data-review-file]')
-    const target = panelBox(box.dataset.reviewFile)
-    if (!target) {
-      box.hidden = true
-      continue
-    }
-    box.addEventListener('change', () => {
-      target.checked = box.checked
-      target.dispatchEvent(new Event('change', { bubbles: true }))
-    })
-  }
-  document.addEventListener('farol-reviewed', (event) => {
-    const reviewed = new Set(event.detail)
-    for (const row of rows) {
-      const box = row.querySelector('input[data-review-file]')
-      const done = reviewed.has(box.dataset.reviewFile)
-      box.checked = done
-      row.classList.toggle('is-reviewed', done)
-      // Covered by a feature flag (set by the review script): nothing to tick.
-      box.disabled = row.classList.contains('is-flagged')
-    }
-  })
-})()
-</script>`;
-var TEST_SCRIPT = `<script>
-(() => {
-  const panel = document.getElementById('test-plan-panel')
-  if (!panel) return
-  const review = document.getElementById('review')
-  const storageKey = 'farol-tested:' + (review ? review.dataset.key : location.pathname)
-  const boxes = [...panel.querySelectorAll('input[data-test-key]')]
-  try {
-    const saved = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'))
-    for (const box of boxes) box.checked = saved.has(box.dataset.testKey)
-  } catch {}
-  // Items whose changed files are all reviewed (or out of the review behind a flag) look like reviewed files.
-  let reviewedItems = 0
-  const mark = (state) => {
-    if (!state) return
-    const ticked = new Set(state.ticked)
-    const out = new Set([...state.ticked, ...state.covered])
-    const flagged = new Set(state.flagged)
-    reviewedItems = 0
-    for (const item of panel.querySelectorAll('li.test-item')) {
-      const files = item.dataset.files ? item.dataset.files.split('|') : []
-      const reviewed = files.length > 0 && files.every((f) => ticked.has(f))
-      const isFlagged = !reviewed && (flagged.has(item.dataset.key) || (files.length > 0 && files.every((f) => out.has(f))))
-      item.classList.toggle('is-reviewed', reviewed)
-      item.classList.toggle('is-flagged', isFlagged)
-      const note = item.querySelector('.flag-note')
-      note.textContent = reviewed ? panel.dataset.reviewedNote : isFlagged ? panel.dataset.flagNote : ''
-      note.title = reviewed ? panel.dataset.reviewedTitle : isFlagged ? panel.dataset.flagTitle : ''
-      if (reviewed || isFlagged) reviewedItems++
-    }
-    apply()
-  }
-  document.addEventListener('farol-reviewed', () => mark(window.farolState))
-  const apply = () => {
-    const done = boxes.filter((b) => b.checked)
-    document.getElementById('test-progress').textContent = panel.dataset.template.replace('{done}', done.length).replace('{total}', boxes.length) + (reviewedItems > 0 ? panel.dataset.reviewedTemplate.replace('{n}', reviewedItems) : '')
-    for (const group of panel.querySelectorAll('details.test-group')) {
-      const own = [...group.querySelectorAll('input[data-test-key]')]
-      const count = group.querySelector('.test-count')
-      count.textContent = own.filter((b) => b.checked).length + ' / ' + own.length
-    }
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(done.map((b) => b.dataset.testKey)))
-    } catch {}
-  }
-  panel.addEventListener('change', apply)
-  apply()
-})()
-</script>`;
-var HIGHLIGHT_SCRIPT = `<script type="module">
-let hljs
-async function highlight(details) {
-  const table = details.querySelector('table[data-lang]')
-  if (!table || table.dataset.highlighted) return
-  try {
-    if (!hljs) hljs = (await import('${HIGHLIGHT_URL}')).default
-    const language = table.dataset.lang
-    if (!hljs.getLanguage(language)) return
-    for (const cell of table.querySelectorAll('.src')) cell.innerHTML = hljs.highlight(cell.textContent, { language, ignoreIllegals: true }).value
-    table.dataset.highlighted = 'true'
-  } catch (error) {
-    console.warn('farol: could not highlight the diff', error)
-  }
-}
-for (const details of document.querySelectorAll('details.inline-diff')) {
-  details.addEventListener('toggle', () => { if (details.open) void highlight(details) })
-}
-</script>`;
 var FULLSCREEN_SCRIPT = `<script>
 (() => {
   const label = '${HTML_TEXT.fullscreen}'
@@ -253942,379 +253422,19 @@ var FULLSCREEN_SCRIPT = `<script>
   })
 })()
 </script>`;
-var ENTRY_FILTER_SCRIPT = `<script>
-(() => {
-  const input = document.getElementById('entry-filter')
-  if (!input) return
-  const plan = document.getElementById('plan')
-  const rows = [...plan.querySelectorAll('.file-row')]
-  const count = document.getElementById('entry-filter-count')
-  const apply = () => {
-    const query = input.value.trim().toLowerCase()
-    let shown = 0
-    for (const row of rows) {
-      const entries = (row.dataset.entries || '').toLowerCase().split('|').filter((e) => e !== '')
-      const visible = query === '' || entries.some((e) => e.includes(query))
-      row.classList.toggle('filtered-out', !visible)
-      if (visible) shown++
-    }
-    // Matches in collapsed lists (skim) open them.
-    if (query !== '') for (const details of plan.querySelectorAll('details.plan-more')) if (details.querySelector('.file-row:not(.filtered-out)')) details.open = true
-    count.textContent = query === '' ? '' : count.dataset.template.replace('{n}', shown)
-  }
-  input.addEventListener('input', apply)
-  document.getElementById('entry-filter-clear').addEventListener('click', () => { input.value = ''; apply() })
-})()
-</script>`;
-
-// src/report/html-review-script.ts
-var REVIEW_SCRIPT = `<script>
-(() => {
-  const panel = document.getElementById('review')
-  if (!panel) return
-  const storageKey = 'farol-reviewed:' + panel.dataset.key
-  // The panel starts collapsed: links to it open it.
-  for (const link of document.querySelectorAll('a[href="#review"]')) link.addEventListener('click', () => { panel.open = true })
-  const regexInput = document.getElementById('review-regex')
-  const error = document.getElementById('review-error')
-  const status = document.getElementById('review-status')
-  const boxes = [...panel.querySelectorAll('input[data-file]')]
-  const rows = [...document.querySelectorAll('.view details.route')]
-  const pages = new Set(rows.map((r) => r.querySelector('summary').title))
-  // Pages behind a feature flag (the same page has a toggle in the list and in the tree).
-  const flagButtons = [...document.querySelectorAll('button.flag-toggle')]
-  const flagged = new Set()
-  // Checks on security findings, vulnerable dependencies and contract changes (recorded in the Result tab).
-  const ackBoxes = [...document.querySelectorAll('input[data-ack]')]
-  const keysOf = new Map()
-  for (const row of rows) {
-    const key = row.querySelector('summary').title
-    for (const file of row.dataset.files ? row.dataset.files.split('|') : []) keysOf.set(file, (keysOf.get(file) || new Set()).add(key))
-  }
-  try {
-    const saved = JSON.parse(localStorage.getItem(storageKey) || 'null')
-    if (saved) {
-      for (const box of boxes) box.checked = saved.files.includes(box.dataset.file)
-      regexInput.value = saved.regex || ''
-      for (const key of saved.flags || []) if (pages.has(key)) flagged.add(key)
-      for (const box of ackBoxes) box.checked = (saved.acks || []).includes(box.dataset.ack)
-    }
-  } catch {}
-  for (const button of flagButtons) {
-    button.addEventListener('click', (event) => {
-      // Inside a <summary>: toggle the flag, not the row.
-      event.preventDefault()
-      event.stopPropagation()
-      const key = button.dataset.flagKey
-      if (flagged.has(key)) flagged.delete(key)
-      else flagged.add(key)
-      apply()
-    })
-  }
-  const apply = () => {
-    let regex = null
-    error.hidden = true
-    if (regexInput.value.trim() !== '') {
-      try {
-        regex = new RegExp(regexInput.value)
-      } catch {
-        error.hidden = false
-      }
-    }
-    const acks = new Set(ackBoxes.filter((b) => b.checked).map((b) => b.dataset.ack))
-    const ticked = new Set(boxes.filter((b) => b.checked || (regex && regex.test(b.dataset.file))).map((b) => b.dataset.file))
-    // Files that only flagged pages use are out of the review, like reviewed ones (but labeled as flagged).
-    const covered = new Set([...keysOf].filter(([, keys]) => [...keys].every((k) => flagged.has(k))).map(([file]) => file))
-    const reviewed = new Set([...ticked, ...covered])
-    for (const button of flagButtons) {
-      const on = flagged.has(button.dataset.flagKey)
-      button.setAttribute('aria-pressed', String(on))
-      const row = button.closest('details.route') || button.closest('.flag-item')
-      if (row) row.classList.toggle('is-flagged', on)
-    }
-    const note = (el, file) => {
-      const span = el.querySelector('.flag-note')
-      const on = covered.has(file) && !ticked.has(file)
-      el.classList.toggle('is-flagged', on)
-      if (span) {
-        span.textContent = on ? panel.dataset.flagNote : ''
-        span.title = on ? panel.dataset.flagTitle : ''
-      }
-    }
-    for (const box of boxes) {
-      box.closest('label').classList.toggle('is-reviewed', reviewed.has(box.dataset.file))
-      note(box.closest('label'), box.dataset.file)
-    }
-    for (const row of document.querySelectorAll('.file-row[data-file]')) note(row, row.dataset.file)
-    const left = new Set()
-    for (const row of rows) {
-      const files = row.dataset.files ? row.dataset.files.split('|') : []
-      const remaining = files.filter((f) => !reviewed.has(f)).length
-      const key = row.querySelector('summary').title
-      // Flagged pages stay listed, so the flag can be undone.
-      row.hidden = files.length > 0 && remaining === 0 && !flagged.has(key)
-      if (!row.hidden && !flagged.has(key)) left.add(key)
-      const label = row.querySelector('.route-files')
-      if (label && files.length > 0) label.textContent = remaining === files.length ? files.length + ' changed file' + (files.length === 1 ? '' : 's') : remaining + ' of ' + files.length + ' changed files left'
-    }
-    for (const node of [...document.querySelectorAll('details.tree-node')].reverse()) {
-      const visible = new Set([...node.querySelectorAll('details.route:not([hidden])')].map((r) => r.querySelector('summary').title)).size
-      node.hidden = visible === 0
-      const count = node.querySelector(':scope > summary .tree-count')
-      if (count) count.textContent = visible + ' ' + (visible === 1 ? count.dataset.one : count.dataset.many)
-    }
-    const affected = document.getElementById('routes-affected')
-    if (affected) affected.textContent = String(left.size)
-    const parts = []
-    if (reviewed.size > 0) parts.push(panel.dataset.template.replace('{left}', left.size).replace('{total}', pages.size))
-    if (ticked.size > 0) parts.push(panel.dataset.marked.replace('{files}', ticked.size))
-    if (flagged.size > 0) parts.push(panel.dataset.flagStatus.replace('{n}', flagged.size).replace('{files}', [...covered].filter((f) => !ticked.has(f)).length))
-    status.textContent = parts.join(' ')
-    try {
-      localStorage.setItem(storageKey, JSON.stringify({ files: boxes.filter((b) => b.checked).map((b) => b.dataset.file), regex: regexInput.value, flags: [...flagged], acks: [...acks] }))
-    } catch {}
-    const flagsStatus = document.getElementById('flags-status')
-    if (flagsStatus) flagsStatus.textContent = flagged.size === 0 ? '' : panel.dataset.flagStatus.replace('{n}', flagged.size).replace('{files}', [...covered].filter((f) => !ticked.has(f)).length)
-    // The Result tab reads this when the change is announced.
-    window.farolState = { ticked: [...ticked].sort(), covered: [...covered].sort(), flagged: [...flagged].sort(), acks: [...acks].sort(), left: left.size, total: pages.size, files: boxes.length }
-    document.dispatchEvent(new CustomEvent('farol-reviewed', { detail: [...reviewed] }))
-  }
-  // Search only narrows the list; "Mark shown" / "Unmark shown" act on what it shows.
-  const search = document.getElementById('review-search')
-  const hideDone = document.getElementById('review-hide-done')
-  const shownLabel = document.getElementById('review-shown')
-  const visibleBoxes = () => boxes.filter((b) => !b.closest('label').hidden)
-  const filter = () => {
-    const words = search.value.toLowerCase().split(/\\s+/).filter((w) => w !== '')
-    for (const box of boxes) {
-      const label = box.closest('label')
-      const file = box.dataset.file.toLowerCase()
-      label.hidden = !words.every((w) => file.includes(w)) || (hideDone.checked && label.classList.contains('is-reviewed'))
-    }
-    const shown = visibleBoxes().length
-    shownLabel.textContent = shown === boxes.length ? '' : panel.dataset.shown.replace('{shown}', shown).replace('{total}', boxes.length)
-  }
-  const mark = (value) => {
-    for (const box of visibleBoxes()) box.checked = value
-    apply()
-  }
-  document.getElementById('review-mark-shown').addEventListener('click', () => mark(true))
-  document.getElementById('review-unmark-shown').addEventListener('click', () => mark(false))
-  search.addEventListener('input', filter)
-  hideDone.addEventListener('change', filter)
-  document.addEventListener('farol-reviewed', filter)
-  panel.addEventListener('change', (event) => { if (event.target.dataset.file !== undefined) apply() })
-  regexInput.addEventListener('input', apply)
-  for (const box of ackBoxes) box.addEventListener('change', apply)
-  const flagSearch = document.getElementById('flags-search')
-  if (flagSearch) {
-    flagSearch.addEventListener('input', () => {
-      const words = flagSearch.value.toLowerCase().split(/\\s+/).filter((w) => w !== '')
-      for (const item of document.querySelectorAll('.flag-item')) item.hidden = !words.every((w) => item.dataset.search.includes(w))
-    })
-  }
-  document.getElementById('review-clear').addEventListener('click', () => {
-    for (const box of boxes) box.checked = false
-    flagged.clear()
-    regexInput.value = ''
-    search.value = ''
-    apply()
-  })
-  apply()
-})()
-</script>`;
-
-// src/report/html-diff.ts
-function esc7(text) {
-  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
-}
-var LANGUAGES = {
-  ts: "typescript",
-  tsx: "typescript",
-  mts: "typescript",
-  cts: "typescript",
-  js: "javascript",
-  jsx: "javascript",
-  mjs: "javascript",
-  cjs: "javascript",
-  go: "go",
-  py: "python",
-  json: "json",
-  yml: "yaml",
-  yaml: "yaml",
-  md: "markdown",
-  sh: "bash",
-  bash: "bash",
-  sql: "sql",
-  css: "css",
-  scss: "scss",
-  less: "less",
-  html: "xml",
-  xml: "xml",
-  svg: "xml",
-  toml: "ini",
-  ini: "ini",
-  graphql: "graphql",
-  gql: "graphql",
-  rs: "rust",
-  java: "java",
-  kt: "kotlin",
-  rb: "ruby",
-  php: "php"
-};
-function languageOf(path3) {
-  const name = path3.split("/").pop() ?? "";
-  if (/^Dockerfile/.test(name) || name.endsWith(".dockerfile")) return "bash";
-  if (name === "Makefile") return "makefile";
-  if (name.startsWith(".env") || name.endsWith(".env")) return "bash";
-  const ext = name.includes(".") ? (name.split(".").pop() ?? "").toLowerCase() : "";
-  return LANGUAGES[ext];
-}
-function marks(o, path3) {
-  const uncovered = /* @__PURE__ */ new Set();
-  for (const f of o.signals.coverage.files) if (f.path === path3) for (const r of f.uncovered) for (let l = r.start; l <= r.end; l++) uncovered.add(l);
-  const findings = /* @__PURE__ */ new Map();
-  const add = (line3, text) => {
-    findings.set(line3, [...findings.get(line3) ?? [], text]);
-  };
-  for (const s of o.signals.security.findings) if (s.path === path3) add(s.line, `${s.severity} ${s.rule}: ${s.message}`);
-  for (const l of o.signals.lint.findings) if (l.path === path3) add(l.line, `${l.severity} ${l.rule}: ${l.message}`);
-  for (const s of o.signals.suppressions.items) if (s.path === path3) add(s.line, `suppression: ${s.kind}`);
-  return { uncovered, findings };
-}
-function diffBlock(o, path3, url2) {
-  const diff2 = o.diffs?.find((d) => d.path === path3);
-  if (!diff2 || diff2.hunks.length === 0) return "";
-  const { uncovered, findings } = marks(o, path3);
-  let added = 0;
-  let removed = 0;
-  const rows = [];
-  for (const hunk of diff2.hunks) {
-    rows.push(`<tr class="hunk"><td colspan="3">${esc7(hunk.header)}</td></tr>`);
-    let oldLine = hunk.oldStart;
-    let newLine = hunk.newStart;
-    for (const line3 of hunk.lines) {
-      const kind = line3[0];
-      const text = esc7(line3.slice(1));
-      if (kind === "+") {
-        added++;
-        const notes = findings.get(newLine);
-        const untested = uncovered.has(newLine);
-        const flag = notes ? `<span class="diff-flag" title="${esc7(notes.join("\n"))}">\u26A0</span>` : untested ? `<span class="diff-flag untested" title="${esc7(PLAN_TEXT.untestedLine)}">\u25CB</span>` : "";
-        rows.push(`<tr class="add${untested ? " untested" : ""}${notes ? " flagged" : ""}"><td class="ln"></td><td class="ln">${newLine}</td><td class="code">${flag}<span class="mark">+</span><span class="src">${text}</span></td></tr>`);
-        newLine++;
-      } else if (kind === "-") {
-        removed++;
-        rows.push(`<tr class="del"><td class="ln">${oldLine}</td><td class="ln"></td><td class="code"><span class="mark">-</span><span class="src">${text}</span></td></tr>`);
-        oldLine++;
-      } else {
-        rows.push(`<tr class="ctx"><td class="ln">${oldLine}</td><td class="ln">${newLine}</td><td class="code"><span class="mark"> </span><span class="src">${text}</span></td></tr>`);
-        oldLine++;
-        newLine++;
-      }
-    }
-  }
-  const more = diff2.truncated ? `<p class="small muted">${PLAN_TEXT.diffTruncated}${url2 ? ` <a href="${esc7(url2)}" target="_blank" rel="noopener">${PLAN_TEXT.diffOnGithub}</a>` : ""}</p>` : "";
-  const lang = languageOf(path3);
-  return `<details class="inline-diff"><summary>${PLAN_TEXT.showDiff(added, removed)}</summary><div class="fs-target diff-wrap"><button type="button" class="fullscreen" title="${esc7(PLAN_TEXT.fullscreenTitle)}">${PLAN_TEXT.fullscreen}</button><div class="diff"><table${lang ? ` data-lang="${lang}"` : ""}>${rows.join("")}</table></div></div>${more}</details>`;
-}
 
 // src/report/html-verdict.ts
-function esc8(text) {
+function esc6(text) {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
-}
-var pill = (text, cls = "", title = "") => `<span class="pill ${cls}"${title ? ` title="${esc8(title)}"` : ""}>${esc8(text)}</span>`;
-function coveragePill(f, verified) {
-  if (!verified) return pill(PLAN_TEXT.coverageUnverified, "warn");
-  if (f.coverage === void 0 || f.coverage.ratio === null) return pill(PLAN_TEXT.coverageNone, "", f.coverage?.label ?? "");
-  const r = f.coverage.ratio;
-  return pill(PLAN_TEXT.covered(Math.round(r * 100)), r < 0.5 ? "bad" : r < 0.8 ? "warn" : "good", f.coverage.label);
-}
-function ownerPill(f, o) {
-  const owner = o.ownership?.files.find((x) => x.path === f.path);
-  return owner === void 0 ? "" : pill(OWNER_TEXT.owner(owner.owner, owner.share), "owner", OWNER_TEXT.ownerTitle);
-}
-function trafficPill(f, o) {
-  const usage = usageSummary(o);
-  if (usage === null) return "";
-  const { byPath } = usageHits(o);
-  const hits = f.entries.reduce((n, p) => n + (byPath.get(p) ?? 0), 0);
-  const traffic2 = hits > 0 ? pill(USAGE_TEXT.pill(compactNumber(hits), usage.kind), "traffic", USAGE_TEXT.pillTitle(usage.days)) : "";
-  const errors = o.usage?.files.find((e) => e.path === f.path);
-  if (!errors) return traffic2;
-  const url2 = datadogErrorsUrl(o, errors.issueIds, errors.track ?? (o.surface === "backend" ? "trace" : "rum"));
-  const label2 = pill(USAGE_TEXT.filePill(compactNumber(errors.errors)), "bad", USAGE_TEXT.filePillTitle(errors.issues, errors.types.join(", "), usage.days));
-  return `${traffic2}${url2 === null ? label2 : `<a class="pill-link" href="${esc8(url2)}" target="_blank" rel="noopener">${label2}</a>`}`;
-}
-function fileRow(f, o, h, verified) {
-  const t = terms(o.surface);
-  const pills = [
-    f.pagesReached > 0 ? pill(PLAN_TEXT.reach(f.pagesReached, o.risk.totalPages, t.many), f.level === "high" ? "bad" : "warn") : "",
-    trafficPill(f, o),
-    ownerPill(f, o),
-    coveragePill(f, verified),
-    f.security > 0 ? pill(PLAN_TEXT.security(f.security), "bad") : "",
-    f.lint > 0 ? pill(PLAN_TEXT.lint(f.lint), "bad") : "",
-    f.suppressions > 0 ? pill(PLAN_TEXT.suppressions(f.suppressions), "warn") : ""
-  ].join("");
-  const level = f.points >= 30 ? "high" : f.points >= 12 ? "medium" : "low";
-  return `<li class="file-row" data-file="${esc8(f.path)}" data-entries="${esc8(f.entries.join("|"))}"><input type="checkbox" class="row-review" data-review-file="${esc8(f.path)}" title="${esc8(PLAN_TEXT.markReviewed)}">
-<div class="file-main"><div>${h.path(f.path)}<span class="flag-note"></span>${f.change ? ` <span class="tag ${f.change === "added" ? "added" : f.change === "deleted" ? "deleted" : ""}">${esc8(f.change)}</span>` : ""}</div>${f.why ? `<div class="small muted">${esc8(f.why)}</div>` : ""}</div>
-<div class="file-pills">${pills}</div><div class="file-points ${level}" title="${esc8(PLAN_TEXT.pointsTitle)}">${f.points}</div>${diffBlock(o, f.path, h.url(f.path))}</li>`;
-}
-function otherList(v, h) {
-  if (v.other.length === 0) return "";
-  const groups = ["not-code", "dependency", "test"].map((k) => ({ k, files: v.other.filter((o) => o.kind === k) })).filter((g) => g.files.length > 0);
-  const body = groups.map((g) => `<div class="other-group"><div class="small muted">${PLAN_TEXT.otherKinds[g.k]} (${g.files.length})</div><div class="finding-files">${g.files.map((f) => h.path(f.path)).join("")}</div></div>`).join("");
-  return `<details class="plan-more"><summary>${PLAN_TEXT.otherTitle(v.other.length)}</summary><p class="small muted">${PLAN_TEXT.otherIntro}</p>${body}</details>`;
-}
-function infraList(v, o, h) {
-  if (v.infra.length === 0) return "";
-  const rows = v.infra.map((p) => `<li class="file-row compact-row" data-file="${esc8(p)}"><input type="checkbox" class="row-review" data-review-file="${esc8(p)}" title="${esc8(PLAN_TEXT.markReviewed)}"><div class="file-main">${h.path(p)}</div><div class="file-pills"></div><div></div>${diffBlock(o, p, h.url(p))}</li>`);
-  return `<h3>${PLAN_TEXT.infraTitle(v.infra.length)} <span class="muted small">${PLAN_TEXT.infraHint}</span></h3><ol class="file-list compact">${rows.join("\n")}</ol>`;
-}
-function facts(o, v) {
-  const t = terms(o.surface);
-  const affected = o.routes.affected.filter((r) => !r.hasChildren).length;
-  const cov = o.signals.coverage.total;
-  const ratio = cov && cov.changedExecutableLines > 0 ? cov.coveredLines / cov.changedExecutableLines : null;
-  const security = o.signals.security.findings.length;
-  const critical = o.dependencies.summary.critical + o.signals.vulnerabilities.related.filter((r) => r.severity === "critical" || r.severity === "high").length;
-  const lint = o.signals.lint.changedLines?.errors;
-  const link2 = (href, text, cls = "") => `<a class="fact ${cls}" href="#${href}">${esc8(text)}</a>`;
-  return `<div class="facts"><span class="badge small-badge ${o.classification}" title="${esc8(`${CLASS_TEXT[o.classification]} \u2014 ${PLAN_TEXT.classTitle}`)}">${esc8(o.classification)}</span>
-${link2("files", PLAN_TEXT.codeFiles(v.startHere.length + v.skim.length, v.other.length + v.infra.length))}
-${link2("routes", PLAN_TEXT.affected(affected, o.routes.added.length, t.many), affected > 0 ? "warn" : "")}
-${traffic(o, link2)}
-${contractFact(o, link2)}
-${link2("signals", ratio === null ? PLAN_TEXT.coverageFact(null) : PLAN_TEXT.coverageFact(Math.round(ratio * 100)), ratio === null ? "" : ratio < 0.5 ? "bad" : ratio < 0.8 ? "warn" : "good")}
-${link2("security", PLAN_TEXT.securityFact(security), security > 0 ? "bad" : "")}
-${link2("dependencies", PLAN_TEXT.dependencyFact(critical), critical > 0 ? "bad" : "")}
-${lint === void 0 ? "" : link2("lint", PLAN_TEXT.lintFact(lint), lint > 0 ? "bad" : "")}</div>`;
-}
-function traffic(o, link2) {
-  const usage = usageSummary(o);
-  if (usage === null) return o.usage?.status === "error" ? `<span class="fact warn" title="${esc8(USAGE_TEXT.error(o.usage.message ?? ""))}">${esc8(USAGE_TEXT.fact(null, o.usage.kind))}</span>` : "";
-  const files = o.usage?.files.length ?? 0;
-  const share2 = link2("routes", USAGE_TEXT.fact(usage.share, usage.kind), usage.share !== null && usage.share >= 20 ? "warn" : "").replace("<a ", `<a title="${esc8(USAGE_TEXT.factTitle(usage.source, usage.days))}" `);
-  return files === 0 ? share2 : `${share2}
-${link2("files", USAGE_TEXT.filesFact(files), "bad")}`;
-}
-function contractFact(o, link2) {
-  const c = o.contracts?.summary;
-  if (c === void 0) return "";
-  if (c.breaking > 0) return link2("contracts", CONTRACT_TEXT.fact(c.breaking), "bad");
-  if (c.dangerous > 0) return link2("contracts", CONTRACT_TEXT.factDangerous(c.dangerous), "warn");
-  return "";
 }
 function ownership(o) {
   const base = (p) => p.split("/").pop() ?? p;
   const people = o.reviewers.map((r) => {
-    const files = r.files.map((f) => `<span class="pill" title="${esc8(f.path)}">${esc8(OWNER_TEXT.file(base(f.path), f.share))}</span>`).join("");
-    return `<li class="owner"><div class="owner-head"><strong>${esc8(r.name)}</strong>${r.active ? "" : `<span class="pill warn" title="${esc8(OWNER_TEXT.inactiveTitle)}">${OWNER_TEXT.inactive}</span>`}<span class="muted small" title="${esc8(OWNER_TEXT.scoreTitle)}">${esc8(OWNER_TEXT.score(r.score))}</span></div><div class="bar owner-bar"><span style="width:${Math.min(100, r.score)}%"></span></div><div class="owner-files">${files}</div></li>`;
+    const files = r.files.map((f) => `<span class="pill" title="${esc6(f.path)}">${esc6(OWNER_TEXT.file(base(f.path), f.share))}</span>`).join("");
+    return `<li class="owner"><div class="owner-head"><strong>${esc6(r.name)}</strong>${r.active ? "" : `<span class="pill warn" title="${esc6(OWNER_TEXT.inactiveTitle)}">${OWNER_TEXT.inactive}</span>`}<span class="muted small" title="${esc6(OWNER_TEXT.scoreTitle)}">${esc6(OWNER_TEXT.score(r.score))}</span></div><div class="bar owner-bar"><span style="width:${Math.min(100, r.score)}%"></span></div><div class="owner-files">${files}</div></li>`;
   });
-  const owners = o.codeowners.length === 0 ? "" : `<p class="small"><span class="muted">${OWNER_TEXT.codeowners}:</span> ${o.codeowners.map((c) => `<span class="pill" title="${esc8(c.files.join("\n"))}"><strong>${esc8(c.name)}</strong> \xB7 ${esc8(PLAN_TEXT.codeowner(c.files.length))}</span>`).join(" ")}</p>`;
-  return `<div class="ownership"><h3>${OWNER_TEXT.title} <span class="muted small">\u2014 ${esc8(OWNER_TEXT.intro)}</span></h3>${people.length > 0 ? `<ol class="owners">${people.join("")}</ol>` : `<p class="muted small">${OWNER_TEXT.none}</p>`}${owners}</div>`;
+  const owners = o.codeowners.length === 0 ? "" : `<p class="small"><span class="muted">${OWNER_TEXT.codeowners}:</span> ${o.codeowners.map((c) => `<span class="pill" title="${esc6(c.files.join("\n"))}"><strong>${esc6(c.name)}</strong> \xB7 ${esc6(PLAN_TEXT.codeowner(c.files.length))}</span>`).join(" ")}</p>`;
+  return `<div class="ownership"><h3>${OWNER_TEXT.title} <span class="muted small">\u2014 ${esc6(OWNER_TEXT.intro)}</span></h3>${people.length > 0 ? `<ol class="owners">${people.join("")}</ol>` : `<p class="muted small">${OWNER_TEXT.none}</p>`}${owners}</div>`;
 }
 function reviewersSection(o) {
   const body = reviewers(o);
@@ -254323,54 +253443,347 @@ function reviewersSection(o) {
 function reviewers(o) {
   if (o.ownership !== void 0) return ownership(o.ownership);
   if (o.reviewers === void 0) return "";
-  const list2 = o.reviewers.map((r) => `<span class="pill" title="${esc8(r.files.join("\n"))}"><strong>${esc8(r.name)}</strong> \xB7 ${esc8(r.kind === "codeowner" ? PLAN_TEXT.codeowner(r.files.length) : PLAN_TEXT.author(r.files.length, r.commits))}</span>`);
+  const list2 = o.reviewers.map((r) => `<span class="pill" title="${esc6(r.files.join("\n"))}"><strong>${esc6(r.name)}</strong> \xB7 ${esc6(r.kind === "codeowner" ? PLAN_TEXT.codeowner(r.files.length) : PLAN_TEXT.author(r.files.length, r.commits))}</span>`);
   return `<div class="reviewers small"><span class="muted">${PLAN_TEXT.reviewersTitle}:</span> ${list2.length > 0 ? list2.join(" ") : `<span class="muted">${PLAN_TEXT.noReviewers}</span>`}</div>`;
 }
-function entryFilter(o) {
-  const paths = [...new Set([...o.routes.affected, ...o.routes.added].filter((r) => !r.hasChildren).map((r) => r.path))].sort();
-  if (paths.length === 0) return "";
-  const t = terms(o.surface);
-  return `<div class="entry-filter"><input type="search" id="entry-filter" list="entry-options" placeholder="${esc8(PLAN_TEXT.entryFilter(t.one))}" spellcheck="false"><datalist id="entry-options">${paths.map((p) => `<option value="${esc8(p)}"></option>`).join("")}</datalist><button type="button" id="entry-filter-clear">${PLAN_TEXT.entryFilterClear}</button><span class="small muted" id="entry-filter-count" data-template="${esc8(PLAN_TEXT.entryFilterCount)}"></span></div>`;
-}
-function reviewPlan(o, h) {
-  const v = computeVerdict(o);
-  const verified = o.signals.coverage.status === "ok";
-  const start = v.startHere.length === 0 ? `<p class="muted">${PLAN_TEXT.nothingToStart}</p>` : `<ol class="file-list">${v.startHere.map((f) => fileRow(f, o, h, verified)).join("\n")}</ol>`;
-  const skim = v.skim.length === 0 ? "" : `<details class="plan-more"><summary>${PLAN_TEXT.skimTitle(v.skim.length)}</summary><ol class="file-list compact">${v.skim.map((f) => fileRow(f, o, h, verified)).join("\n")}</ol></details>`;
-  const incremental = o.incremental ? `<p class="incremental">${esc8(PLAN_TEXT.incremental(o.incremental.since.slice(0, 12)))}</p>` : "";
-  return `<section class="panel plan plan-${v.level}" id="plan">${incremental}<div class="plan-head"><div class="plan-verdict">
-<div class="muted small">${PLAN_TEXT.title}</div><div class="plan-title">${PLAN_TEXT.levels[v.level]}</div><p class="plan-advice">${PLAN_TEXT.advice[v.level]}</p>
-<ul class="plan-reasons">${v.reasons.map((r) => `<li>${esc8(r)}</li>`).join("")}</ul></div>${scoreBox(o, h)}</div>
-${facts(o, v)}
-<h3>${PLAN_TEXT.startTitle} <span class="muted small">${PLAN_TEXT.startHint}</span></h3>${entryFilter(o)}${start}${skim}${infraList(v, o, h)}${otherList(v, h)}</section>`;
+
+// src/report/strings-workbench.ts
+function workbenchText(surface) {
+  const t = terms(surface);
+  const pair = (one, many) => [`{n} ${one}`, `{n} ${many}`];
+  return {
+    lang: "en",
+    title: "farol \xB7 {repo}",
+    themeToggle: "Theme",
+    footer: "farol {version} \xB7 shadow mode: it informs, it never blocks",
+    noscript: "This report needs JavaScript.",
+    keysHint: "next / previous",
+    keysReviewed: "reviewed",
+    copyResults: "Copy results",
+    commentOnGithub: "Comment on GitHub \u2197",
+    listAnd: "{items} and {last}",
+    andMore: "and {n} more",
+    none: "None.",
+    files: pair("file", "files"),
+    codeFiles: pair("code file", "code files"),
+    lines: pair("line", "lines"),
+    changedLines: pair("changed line", "changed lines"),
+    items: pair("item", "items"),
+    packages: pair("package changed", "packages changed"),
+    otherParts: pair("other part", "other parts"),
+    entriesPair: pair(t.one, t.many),
+    newEntries: pair(`new ${t.one}`, `new ${t.many}`),
+    levels: { high: "High", medium: "Medium", low: "Low" },
+    verdict: { careful: "Careful review", quick: "Quick review", pass: "Fast track" },
+    tiers: { high: "High risk", medium: "Medium risk", skim: "Skim", tests: "Test files" },
+    kinds: { contract: "Breaking API change", vulnerability: "Vulnerable dependency", global: "Global change", unknown: "Unknown impact", dependency: "Dependency", infra: "Infrastructure", tests: "Tests" },
+    rail: {
+      risk: "Merge risk",
+      was: " \xB7 was {score}",
+      ready: "\u2713 Low risk: likely safe to approve",
+      lowButMust: "Low score, but {items} left in Must check",
+      tested: "New code tested",
+      testedSub: "{covered} of {total} changed lines",
+      testedWithout: " \xB7 {ratio} without {files} not in the report",
+      noReport: "no coverage report",
+      noExecutable: "no executable line changed",
+      reviewed: "Reviewed",
+      reviewedBox: "Reviewed",
+      checkedBox: "Checked",
+      flagged: "Behind a feature flag"
+    },
+    nav: { summary: "Summary", must: "Must check", before: "Before approving", contract: "API contract", contractSafe: "safe", plan: "Can affect", details: "Details", finish: "Finish", results: "Results", resultsHint: "copy to GitHub" },
+    must: { contract: "Breaking API change", security: "Security finding", lint: "Lint error", vulnerability: "Vulnerable dependency", securityAt: "Security \xB7 {file}:{line}", lintAt: "Lint error \xB7 {file}:{line}" },
+    lede: {
+      top: "Most of the risk comes from {parts}.",
+      contract: "a breaking change to {key}",
+      security: "a security finding in {file}",
+      lint: "a lint error in {file}",
+      global: "{file}, a change that can affect the whole app",
+      bump: "the {name} bump ({from} \u2192 {to})",
+      bumpMayBreak: "the {name} bump ({from} \u2192 {to}, may break)",
+      dependency: "{name} ({change})",
+      tests: "tests trimmed in {file}",
+      file: "{file}, {why}",
+      reach: `{files} changed; {n} of {total} existing {many} run changed code`,
+      added: ", plus {what}"
+    },
+    summary: {
+      incremental: "Incremental: only the changes since {since} (your last review).",
+      ready: "Ready to approve",
+      readyTitle: "\u2713 Low risk ({score}/100).",
+      readyDown: "Down from {score}: what needed a careful read is reviewed and nothing is left in Must check.",
+      readyNothing: "Nothing here needs a careful read.",
+      copyResults: "Copy the results for the pull request.",
+      startMust: "Start with Must check, then the files on the left: the score drops as you review.",
+      start: "Start with the first file on the left: the score drops as you review.",
+      makesUp: "What makes up the {score}",
+      allReviewed: "Everything is reviewed."
+    },
+    cov: {
+      title: "How much of the new code is tested",
+      summary: "{ratio} \xB7 {covered} of {total} changed lines",
+      summaryWithout: " ({ratio} without {files} not in the report)",
+      show: "Click to see it file by file",
+      hide: "Click to hide",
+      file: "Changed file",
+      tested: "Lines tested",
+      notRun: "Never ran",
+      none: "No coverage report: farol cannot tell which changed lines ran in the tests.",
+      missingTitle: "{files} not in the coverage report",
+      missingWhy: "No test loaded them, so their changed lines count as untested. Types, constants and translations are often excluded from coverage on purpose: if that is the case here, these files are not a gap."
+    },
+    file: {
+      position: "File {i} of {n} \xB7 {change}",
+      markBtn: "Mark as reviewed",
+      reviewedBtn: "\u2713 Reviewed",
+      next: "Next file",
+      comment: "Comment on GitHub \u2197",
+      commentTitle: "Opens this file's diff in the pull request, where you can comment on any line",
+      of: "of {score}",
+      part: "part of the score",
+      reach: "{many} run it",
+      linesTested: "{covered} of {total} lines tested",
+      notInReport: "not in the coverage report",
+      declarations: "only declarations changed",
+      noCoverage: "no coverage data",
+      errors: "errors thrown here",
+      testTitle: "Test file changed",
+      testWhy: "{why}. Check that the removed lines did not drop an assertion that still matters.",
+      note: "Your note",
+      notePlaceholder: "Anything you found. It goes into the results.",
+      entries: `{Many} that run it`,
+      knows: "Who knows this file",
+      noHistory: "No history"
+    },
+    finding: {
+      security: "Security finding \xB7 {severity}",
+      lint: "Lint error \xB7 {rule}",
+      atLine: "at line {line}",
+      ackSecurity: "Checked: fixed, or safe in this context",
+      ackLint: "Checked: fixed, or fine to merge as is",
+      ackVulnerability: "Checked: fixed, or the vulnerable code is not reachable",
+      comment: "Comment on line {line} in GitHub \u2197",
+      lead: "Reviewing the file does not clear this: tick it once you checked it. It is {points} points of the score.",
+      open: "Open {file}"
+    },
+    dep: {
+      change: "dependency change",
+      none: "none",
+      removed: "removed",
+      zeroMinorTag: "0.x minor \xB7 may break",
+      where: "{section} in {file}",
+      howTitle: "How to check it",
+      how1: "Read the release notes between {from} and {to}",
+      how2: "Search the code for imports of {name} and compare with what changed.",
+      how3: "Open a {one} that uses it.",
+      npm: "versions on npm \u2197",
+      means: {
+        major: "Major version: breaking changes are expected. Code that uses this package may stop compiling or behave differently.",
+        zeroMinor: "Before 1.0, semver lets a minor version break the API: anything this project uses from the package may have changed.",
+        minor: "Minor version: new features, compatible by semver.",
+        patch: "Patch version: fixes only, compatible by semver.",
+        removed: "Removed: any code that still imports it fails.",
+        added: "New package: nothing used it before this pull request.",
+        moved: "Moved to another section of the manifest: check it is still installed where the code runs.",
+        unknown: "The versions cannot be compared (a tag, URL or range): read what changed by hand.",
+        range: "Only the range changed: the installed version may stay the same."
+      }
+    },
+    diff: {
+      none: "farol keeps diffs of code files only.",
+      seeInPr: "See this file in the pull request \u2197",
+      hint: "Click a line number to comment on that line in GitHub.",
+      commentLine: "Comment on this line in GitHub",
+      noReport: "No coverage report: farol cannot tell which lines ran in the tests.",
+      missing: "<b>Not in the coverage report.</b> No test loaded this file, so none of its {n} changed executable lines ran.",
+      declarations: "Only declarations changed: nothing executable to cover.",
+      allRan: "<b>All {n} changed executable lines ran in the tests.</b>",
+      someRan: "<b>{covered} of {total} changed lines ran in the tests.</b> {missing} never ran: {ranges}.",
+      notRun: "Not run by tests \xB7 lines {lines}",
+      security: "Security \xB7 {severity}",
+      lint: "Lint \xB7 {rule}",
+      suppression: "Suppression \xB7 {kind}"
+    },
+    plan: {
+      title: "What this change can affect",
+      lead: `{n} existing {many} run code this pull request changed{added}. Try them by hand before approving, riskiest first. Mark the ones that ship behind a feature flag: once every {one} that runs a file is flagged, that file leaves the score.`,
+      leadNew: ", plus {what}",
+      none: "No existing {many} run changed code.",
+      tried: "{done} of {total} tried",
+      flagged: "{n} behind a flag",
+      left: "{file} left the score (\u2212{points})",
+      head: `Tried by hand \xB7 {one} \xB7 changed files it runs`,
+      flagHead: "Feature flag",
+      triedBox: "Tried by hand",
+      newTag: "new",
+      servedBy: "new, served by",
+      runs: "runs changed",
+      flagTitle: "This {one} ships behind a feature flag",
+      flagOn: "\u2691 Behind a flag",
+      flagOff: "\u2690 Behind a flag?",
+      more: "Show {what} more, lower risk",
+      views: "{n} views",
+      requests: "{n} requests",
+      errors: pair("error", "errors")
+    },
+    contract: {
+      title: "API contract",
+      lead: "What clients of the API see change. Breaking changes need the clients updated in this pull request, or a new version.",
+      ack: "Clients are updated in this pull request, or the change is versioned",
+      breaking: "Can break clients",
+      safe: "Compatible",
+      callers: "Called by {services}",
+      levels: { breaking: "breaking", dangerous: "may break", safe: "safe" }
+    },
+    details: {
+      title: "Details",
+      lead: "The full analysis: every changed file and its reach, routes, signals, dependencies, reasons and diagnostics."
+    },
+    results: {
+      title: "Results",
+      lead: "What you checked, as a comment for the pull request. Copy it and paste it in GitHub.",
+      copy: "Copy results",
+      copied: "Copied \u2713",
+      openPr: "Open the pull request \u2197",
+      saved: "of the changed lines needed a careful read: {read} of {total}, in {files} of {all} files. The rest was a skim, tests or outside the project. At a review pace of about {pace} lines an hour, that is <b>{time}</b> instead of {full}.",
+      curiosity: "Just for curiosity: an estimate, not part of the comment.",
+      minutes: "{m} min",
+      hours: "{h} h {m}"
+    },
+    md: {
+      title: "### farol review",
+      score: "Merge risk **{from} \u2192 {to}** after review ({level}).",
+      must: "**Must check**",
+      contract: "Breaking API change ({keys}): clients updated or versioned",
+      security: "Security finding at {where}",
+      lint: "Lint error at {where}",
+      files: "**Files reviewed: {done} of {total}**",
+      left: "Not reviewed yet: {files}",
+      flaggedFiles: "Behind a feature flag: {files}",
+      tried: "**Tried by hand: {done} of {total} {many}**",
+      behindFlag: "(behind a flag)",
+      flagged: "behind a flag:",
+      coverage: "**New code tested:** {ratio} ({covered} of {total} changed lines)",
+      coverageWithout: ", {ratio} without {files} not in the coverage report",
+      notes: "**Notes**",
+      footer: "farol {version} \xB7 {base} \u2192 {head}"
+    }
+  };
 }
 
-// src/report/html-test-plan.ts
-function esc9(text) {
+// src/report/workbench-model.ts
+function workbenchModel(o, links, prefix) {
+  const { items } = mergeScore(o);
+  const groups = scoreGroups(items);
+  const v = computeVerdict(o);
+  const coverage = fileCoverage(o);
+  const t = terms(o.surface);
+  const files = [...v.startHere, ...v.skim].map((f) => ({ path: f.path, change: f.change, why: f.why, reached: f.pagesReached, entries: f.entries, coverage: coverage.get(f.path)?.label ?? null }));
+  const listed = new Set(files.map((f) => f.path));
+  for (const g of groups) {
+    if (g.file === null || listed.has(g.file)) continue;
+    const kinds = new Set(g.items.map((i) => i.kind));
+    const extra = kinds.has("dependency") ? "dependency" : kinds.has("tests") ? "tests" : "other";
+    files.push({ path: g.file, change: o.files.find((f) => f.path === g.file)?.status ?? null, why: g.items.map((i) => i.title).join("; "), reached: 0, entries: [], coverage: null, extra });
+    listed.add(g.file);
+  }
+  const usage = usageSummary(o);
+  const traffic = usageHits(o);
+  const ops = testPlan(o).flatMap((g) => g.items).map((i) => ({ key: i.key, path: i.path, kind: i.kind, files: i.files, hits: traffic.byKey.get(i.key) ?? 0, errors: traffic.errorsByKey.get(i.key) ?? 0, errorsUrl: traffic.linkByKey.get(i.key) ?? null }));
+  const c = o.signals.coverage;
+  const fileUrls = {};
+  for (const f of o.files) {
+    const url2 = links.file(f.path);
+    if (url2 !== null) fileUrls[f.path] = url2;
+  }
+  const fileErrors = {};
+  if (o.usage?.status === "ok") for (const f of o.usage.files) fileErrors[f.path] = { errors: f.errors, url: datadogErrorsUrl(o, f.issueIds, f.track ?? (o.usage.kind === "pages" ? "rum" : "trace")) };
+  return {
+    repo: o.repo,
+    pr: o.pr,
+    base: (o.mergeBase ?? o.base.sha ?? o.base.ref).slice(0, 7),
+    head: (o.head.sha ?? o.head.ref).slice(0, 7),
+    version: o.tool.version,
+    surface: o.surface,
+    prefix,
+    term: { one: t.one, many: t.many, Many: t.Many },
+    incremental: o.incremental ? o.incremental.since.slice(0, 12) : null,
+    verdict: v.level,
+    groups: groups.map((g) => ({ file: g.file, items: g.items.map((i) => ({ kind: i.kind, weight: i.weight, title: i.title })) })),
+    files,
+    totalEntries: o.risk.totalPages,
+    routes: { added: o.routes.added.filter((r) => !r.hasChildren).length, affected: o.routes.affected.filter((r) => !r.hasChildren).length },
+    ops,
+    coverage: c.status === "ok" && c.total ? { status: "ok", covered: c.total.coveredLines, total: c.total.changedExecutableLines, files: c.files.map((f) => ({ path: f.path, total: f.changedExecutableLines, covered: f.coveredLines, uncovered: f.uncovered, missing: f.missingFromReport })) } : { status: c.status, covered: 0, total: 0, files: [] },
+    contracts: o.contracts ? o.contracts.entries : null,
+    callers: Object.fromEntries((o.usage?.status === "ok" ? o.usage.callers : []).map((x) => [x.key, x.services])),
+    security: o.signals.security.findings.map((s) => ({ path: s.path, line: s.line, severity: s.severity, rule: s.rule, message: s.message, text: s.text })),
+    lint: o.signals.lint.findings.map((l) => ({ path: l.path, line: l.line, severity: l.severity, rule: l.rule, message: l.message })),
+    suppressions: o.signals.suppressions.items.map((s) => ({ path: s.path, line: s.line, kind: s.kind, text: s.text })),
+    dependencies: o.dependencies.changes,
+    reviewers: reviewersOf(o),
+    fileErrors,
+    usage: usage === null ? null : USAGE_TEXT.summary(usage.share, compactNumber(usage.affectedHits), compactNumber(usage.total), usage.kind, usage.source, usage.days),
+    diffs: Object.fromEntries((o.diffs ?? []).map((d) => [d.path, d.hunks])),
+    allFiles: o.files.filter((f) => f.role !== "excluded").map((f) => ({ path: f.path, added: f.linesAdded, removed: f.linesRemoved })),
+    links: { files: fileUrls, pr: links.page?.() ?? null }
+  };
+}
+function reviewersOf(o) {
+  if (o.ownership !== void 0) return o.ownership.reviewers.slice(0, 8).map((r) => ({ name: r.name, note: OWNER_TEXT.score(r.score) + (r.active ? "" : ` \xB7 ${OWNER_TEXT.inactive}`), files: r.files.map((f) => f.path) }));
+  return (o.reviewers ?? []).slice(0, 8).map((r) => ({ name: r.name, note: r.kind === "codeowner" ? PLAN_TEXT.codeowner(r.files.length) : PLAN_TEXT.author(r.files.length, r.commits), files: r.files }));
+}
+
+// src/report/html-workbench.ts
+function esc7(text) {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
-var OPEN_GROUPS = 3;
-function testPlanSection(o) {
-  const t = terms(o.surface);
-  const groups = testPlan(o);
-  if (groups.length === 0) return `<section class="panel"><p class="muted">${TEST_TEXT.none(t.many)}</p></section>`;
-  const total = groups.reduce((n, g) => n + g.items.length, 0);
-  const body = groups.map((g, i) => {
-    const items = g.items.map((item) => {
-      const tag = item.kind === "new" ? `<span class="tag added">${TEST_TEXT.newTag}</span>` : `<span class="tag affected">${TEST_TEXT.affectedTag}</span>`;
-      const because = item.because ? `<span class="muted small">${esc9(item.kind === "new" ? TEST_TEXT.renders(shortFile(item.because)) : TEST_TEXT.because(shortFile(item.because)))}</span>` : "";
-      return `<li class="test-item" data-key="${esc9(item.key)}" data-files="${esc9(item.files.join("|"))}"><label><input type="checkbox" data-test-key="${esc9(item.key)}"> ${tag} <code>${esc9(item.path)}</code> ${because}<span class="flag-note"></span></label></li>`;
-    }).join("");
-    return `<details class="test-group"${i < OPEN_GROUPS ? " open" : ""}><summary><span class="tree-label">${esc9(g.label)}</span> <span class="muted small test-count" data-total="${g.items.length}">${TEST_TEXT.count(g.items.length)}</span></summary><ul class="test-list">${items}</ul></details>`;
-  }).join("\n");
-  return `<section class="panel" id="test-plan-panel" data-template="${esc9(TEST_TEXT.progress)}" data-reviewed-template="${esc9(TEST_TEXT.reviewedProgress)}" data-reviewed-note="${esc9(TEST_TEXT.filesReviewed)}" data-reviewed-title="${esc9(TEST_TEXT.filesReviewedTitle)}" data-flag-note="${esc9(FLAG_TEXT.fileNote)}" data-flag-title="${esc9(FLAG_TEXT.fileNoteTitle)}"><p class="small muted">${TEST_TEXT.intro(t.many)}</p><p><strong id="test-progress">${esc9(TEST_TEXT.progress.replace("{done}", "0").replace("{total}", String(total)))}</strong></p>${body}</section>`;
+function scriptJson(value) {
+  return JSON.stringify(value).replaceAll("<", "\\u003c");
+}
+function asset2(name) {
+  const text = ASSETS[name];
+  if (text === void 0) throw new Error(`internal: report asset ${name} is missing (npm run assets)`);
+  return text;
+}
+var SCRIPTS = ["report/wb-core.js", "report/wb-views.js", "report/wb-pages.js"];
+function workbenchPage(o, links, prefix, details) {
+  const T = workbenchText(o.surface);
+  const D = workbenchModel(o, links, prefix);
+  const repo = `${o.repo ?? ""}${o.pr === null ? "" : ` #${o.pr}`}`;
+  const pr2 = links.page?.() ?? null;
+  return `<!doctype html>
+<html lang="${T.lang}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="${faviconUri("light")}" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/svg+xml" href="${faviconUri("dark")}" media="(prefers-color-scheme: dark)">
+<title>${esc7(T.title.replace("{repo}", repo.trim() || o.surface))}</title>
+<style>${asset2("report/workbench.css")}</style>
+</head>
+<body>
+<div class="top"><span class="brand"><span class="logo-light">${logoSvg("light")}</span><span class="logo-dark">${logoSvg("dark")}</span></span><span class="repo">${esc7(repo)} <span class="muted">\xB7 ${esc7(D.base)} \u2192 ${esc7(D.head)}</span></span><span class="grow"></span><span class="keys-hint"><span class="kbd">j</span> <span class="kbd">k</span> ${T.keysHint} \xB7 <span class="kbd">r</span> ${T.keysReviewed}</span><button type="button" class="act" data-copyresults>${T.copyResults}</button>${pr2 === null ? "" : `<a class="act dark" href="${esc7(pr2)}" target="_blank" rel="noopener">${T.commentOnGithub}</a>`}<button type="button" class="act" id="theme">${T.themeToggle}</button></div>
+<div class="layout"><aside class="rail" id="rail"></aside><main class="main" id="main"><noscript>${T.noscript}</noscript></main></div>
+<script type="application/json" id="farol-details">${scriptJson(details)}</script>
+<script>window.FAROL = ${scriptJson({ D, T })}</script>
+${SCRIPTS.map((s) => `<script>
+${asset2(s)}</script>`).join("\n")}
+</body>
+</html>
+`;
+}
+
+// src/report/html-score.ts
+function scoreByFile(o) {
+  return new Map(scoreGroups(mergeScore(o).items).flatMap((g) => g.file === null ? [] : [[g.file, g.points]]));
 }
 
 // src/report/html.ts
 var MAX_ROWS2 = 200;
-var MAX_FINDING_FILES = 6;
 var NO_LINKS2 = { file: () => null, lines: () => null };
-function esc10(text) {
+function esc8(text) {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
 function commonDirectory(paths) {
@@ -254411,7 +253824,7 @@ var Html = class {
     return this.prefix !== "" && p.startsWith(this.prefix) ? p.slice(this.prefix.length) : p;
   }
   anchor(text, title, url2, cls = "path") {
-    return url2 === null ? `<span class="${cls}" title="${esc10(title)}">${esc10(text)}</span>` : `<a class="${cls}" title="${esc10(title)}" href="${esc10(url2)}" target="_blank" rel="noopener">${esc10(text)}</a>`;
+    return url2 === null ? `<span class="${cls}" title="${esc8(title)}">${esc8(text)}</span>` : `<a class="${cls}" title="${esc8(title)}" href="${esc8(url2)}" target="_blank" rel="noopener">${esc8(text)}</a>`;
   }
   /** URL of a file's diff (or content), when links are available. */
   url(p) {
@@ -254431,7 +253844,7 @@ var Html = class {
   }
   table(cols, rows, render2, numeric = []) {
     if (rows.length === 0) return `<p class="muted">${HTML_TEXT.noneFound}</p>`;
-    const head = cols.map((c, i) => `<th${numeric.includes(i) ? ' class="num"' : ""}>${esc10(c)}</th>`).join("");
+    const head = cols.map((c, i) => `<th${numeric.includes(i) ? ' class="num"' : ""}>${esc8(c)}</th>`).join("");
     const body = rows.slice(0, MAX_ROWS2).map(render2).join("\n");
     const more = rows.length > MAX_ROWS2 ? `<tr><td colspan="${cols.length}" class="muted">${HTML_TEXT.more(rows.length - MAX_ROWS2)}</td></tr>` : "";
     return `<table><thead><tr>${head}</tr></thead><tbody>${body}${more}</tbody></table>`;
@@ -254440,27 +253853,10 @@ var Html = class {
 function ratioClass(ratio) {
   return ratio < 0.5 ? "bad" : ratio < 0.8 ? "warn" : "good";
 }
-function header2(o, prefix) {
-  const repo = o.repo ?? HTML_TEXT.unknownRepo;
-  const sha = (s, ref) => esc10(s === null ? ref : `${ref === s ? "" : `${ref} \xB7 `}${s.slice(0, 12)}`);
-  return `<header class="top"><div><h1><span class="logo logo-light">${logoSvg("light")}</span><span class="logo logo-dark">${logoSvg("dark")}</span><span class="h1-repo">${esc10(repo)}</span></h1><div class="muted small">${HTML_TEXT.subtitle}</div></div>
-<div class="small muted"><button type="button" class="theme-toggle" id="theme-toggle" aria-label="${HTML_TEXT.themeToggle}">${HTML_TEXT.themeToggle}</button><br>${HTML_TEXT.base} <code>${sha(o.base.sha, o.base.ref)}</code> \u2192 ${HTML_TEXT.head} <code>${sha(o.head.sha, o.head.ref)}</code><br>${HTML_TEXT.analyzedAt} ${esc10(HTML_TEXT.formatDate(o.analyzedAt))}${prefix ? `<br>${esc10(HTML_TEXT.pathPrefix(prefix))}` : ""}</div></header>`;
-}
-function findingsSection(findings, h) {
-  if (findings.length === 0) return `<section class="panel"><h2>${HTML_TEXT.findingsTitle}</h2><p class="muted">${HTML_TEXT.findingsNone}</p></section>`;
-  const items = findings.map((f) => {
-    const files = f.files.slice(0, MAX_FINDING_FILES).map((p) => h.path(p));
-    if (f.files.length > MAX_FINDING_FILES) files.push(`<span class="muted small">${HTML_TEXT.more(f.files.length - MAX_FINDING_FILES)}</span>`);
-    return `<li class="${f.severity}"><details><summary><span class="chip ${f.severity}">${HTML_TEXT.severity[f.severity]}</span><span class="finding-title">${esc10(f.title)}</span>${f.files.length > 0 ? ` <span class="muted small">${HTML_TEXT.findingFiles(f.files.length)}</span>` : ""}</summary>
-${f.detail ? `<div class="small">${esc10(f.detail)}</div>` : ""}${files.length > 0 ? `<div class="finding-files">${files.join("")}</div>` : ""}
-<div class="small"><a href="#${f.section}">${HTML_TEXT.seeSection}</a></div></details></li>`;
-  });
-  return `<section class="panel"><h2>${HTML_TEXT.findingsTitle} <span class="muted small">${HTML_TEXT.findingsHint}</span></h2><ol class="findings">${items.join("\n")}</ol></section>`;
-}
 function signalStatus(signal) {
   if (signal.status === "ok") return void 0;
   const label2 = signal.status === "error" ? HTML_TEXT.reportError : HTML_TEXT.notVerified;
-  return `<p><span class="tag no">${label2}</span> <span class="muted small">${esc10(signal.message ?? "")}</span></p>`;
+  return `<p><span class="tag no">${label2}</span> <span class="muted small">${esc8(signal.message ?? "")}</span></p>`;
 }
 function coverageSection(o, h) {
   const c = o.signals.coverage;
@@ -254475,7 +253871,7 @@ function coverageSection(o, h) {
     if (reported.length < c.files.length) {
       const rTotal = reported.reduce((n, f) => n + f.changedExecutableLines, 0);
       const rCovered = reported.reduce((n, f) => n + f.coveredLines, 0);
-      if (rTotal > 0) body += `<p class="small muted">${esc10(HTML_TEXT.reportedOnly(`${(rCovered / rTotal * 100).toFixed(1)}%`, rCovered, rTotal))}</p>`;
+      if (rTotal > 0) body += `<p class="small muted">${esc8(HTML_TEXT.reportedOnly(`${(rCovered / rTotal * 100).toFixed(1)}%`, rCovered, rTotal))}</p>`;
     }
     const rows = [...c.files].sort((a, b) => Number(a.missingFromReport) - Number(b.missingFromReport) || b.changedExecutableLines - b.coveredLines - (a.changedExecutableLines - a.coveredLines));
     body += h.table(HTML_TEXT.coverageCols, rows, (f) => `<tr><td>${h.path(f.path)}${f.missingFromReport ? ` <span class="tag no">${HTML_TEXT.missing}</span>` : ""}</td><td class="num">${f.changedExecutableLines}</td><td class="num">${f.coveredLines}</td><td class="ranges">${h.ranges(f.path, f.uncovered)}</td></tr>`, [1, 2]);
@@ -254487,14 +253883,14 @@ function lintSection(o, h) {
   const l = o.signals.lint;
   const status3 = signalStatus(l);
   if (status3 || !l.changedLines || !l.otherLines) return `<div id="lint"><h3>${HTML_TEXT.lintTitle}</h3>${status3 ?? ""}</div>`;
-  const summary = `<p class="small">${esc10(HTML_TEXT.lintSummary(l.changedLines.errors, l.changedLines.warnings, l.otherLines.errors, l.otherLines.warnings))}</p>`;
-  const table3 = h.table(HTML_TEXT.lintCols, l.findings, (f) => `<tr><td>${h.loc(f.path, f.line)}</td><td><span class="tag ${f.severity === "error" ? "no" : ""}">${esc10(f.severity)}</span></td><td><code>${esc10(f.rule)}</code></td><td>${esc10(f.message)}</td></tr>`);
+  const summary = `<p class="small">${esc8(HTML_TEXT.lintSummary(l.changedLines.errors, l.changedLines.warnings, l.otherLines.errors, l.otherLines.warnings))}</p>`;
+  const table3 = h.table(HTML_TEXT.lintCols, l.findings, (f) => `<tr><td>${h.loc(f.path, f.line)}</td><td><span class="tag ${f.severity === "error" ? "no" : ""}">${esc8(f.severity)}</span></td><td><code>${esc8(f.rule)}</code></td><td>${esc8(f.message)}</td></tr>`);
   const omitted = l.omittedFindings > 0 ? `<p class="muted small">${HTML_TEXT.omitted(l.omittedFindings)}</p>` : "";
   return `<div id="lint"><h3>${HTML_TEXT.lintTitle}</h3>${summary}${table3}${omitted}</div>`;
 }
 function suppressionsAndTests(o, h) {
   const s = o.signals.suppressions;
-  const sup = signalStatus(s) ?? h.table(HTML_TEXT.suppressionsCols, s.items, (i) => `<tr><td>${h.loc(i.path, i.line)}</td><td><code>${esc10(i.kind)}</code></td><td><code>${esc10(i.text)}</code></td></tr>`);
+  const sup = signalStatus(s) ?? h.table(HTML_TEXT.suppressionsCols, s.items, (i) => `<tr><td>${h.loc(i.path, i.line)}</td><td><code>${esc8(i.kind)}</code></td><td><code>${esc8(i.text)}</code></td></tr>`);
   const t = o.signals.testsModified;
   const tests = signalStatus(t) ?? h.table(HTML_TEXT.testsCols, t.files, (f) => `<tr><td>${h.path(f.path)}${f.oldPath ? ` \u2190 ${h.path(f.oldPath)}` : ""}</td><td><span class="tag ${f.status}">${HTML_TEXT.statusNames[f.status]}</span></td><td class="num">${f.linesRemoved}</td></tr>`, [2]);
   return `<div class="grid2"><div id="suppressions"><h3>${HTML_TEXT.suppressionsTitle}</h3>${sup}</div><div id="tests"><h3>${HTML_TEXT.testsTitle}</h3>${tests}</div></div>`;
@@ -254531,18 +253927,18 @@ function riskSection(o, h) {
       const share2 = r.totalPages === 0 ? 0 : f.pagesReached / r.totalPages;
       const bar = `<div class="mini-bar"><span style="width:${(share2 * 100).toFixed(1)}%"></span></div>`;
       const c = coverage.get(f.path);
-      const cov = !verified ? `<span class="muted small">${HTML_TEXT.notVerified}</span>` : c === void 0 || c.ratio === null ? `<span class="muted small">${esc10(c?.label ?? "\u2014")}</span>` : `<span class="pill ${c.ratio < 0.5 ? "bad" : c.ratio < 0.8 ? "warn" : "good"}">${Math.round(c.ratio * 100)}%</span>`;
+      const cov = !verified ? `<span class="muted small">${HTML_TEXT.notVerified}</span>` : c === void 0 || c.ratio === null ? `<span class="muted small">${esc8(c?.label ?? "\u2014")}</span>` : `<span class="pill ${c.ratio < 0.5 ? "bad" : c.ratio < 0.8 ? "warn" : "good"}">${Math.round(c.ratio * 100)}%</span>`;
       const graph = HTML_TEXT.graphTitle(f.directImporters, f.transitiveDependents, f.centrality.toFixed(3));
       const p = points.get(f.path) ?? 0;
-      return `<tr data-level="${f.level}" data-change="${f.change}"><td>${h.path(f.path)}</td><td><span class="tag ${f.change === "added" ? "added" : f.change === "deleted" ? "deleted" : ""}">${HTML_TEXT.riskChanges[f.change]}</span></td><td class="num" title="${esc10(graph)}"><span class="chip ${f.level}">${HTML_TEXT.severity[f.level]}</span> ${f.pagesReached} / ${r.totalPages}${bar}</td><td>${cov}</td><td>${findings(f.path)}</td><td class="num"><span class="file-points inline ${p >= 30 ? "high" : p >= 12 ? "medium" : "low"}">${p}</span></td><td class="small muted">${esc10(f.why)}</td></tr>`;
+      return `<tr data-level="${f.level}" data-change="${f.change}"><td>${h.path(f.path)}</td><td><span class="tag ${f.change === "added" ? "added" : f.change === "deleted" ? "deleted" : ""}">${HTML_TEXT.riskChanges[f.change]}</span></td><td class="num" title="${esc8(graph)}"><span class="chip ${f.level}">${HTML_TEXT.severity[f.level]}</span> ${f.pagesReached} / ${r.totalPages}${bar}</td><td>${cov}</td><td>${findings(f.path)}</td><td class="num"><span class="file-points inline ${p >= 30 ? "high" : p >= 12 ? "medium" : "low"}">${p}</span></td><td class="small muted">${esc8(f.why)}</td></tr>`;
     },
     [2, 5]
   );
-  const chip = (group, value, text, n) => n === 0 ? "" : `<label class="filter"><input type="checkbox" data-filter="${group}" value="${value}" checked> ${esc10(text)} <span class="muted">(${n})</span></label>`;
+  const chip = (group, value, text, n) => n === 0 ? "" : `<label class="filter"><input type="checkbox" data-filter="${group}" value="${value}" checked> ${esc8(text)} <span class="muted">(${n})</span></label>`;
   const changes = Object.keys(HTML_TEXT.riskChanges);
   const filters = `<div class="filters" id="risk-filters"><span class="filter-label">${HTML_TEXT.filterLevel}</span>${["high", "medium", "low"].map((l) => chip("level", l, HTML_TEXT.severity[l], r.summary[l])).join("")}
 <span class="filter-label">${HTML_TEXT.filterChange}</span>${changes.map((c) => chip("change", c, HTML_TEXT.riskChanges[c], r.files.filter((f) => f.change === c).length)).join("")}<span class="muted small" id="risk-count"></span></div>`;
-  return `<section class="panel"><p class="small muted">${esc10(HTML_TEXT.riskIntro(r.totalPages, terms(o.surface)))}</p><div class="stats">${counts}</div>${r.files.length === 0 ? `<p class="muted">${HTML_TEXT.noRiskFiles}</p>` : `${filters}<div id="risk-table">${table3}</div>`}</section>`;
+  return `<section class="panel"><p class="small muted">${esc8(HTML_TEXT.riskIntro(r.totalPages, terms(o.surface)))}</p><div class="stats">${counts}</div>${r.files.length === 0 ? `<p class="muted">${HTML_TEXT.noRiskFiles}</p>` : `${filters}<div id="risk-table">${table3}</div>`}</section>`;
 }
 function dependenciesSection(o, h) {
   const d = o.dependencies;
@@ -254551,28 +253947,28 @@ function dependenciesSection(o, h) {
   const counts = Object.keys(HTML_TEXT.dependencyCounts).map((k) => `<div class="stat ${k === "critical" && d.summary.critical > 0 ? "bad" : ""}"><div class="value">${d.summary[k]}</div><div class="label">${HTML_TEXT.dependencyCounts[k]}</div></div>`).join("");
   const rows = [...d.changes].sort((a, b) => Number(b.critical) - Number(a.critical));
   const table3 = h.table(HTML_TEXT.dependencyCols, rows, (c) => {
-    const section2 = c.change === "moved" ? `${esc10(c.fromSection ?? "")} \u2192 ${esc10(c.section)}` : esc10(c.section);
-    const bump = c.bump === null ? "" : `<span class="tag ${c.bump === "major" || c.bump === "unknown" ? "no" : ""}">${esc10(c.bump)}${c.direction === "downgrade" ? " \u2193" : ""}</span>`;
-    const status3 = `<span class="tag ${c.critical ? "no" : "yes"}">${c.critical ? HTML_TEXT.critical : HTML_TEXT.safe}</span>${c.note ? `<div class="muted small">${esc10(c.note)}</div>` : ""}`;
-    return `<tr class="${c.critical ? "critical" : ""}"><td><code>${esc10(c.name)}</code></td><td>${h.path(c.manifest)}</td><td class="small">${section2}</td><td>${HTML_TEXT.changeNames[c.change]}</td><td><code>${esc10(c.from ?? "")}</code></td><td><code>${esc10(c.to ?? "")}</code></td><td>${bump}</td><td>${status3}</td></tr>`;
+    const section2 = c.change === "moved" ? `${esc8(c.fromSection ?? "")} \u2192 ${esc8(c.section)}` : esc8(c.section);
+    const bump = c.bump === null ? "" : `<span class="tag ${c.bump === "major" || c.bump === "unknown" ? "no" : ""}">${esc8(c.bump)}${c.direction === "downgrade" ? " \u2193" : ""}</span>`;
+    const status3 = `<span class="tag ${c.critical ? "no" : "yes"}">${c.critical ? HTML_TEXT.critical : HTML_TEXT.safe}</span>${c.note ? `<div class="muted small">${esc8(c.note)}</div>` : ""}`;
+    return `<tr class="${c.critical ? "critical" : ""}"><td><code>${esc8(c.name)}</code></td><td>${h.path(c.manifest)}</td><td class="small">${section2}</td><td>${HTML_TEXT.changeNames[c.change]}</td><td><code>${esc8(c.from ?? "")}</code></td><td><code>${esc8(c.to ?? "")}</code></td><td>${bump}</td><td>${status3}</td></tr>`;
   });
   const lockfiles = d.lockfiles.length > 0 ? `<h3>${HTML_TEXT.lockfilesTitle}</h3><div class="finding-files">${d.lockfiles.map((p) => h.path(p)).join("")}</div>` : "";
-  const manifestTable = manifestReasons.length > 0 ? `<h3>${HTML_TEXT.manifestChangesTitle}</h3>${h.table(HTML_TEXT.manifestCols, manifestReasons, (r) => `<tr class="critical"><td>${r.file ? h.path(r.file) : ""}</td><td>${esc10(r.detail)}</td><td><span class="tag no">${HTML_TEXT.critical}</span></td></tr>`)}` : "";
+  const manifestTable = manifestReasons.length > 0 ? `<h3>${HTML_TEXT.manifestChangesTitle}</h3>${h.table(HTML_TEXT.manifestCols, manifestReasons, (r) => `<tr class="critical"><td>${r.file ? h.path(r.file) : ""}</td><td>${esc8(r.detail)}</td><td><span class="tag no">${HTML_TEXT.critical}</span></td></tr>`)}` : "";
   const changesTable = d.changes.length > 0 ? `<h3>${HTML_TEXT.packagesTitle}</h3>${table3}` : "";
   return `<section class="panel"><p class="small muted">${HTML_TEXT.dependenciesIntro}</p><div class="stats">${counts}</div>${manifestTable}${changesTable}${lockfiles}</section>`;
 }
 function reasonsSection(o, h) {
-  const table3 = h.table(HTML_TEXT.reasonsCols, o.reasons, (r) => `<tr class="effect-${REASONS[r.code]}"><td>${esc10(REASON_TEXT[r.code])}<div class="muted small"><code>${esc10(r.code)}</code></div></td><td>${r.file ? h.path(r.file) : ""}</td><td class="small">${esc10(r.detail)}</td></tr>`);
+  const table3 = h.table(HTML_TEXT.reasonsCols, o.reasons, (r) => `<tr class="effect-${REASONS[r.code]}"><td>${esc8(REASON_TEXT[r.code])}<div class="muted small"><code>${esc8(r.code)}</code></div></td><td>${r.file ? h.path(r.file) : ""}</td><td class="small">${esc8(r.detail)}</td></tr>`);
   return `<section class="panel"><details><summary>${HTML_TEXT.reasonsTitle} (${o.reasons.length})</summary>${table3}</details></section>`;
 }
 function diagnosticsSection(o, h) {
   const d = o.diagnostics;
   const parts = [
-    d.error ? `<p><span class="tag no">error</span> ${esc10(d.error)}</p>` : "",
-    `<h3>${HTML_TEXT.dynamicTitle} (${d.dynamicRoutes.length})</h3>${h.table(HTML_TEXT.dynamicCols, d.dynamicRoutes, (x) => `<tr><td>${h.loc(x.file, x.line)}</td><td>${esc10(x.detail)}</td></tr>`)}`,
-    `<h3>${HTML_TEXT.unresolvedTitle} (${d.unresolvedImports.length})</h3>${h.table(HTML_TEXT.unresolvedCols, d.unresolvedImports, (x) => `<tr><td>${h.loc(x.file, x.line)}</td><td><code>${esc10(x.specifier)}</code></td><td>${esc10(x.reason)}</td></tr>`)}`,
-    `<h3>${HTML_TEXT.parseTitle} (${d.parseErrors.length})</h3>${h.table(HTML_TEXT.parseCols, d.parseErrors, (x) => `<tr><td>${h.loc(x.file, x.line)}</td><td>${esc10(x.message)}</td></tr>`)}`,
-    `<h3>${HTML_TEXT.timingsTitle}</h3><p class="small"><code>${esc10(Object.entries(d.timingsMs).map(([k, v]) => `${k} ${v}`).join(" \xB7 "))}</code></p>`
+    d.error ? `<p><span class="tag no">error</span> ${esc8(d.error)}</p>` : "",
+    `<h3>${HTML_TEXT.dynamicTitle} (${d.dynamicRoutes.length})</h3>${h.table(HTML_TEXT.dynamicCols, d.dynamicRoutes, (x) => `<tr><td>${h.loc(x.file, x.line)}</td><td>${esc8(x.detail)}</td></tr>`)}`,
+    `<h3>${HTML_TEXT.unresolvedTitle} (${d.unresolvedImports.length})</h3>${h.table(HTML_TEXT.unresolvedCols, d.unresolvedImports, (x) => `<tr><td>${h.loc(x.file, x.line)}</td><td><code>${esc8(x.specifier)}</code></td><td>${esc8(x.reason)}</td></tr>`)}`,
+    `<h3>${HTML_TEXT.parseTitle} (${d.parseErrors.length})</h3>${h.table(HTML_TEXT.parseCols, d.parseErrors, (x) => `<tr><td>${h.loc(x.file, x.line)}</td><td>${esc8(x.message)}</td></tr>`)}`,
+    `<h3>${HTML_TEXT.timingsTitle}</h3><p class="small"><code>${esc8(Object.entries(d.timingsMs).map(([k, v]) => `${k} ${v}`).join(" \xB7 "))}</code></p>`
   ];
   const open2 = d.error !== null || d.dynamicRoutes.length > 0 || d.parseErrors.length > 0;
   return `<section class="panel"><details${open2 ? " open" : ""}><summary>${HTML_TEXT.diagnosticsTitle}</summary>${parts.join("\n")}</details></section>`;
@@ -254584,16 +253980,16 @@ function securityBadge(o) {
 }
 function renderHtml(output2, links = NO_LINKS2) {
   const prefix = displayPrefix([...output2.files.map((f) => f.path), ...output2.routes.affected.flatMap((r) => r.via.flatMap((v) => v.chain))]);
+  return workbenchPage(output2, links, prefix, renderDetails(output2, links, prefix));
+}
+function renderDetails(output2, links, prefix) {
   const h = new Html(prefix, links);
   if (output2.usage?.status === "ok") {
     const u = usageHits(output2);
     h.traffic = { hits: u.byKey, errors: u.errorsByKey, links: u.linkByKey, kind: output2.usage.kind };
   }
-  const findings = keyFindings(output2);
   const depsCritical = output2.dependencies.summary.critical + output2.reasons.filter((r) => r.code === "manifest-changed" || r.code === "lockfile-only-change").length;
   const sections = [
-    ["overview", "", [reviewPlan(output2, h), findingsSection(findings, h)].join("\n")],
-    ["tests", "", testPlanSection(output2)],
     ["risk", output2.risk.summary.high > 0 ? `<span class="count bad">${output2.risk.summary.high}</span>` : "", riskSection(output2, h)],
     ["security", securityBadge(output2), securitySection(output2, h)],
     ["dependencies", depsCritical > 0 ? `<span class="count bad">${depsCritical}</span>` : output2.dependencies.changes.length > 0 ? `<span class="count">${output2.dependencies.changes.length}</span>` : "", dependenciesSection(output2, h)],
@@ -254602,17 +253998,12 @@ function renderHtml(output2, links = NO_LINKS2) {
     ...output2.ownership !== void 0 || output2.reviewers !== void 0 ? [["reviewers", "", reviewersSection(output2)]] : [],
     ["routes", output2.routes.affected.some((r) => !r.hasChildren) ? `<span class="count">${output2.routes.affected.filter((r) => !r.hasChildren).length}</span>` : "", routesSection(output2, h, links)],
     ["files", `<span class="count">${output2.files.length}</span>`, filesSection(output2, h)],
-    ["details", "", [reasonsSection(output2, h), diagnosticsSection(output2, h)].join("\n")],
-    ["result", '<span class="count" id="result-count" hidden></span>', resultSection(output2)]
+    ["details", "", [reasonsSection(output2, h), diagnosticsSection(output2, h)].join("\n")]
   ];
   const body = [
-    header2(output2, prefix),
     `<nav class="sectionbar">${sections.map(([id, badge]) => `<a href="#${id}">${id === "routes" ? terms(output2.surface).section : HTML_TEXT.tabs[id]}${badge}</a>`).join("")}</nav>`,
-    // The reviewed-files panel drives the score and the remaining pages, so it comes first (collapsed).
-    reviewSection(output2, h, links),
-    flagSection(output2, h, links),
     ...sections.map(([id, , content]) => `<div class="section" id="${id}"><h2 class="section-title">${id === "routes" ? terms(output2.surface).section : HTML_TEXT.tabs[id]}</h2>${content}</div>`),
-    `<footer>${esc10(HTML_TEXT.footer(output2.tool.version))}</footer>`
+    `<footer>${esc8(HTML_TEXT.footer(output2.tool.version))}</footer>`
   ];
   return `<!doctype html>
 <html lang="${HTML_TEXT.lang}">
@@ -254621,7 +254012,7 @@ function renderHtml(output2, links = NO_LINKS2) {
 <link rel="icon" type="image/svg+xml" href="${faviconUri("light")}" media="(prefers-color-scheme: light)">
 <link rel="icon" type="image/svg+xml" href="${faviconUri("dark")}" media="(prefers-color-scheme: dark)">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc10(HTML_TEXT.pageTitle(output2.repo ?? HTML_TEXT.unknownRepo))}</title>
+<title>${esc8(HTML_TEXT.pageTitle(output2.repo ?? HTML_TEXT.unknownRepo))}</title>
 <style>${HTML_STYLE}</style>
 </head>
 <body><main>
@@ -254629,15 +254020,8 @@ ${body.join("\n")}
 </main>
 ${THEME_SCRIPT}
 ${RISK_FILTER_SCRIPT}
-${SCORE_SCRIPT}
-${PLAN_SCRIPT}
-${TEST_SCRIPT}
-${RESULT_SCRIPT}
-${REVIEW_SCRIPT}
 ${MERMAID_SCRIPT}
-${HIGHLIGHT_SCRIPT}
 ${FULLSCREEN_SCRIPT}
-${ENTRY_FILTER_SCRIPT}
 </body>
 </html>
 `;
@@ -254661,6 +254045,7 @@ function createLinker(output2, target) {
   for (const p of output2.ignoredFiles) if (!changed.has(p)) changed.set(p, "modified");
   const blob = (path3) => `${base}/blob/${head}/${path3.split("/").map(encodeURIComponent).join("/")}`;
   return {
+    page: () => target.pr !== null ? `${base}/pull/${target.pr}` : null,
     file: (path3) => changed.has(path3) ? `${diffPage}#${diffAnchor(path3)}` : blob(path3),
     lines: (path3, start, end) => {
       const status3 = changed.get(path3);
@@ -255361,7 +254746,7 @@ function buildProgram() {
       return reportCommand({ ...opts, in: required2(opts.in, "--in", "report") });
     })
   );
-  program3.command("html").description("write a single-file HTML report (review plan, score, risk, security, dependencies, coverage, entry points, files) from an analyze JSON").option("--in <file>", "analyze JSON").option("--out <file>", "write the HTML here instead of stdout").option("--repo <owner/name>", "repository for file links (default: the one in the JSON)").option("--pr <number>", "pull request number for file links (default: the one in the JSON)", positiveInt).option("--reviewers <file>", 'reviewers file written by "farol reviewers"').action(
+  program3.command("html").description("write the single-file HTML report (a review workbench: live merge risk, what to check by hand, files by risk with their diff and coverage, what the change can affect, results for the PR) from an analyze JSON").option("--in <file>", "analyze JSON").option("--out <file>", "write the HTML here instead of stdout").option("--repo <owner/name>", "repository for file links (default: the one in the JSON)").option("--pr <number>", "pull request number for file links (default: the one in the JSON)", positiveInt).option("--reviewers <file>", 'reviewers file written by "farol reviewers"').action(
     (raw, cmd) => runAction(() => {
       const opts = withFarolFile("html", cmd, raw);
       return htmlCommand({ ...opts, in: required2(opts.in, "--in", "html") });

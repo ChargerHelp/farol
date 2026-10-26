@@ -36,7 +36,18 @@ export const DECLARATIONS_TOTAL_WEIGHT = 0.05
  * does not tell whether the clients were updated.
  */
 export const CONTRACT_WEIGHT = { breaking: 0.4, dangerous: 0.1 } as const
-export const CRITICAL_DEPENDENCY_WEIGHT = 0.25
+/**
+ * Dependency changes, by how much the bump can break: a major version or a removed package breaks code that uses it,
+ * a 0.x minor (or 0.0.x patch) may, a compatible bump rarely does. Versions that cannot be compared are read by hand.
+ */
+export const DEPENDENCY_WEIGHT = { breaking: 0.15, unknown: 0.1, mayBreak: 0.08, compatible: 0.02 } as const
+
+function dependencyWeight(c: Output['dependencies']['changes'][number]): number {
+  if (!c.critical) return DEPENDENCY_WEIGHT.compatible
+  if (c.change === 'removed' || c.bump === 'major') return DEPENDENCY_WEIGHT.breaking
+  if (c.bump === 'unknown') return DEPENDENCY_WEIGHT.unknown
+  return DEPENDENCY_WEIGHT.mayBreak
+}
 
 const SECURITY_WEIGHT = { high: 0.3, medium: 0.1, low: 0.02 } as const
 const VULN_WEIGHT = { critical: 0.5, high: 0.35, moderate: 0.12, low: 0.03, info: 0 } as const
@@ -112,12 +123,17 @@ export function scoreItems(o: Output): ScoreItem[] {
   // Environment, infrastructure and CI files together weigh at most INFRA_WEIGHT, shared by file (each reviewable).
   const infra = o.files.filter((f) => f.role === 'infra')
   for (const f of infra) add(f.path, 'infra', 1 - (1 - INFRA_WEIGHT) ** (1 / infra.length), `${f.status} environment, infrastructure or CI file: check it per environment`)
-  for (const s of o.signals.security.findings) add(s.path, 'security', SECURITY_WEIGHT[s.severity], `${s.severity} ${s.rule} at line ${s.line}`)
-  for (const l of o.signals.lint.findings) if (l.severity === 'error') add(l.path, 'lint', 0.05, `lint error ${l.rule} at line ${l.line}`)
-  for (const s of o.signals.suppressions.items) add(s.path, 'suppression', 0.02, `${s.kind} at line ${s.line}`)
+  // Findings in files outside the project belong to another project's review.
+  const outside = new Set(o.files.filter((f) => f.role === 'excluded').map((f) => f.path))
+  const security = o.signals.security.findings.filter((s) => !outside.has(s.path))
+  for (const s of security) add(s.path, 'security', SECURITY_WEIGHT[s.severity], `${s.severity} ${s.rule} at line ${s.line}`)
+  // A lint error on the line of a security finding is the same problem seen twice (ruff S608 and bandit): counted once.
+  const securityLines = new Set(security.map((s) => `${s.path}:${s.line}`))
+  for (const l of o.signals.lint.findings) if (l.severity === 'error' && !outside.has(l.path) && !securityLines.has(`${l.path}:${l.line}`)) add(l.path, 'lint', 0.05, `lint error ${l.rule} at line ${l.line}`)
+  for (const s of o.signals.suppressions.items) if (!outside.has(s.path)) add(s.path, 'suppression', 0.02, `${s.kind} at line ${s.line}`)
   // A deleted or heavily trimmed test may hide a regression; a few removed lines are usual test maintenance.
   for (const t of o.signals.testsModified.files) if (t.linesRemoved > 0) add(t.path, 'tests', t.status === 'deleted' ? 0.1 : t.linesRemoved >= 10 ? 0.05 : 0.02, `existing test ${t.status}, ${t.linesRemoved} line(s) removed`)
-  for (const c of o.dependencies.changes) add(c.manifest, 'dependency', c.critical ? CRITICAL_DEPENDENCY_WEIGHT : 0.03, `${c.name} ${c.change}${c.bump ? ` (${c.bump})` : ''}${c.critical ? ', critical' : ''}`)
+  for (const c of o.dependencies.changes) add(c.manifest, 'dependency', dependencyWeight(c), `${c.name} ${c.change}${c.bump ? ` (${c.bump})` : ''}${c.critical ? ', critical' : ''}`)
   for (const v of o.signals.vulnerabilities.related) add(null, 'vulnerability', VULN_WEIGHT[v.severity] * (v.kind === 'direct' ? 1 : 0.6), `${v.severity} advisory on ${v.package}: ${v.title}`)
   for (const level of ['breaking', 'dangerous'] as const) {
     const list = (o.contracts?.entries ?? []).filter((e) => e.level === level)

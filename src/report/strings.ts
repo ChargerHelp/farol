@@ -338,5 +338,5 @@ export const FINDINGS_TEXT = {
 }
 
 
-export { ACK_TEXT, FLAG_PANEL_TEXT, FLAG_TEXT, OWNER_TEXT, PLAN_TEXT, RESULT_TEXT, SINCE_TEXT, TEST_TEXT, USAGE_TEXT } from './strings-review.js'
+export { OWNER_TEXT, PLAN_TEXT, SINCE_TEXT, TEST_TEXT, USAGE_TEXT } from './strings-review.js'
 export { CONTRACT_TEXT } from './strings-contracts.js'

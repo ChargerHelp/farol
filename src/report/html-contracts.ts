@@ -1,5 +1,5 @@
 import type { Output } from '../output/schema.js'
-import { ACK_TEXT as A, CONTRACT_TEXT as C } from './strings.js'
+import { CONTRACT_TEXT as C } from './strings.js'
 import { compactNumber } from './usage.js'
 
 type Entry = NonNullable<Output['contracts']>['entries'][number]
@@ -23,8 +23,7 @@ function entryRow(o: Output, e: Entry): string {
   const rows = e.changes.map((c) => `<tr><td><span class="chip ${CHIP[c.level]}">${C.levels[c.level]}</span></td><td><code>${esc(c.where)}</code></td><td>${esc(c.detail)}</td></tr>`).join('')
   const more = e.omitted > 0 ? `<p class="muted small">${esc(C.more(e.omitted))}</p>` : ''
   const first = e.changes[0]
-  const ack = e.level === 'safe' ? '' : `<label class="ack-label small" title="${esc(A.contract)}"><input type="checkbox" class="ack" data-ack="${esc(`contract:${e.key}`)}"> ${A.contractLabel}</label>`
-  return `<details class="contract"><summary>${ack}<span class="chip ${CHIP[e.level]}">${C.levels[e.level]}</span><code class="route-path">${esc(e.key)}</code><span class="small muted">${esc(first ? `${first.where}: ${first.detail}` : '')}${e.changes.length + e.omitted > 1 ? ` · ${esc(C.more(e.changes.length + e.omitted - 1))}` : ''}</span><span class="small contract-callers">${esc(callersText(o, e.key))}</span></summary>
+  return `<details class="contract"><summary><span class="chip ${CHIP[e.level]}">${C.levels[e.level]}</span><code class="route-path">${esc(e.key)}</code><span class="small muted">${esc(first ? `${first.where}: ${first.detail}` : '')}${e.changes.length + e.omitted > 1 ? ` · ${esc(C.more(e.changes.length + e.omitted - 1))}` : ''}</span><span class="small contract-callers">${esc(callersText(o, e.key))}</span></summary>
 <div class="contract-body"><table class="contract-table"><thead><tr><th>${C.columns.level}</th><th>${C.columns.where}</th><th>${C.columns.change}</th></tr></thead><tbody>${rows}</tbody></table>${more}</div></details>`
 }
 

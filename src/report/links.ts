@@ -15,6 +15,8 @@ export interface Linker {
   file(path: string): string | null
   /** URL of a line or a line range of a file (head side of the diff for changed files). */
   lines(path: string, start: number, end?: number): string | null
+  /** URL of the pull request (its conversation, where a review comment goes), when there is one. */
+  page?(): string | null
 }
 
 const NO_LINKS: Linker = { file: () => null, lines: () => null }
@@ -38,6 +40,7 @@ export function createLinker(output: Output, target: LinkTarget): Linker {
   for (const p of output.ignoredFiles) if (!changed.has(p)) changed.set(p, 'modified')
   const blob = (path: string): string => `${base}/blob/${head}/${path.split('/').map(encodeURIComponent).join('/')}`
   return {
+    page: () => (target.pr !== null ? `${base}/pull/${target.pr}` : null),
     file: (path) => (changed.has(path) ? `${diffPage}#${diffAnchor(path)}` : blob(path)),
     lines: (path, start, end) => {
       const status = changed.get(path)

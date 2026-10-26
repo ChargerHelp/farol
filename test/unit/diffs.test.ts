@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseContextDiff } from '../../src/git/parse.js'
 import { limitDiffs } from '../../src/review/diffs.js'
-import { diffBlock, languageOf } from '../../src/report/html-diff.js'
-import { OutputSchema, type Output } from '../../src/output/schema.js'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { FIXTURES_DIR } from '../helpers/repo.js'
 
 const PATCH = [
   'diff --git a/src/a.ts b/src/a.ts',
@@ -48,26 +43,5 @@ describe('inline diffs', () => {
       ['src/b.ts', 1, false],
       ['src/a.ts', 0, true],
     ])
-  })
-
-  it('renders added lines no test runs and lines with findings', () => {
-    const o: Output = OutputSchema.parse(JSON.parse(readFileSync(join(FIXTURES_DIR, 'signals-coverage-lint', 'expected.json'), 'utf8')))
-    const file = o.signals.coverage.files.find((f) => f.uncovered.length > 0)
-    expect(file).toBeDefined()
-    const line = file?.uncovered[0]?.start ?? 1
-    const withDiff: Output = { ...o, diffs: [{ path: file?.path ?? '', hunks: [{ header: `@@ -${line},1 +${line},1 @@`, oldStart: line, newStart: line, lines: ['-a', '+b'] }], truncated: true }] }
-    const html = diffBlock(withDiff, file?.path ?? '', 'https://example.com/diff')
-    expect(html).toContain('Show diff (+1 −1)')
-    expect(html).toContain('class="add untested')
-    expect(html).toContain('Full diff on GitHub')
-    expect(diffBlock(o, file?.path ?? '', null)).toBe('')
-  })
-
-  it('picks the highlight.js language from the file name', () => {
-    expect(languageOf('src/a.tsx')).toBe('typescript')
-    expect(languageOf('cmd/api/main.go')).toBe('go')
-    expect(languageOf('services/api/Dockerfile.dev')).toBe('bash')
-    expect(languageOf('.env.example')).toBe('bash')
-    expect(languageOf('LICENSE')).toBeUndefined()
   })
 })

@@ -10,8 +10,9 @@ import { FIXTURES_DIR } from '../helpers/repo.js'
 const ASSETS_DIR = join(import.meta.dirname, '..', '..', 'assets')
 
 describe('logo', () => {
-  it('embeds exactly the files of assets/ (run npm run assets after changing them)', () => {
-    const files = readdirSync(ASSETS_DIR).filter((f) => f.endsWith('.svg')).sort()
+  it('embeds exactly the files of assets/ and assets/report/ (run npm run assets after changing them)', () => {
+    const report = readdirSync(join(ASSETS_DIR, 'report')).filter((f) => f.endsWith('.js') || f.endsWith('.css')).map((f) => `report/${f}`)
+    const files = [...readdirSync(ASSETS_DIR).filter((f) => f.endsWith('.svg')), ...report].sort()
     expect(Object.keys(ASSETS).sort()).toEqual(files)
     for (const f of files) expect(ASSETS[f]).toBe(readFileSync(join(ASSETS_DIR, f), 'utf8'))
   })
@@ -30,8 +31,8 @@ describe('logo', () => {
   it('shows the logo in the header and the favicon in the page', () => {
     const o = OutputSchema.parse(JSON.parse(readFileSync(join(FIXTURES_DIR, '05-shared-component', 'expected.json'), 'utf8')))
     const html = renderHtml(o)
-    expect(html).toContain('<span class="logo logo-light"><svg role="img" aria-label="farol"')
-    expect(html).toContain('<span class="logo logo-dark"><svg role="img" aria-label="farol"')
+    expect(html).toContain('<span class="logo-light"><svg role="img" aria-label="farol"')
+    expect(html).toContain('<span class="logo-dark"><svg role="img" aria-label="farol"')
     expect(html).toContain('<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,')
   })
 })

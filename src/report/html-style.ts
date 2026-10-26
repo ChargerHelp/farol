@@ -3,30 +3,30 @@ import { THEME_STYLE } from './html-style-theme.js'
 /** Inline stylesheet of the HTML report: no external fonts or scripts, light and dark themes. */
 export const HTML_STYLE = `
 :root {
-  --bg: #f5f7fb; --panel: #ffffff; --text: #0f172a; --muted: #64748b; --line: #e2e8f0; --code: #f1f5f9;
-  --high: #dc2626; --high-bg: #fef2f2; --medium: #d97706; --medium-bg: #fffbeb; --low: #64748b; --low-bg: #f1f5f9;
-  --global: #7c3aed; --unknown: #d97706; --touches: #ea580c; --isolated: #059669; --accent: #4f46e5; --accent-bg: #eef2ff;
-  --shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 4px 18px rgba(15, 23, 42, .06); --ring: rgba(79, 70, 229, .35);
+  --bg: #ffffff; --panel: #ffffff; --text: #1c1c1e; --muted: #8e8e95; --line: #e8e6e3; --code: #f2f1ef;
+  --high: #b42318; --high-bg: #fcefed; --medium: #9a5b00; --medium-bg: #fbf3e6; --low: #8e8e95; --low-bg: #f2f1ef;
+  --global: #6b4fbb; --unknown: #9a5b00; --touches: #b4501b; --isolated: #2e7d4f; --accent: #3056c9; --accent-bg: #eef1fb;
+  --shadow: none; --ring: rgba(48, 86, 201, .35);
 }
 /* Dark tokens: follow the system unless the viewer picked a theme (data-theme on <html>). */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0b1020; --panel: #121a2b; --text: #e2e8f0; --muted: #94a3b8; --line: #1f2a3d; --code: #18233a;
-    --high: #f87171; --high-bg: #2a1416; --medium: #fbbf24; --medium-bg: #2a2010; --low: #94a3b8; --low-bg: #1a2336;
-    --global: #a78bfa; --unknown: #fbbf24; --touches: #fb923c; --isolated: #34d399; --accent: #818cf8; --accent-bg: #1c2145;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25); --ring: rgba(129, 140, 248, .45);
+    --bg: #121214; --panel: #18181b; --text: #ececee; --muted: #7d7d86; --line: #2a2a2f; --code: #222226;
+    --high: #f4796b; --high-bg: #2a1715; --medium: #e0a54b; --medium-bg: #2a2010; --low: #7d7d86; --low-bg: #222226;
+    --global: #b39cf5; --unknown: #e0a54b; --touches: #f0965b; --isolated: #6cc495; --accent: #91a9ff; --accent-bg: #1d2238;
+    --shadow: none; --ring: rgba(145, 169, 255, .45);
   }
 }
 :root[data-theme="dark"] {
-    --bg: #0b1020; --panel: #121a2b; --text: #e2e8f0; --muted: #94a3b8; --line: #1f2a3d; --code: #18233a;
-    --high: #f87171; --high-bg: #2a1416; --medium: #fbbf24; --medium-bg: #2a2010; --low: #94a3b8; --low-bg: #1a2336;
-    --global: #a78bfa; --unknown: #fbbf24; --touches: #fb923c; --isolated: #34d399; --accent: #818cf8; --accent-bg: #1c2145;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25); --ring: rgba(129, 140, 248, .45);
+    --bg: #121214; --panel: #18181b; --text: #ececee; --muted: #7d7d86; --line: #2a2a2f; --code: #222226;
+    --high: #f4796b; --high-bg: #2a1715; --medium: #e0a54b; --medium-bg: #2a2010; --low: #7d7d86; --low-bg: #222226;
+    --global: #b39cf5; --unknown: #e0a54b; --touches: #f0965b; --isolated: #6cc495; --accent: #91a9ff; --accent-bg: #1d2238;
+    --shadow: none; --ring: rgba(145, 169, 255, .45);
 }
 .theme-toggle { border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
 .theme-toggle:hover { border-color: var(--accent); }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
 header.top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: baseline; }
 h1 { font-size: 22px; margin: 0; }

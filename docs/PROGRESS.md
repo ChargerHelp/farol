@@ -126,6 +126,10 @@ Milestones from `docs/SPEC.md`. Each one is done only when its acceptance criter
 - 4: declaration-level reach for TypeScript frontends (type checker); Python local type inference.
 - 1: `calibrate` (score and verdict of past commits against reverts and fixes that followed). On 662 commits of 4 repositories (after the infra role): fast track 0 of 56; score AUC 0.72–0.83 in every repository; careful 1.6–4× quick; global changes weigh 0.3 and make a quick review (see DECISIONS).
 
+### HTML report as a review workbench — done (0.2.0, 2026-10-26)
+- Live merge risk, Must check, files by risk tier with diff and untested lines, Can affect with feature flags, Results for the PR comment; the former sections in Details. Score weights revised (dependency bumps, duplicate lint, findings outside the project). See DECISIONS 2026-10-26.
+- Open: files excluded from coverage on purpose (types, constants, translations) still count as untested; the score saturates on large PRs (31 files → 84), where the reviewed count says more than the number.
+
 ### Traffic from Datadog — done (first version, information only)
 - `farol usage` (RUM page views by `@view.url_path_group`, APM `trace.<op>.hits` by `resource_name`) writes `usage.json`; `analyze --usage` adds an optional `usage` section; comment line, HTML fact, per-route chips (busiest first) and per-file pills. Name formats checked against real Datadog data (RUM path groups, normalized metric tags). GraphQL operations are not matched.
 

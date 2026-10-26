@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { OutputSchema, type Output } from '../../src/output/schema.js'
 import { keyFindings } from '../../src/report/findings.js'
 import { commonDirectory, displayPrefix, renderHtml } from '../../src/report/html.js'
+import { detailsOf, workbenchOf } from '../helpers/html.js'
 import { FIXTURES_DIR } from '../helpers/repo.js'
 
 function golden(scenario: string, file = 'expected.json'): Output {
@@ -68,27 +69,30 @@ describe('html report', () => {
     expect(displayPrefix(['apps/web/a.ts', 'apps/api/b.ts', 'c.ts'])).toBe('')
   })
 
-  it('renders a self-contained page with the class, the findings and every section', async () => {
+  it('renders a self-contained workbench with the full analysis as its Details page', async () => {
     const html = renderHtml(golden('signals-coverage-lint'))
     expect(html).toMatch(/^<!doctype html>/)
     expect(html).not.toMatch(/(src|href)="https?:/)
-    // Twelve scripts: theme, Risk filters, score, plan rows, test checklist, Result (and its JSON data), reviewed files, Mermaid and highlight.js loaders (pinned, on demand), full screen and the entry filter.
-    expect(html.match(/<script/g)).toHaveLength(12)
-    expect(html).toContain('id="theme-toggle"')
-    expect(html).toContain('https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs')
-    for (const id of ['overview', 'risk', 'dependencies', 'signals', 'routes', 'files', 'details']) {
-      expect(html).toContain(`id="${id}"`)
-      expect(html).toContain(`href="#${id}"`)
+    // Five scripts: the Details page (JSON), the view model and texts, and the three browser scripts.
+    expect(html.match(/<script/g)).toHaveLength(5)
+    expect(html).toContain('id="theme"')
+    const { D } = workbenchOf(html)
+    expect(D.verdict).toMatch(/^(pass|quick|careful)$/)
+    expect((D.coverage as { status: string }).status).toBe('ok')
+    const details = detailsOf(html)
+    // Four scripts: theme, Risk filters, the Mermaid loader (pinned, on demand) and full screen.
+    expect(details.match(/<script/g)).toHaveLength(4)
+    expect(details).toContain('https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs')
+    for (const id of ['risk', 'dependencies', 'signals', 'routes', 'files', 'details']) {
+      expect(details).toContain(`id="${id}"`)
+      expect(details).toContain(`href="#${id}"`)
     }
-    expect(html).not.toContain('name="tab"')
-    expect(html).toMatch(/class="panel plan plan-(pass|quick|careful)" id="plan"/)
-    expect(html).toMatch(/<span class="badge small-badge isolated"[^>]*>isolated<\/span>/)
-    expect(html).toContain('Diff coverage of 66.7% in the files present in the report')
-    await expect(html).toMatchFileSnapshot('./__snapshots__/signals.html')
+    expect(details).toContain('Files present in the report only: 66.7%')
+    await expect(details).toMatchFileSnapshot('./__snapshots__/signals.html')
   })
 
   it('escapes text coming from the JSON', () => {
-    const html = renderHtml(golden('11-routes-from-map'))
+    const html = detailsOf(renderHtml(golden('11-routes-from-map')))
     expect(html).toContain('element: &lt;Page /&gt;')
     expect(html).not.toContain('<Page />')
   })

@@ -93,15 +93,6 @@ export const USAGE_TEXT = {
   error: (message: string) => `usage report not read: ${message}`,
 }
 
-/** Pages/operations marked as behind a feature flag: the files only they use leave the review. */
-export const FLAG_TEXT = {
-  toggle: '🚩 Behind a feature flag',
-  title: 'Mark as behind a feature flag: changed files that only flagged pages/operations use no longer count in the review (score, Start here, files left). Click again to undo.',
-  fileNote: '🚩 behind a flag',
-  fileNoteTitle: 'Only used by pages/operations marked as behind a feature flag: left out of the review',
-  status: (n: string, files: string) => `· ${n} behind a flag (${files} file(s) out of the review)`,
-  hint: 'Behind a feature flag? Use 🚩 on a page in the pages/operations section: the files only it uses leave the review.',
-}
 
 /** Reviewers by authorship (`farol reviewers`). */
 export const OWNER_TEXT = {
@@ -119,46 +110,8 @@ export const OWNER_TEXT = {
   comment: (name: string, score: number, files: string, inactive: boolean) => `${name} (${score}%${files ? `: ${files}` : ''}${inactive ? ', inactive' : ''})`,
 }
 
-/** Checks the reviewer ticks on findings and contract changes (recorded in the Result tab). */
-export const ACK_TEXT = {
-  security: 'Checked: this finding was looked at',
-  vulnerability: 'Checked: this advisory was looked at',
-  contract: 'Checked with the clients of this endpoint',
-  contractLabel: 'checked with clients',
-}
 
-/** The flag panel at the top of the page. */
-export const FLAG_PANEL_TEXT = {
-  title: '🚩 Pages/operations behind a feature flag',
-  intro: 'Mark the pages, routes or operations that are entirely behind a feature flag: changed files that only they use leave the review (score, Start here, files left). Same state as the 🚩 buttons in the pages/operations section.',
-  search: 'Search pages/operations',
-  files: (n: number) => `${n} changed file${n === 1 ? '' : 's'}`,
-  newTag: 'new',
-}
 
-/** The Result tab: what the reviewer did, as Markdown to paste in the PR. */
-export const RESULT_TEXT = {
-  intro: 'What you marked in this report, as Markdown to paste in the pull request: the initial risk, the risk left, flags, reviewed files and checked findings. It updates as you mark things.',
-  copy: 'Copy as Markdown',
-  copied: 'Copied ✓',
-  heading: '### farol review',
-  of: (repo: string, pr: string, commit: string) => `${repo}${pr} at \`${commit}\``,
-  initial: 'Initial risk',
-  now: 'After review',
-  score: (score: string, level: string) => `merge risk score **${score}/100** (${level})`,
-  files: (done: string, total: string) => `${done} of ${total} risky files reviewed`,
-  entries: (left: string, total: string, many: string) => `${left} of ${total} ${many} still to review`,
-  flagged: (n: string) => `🚩 Behind a feature flag (${n})`,
-  flaggedFiles: (n: string) => `${n} file(s) left out of the review because only flagged entry points use them`,
-  reviewed: (n: string) => `✅ Files reviewed (${n})`,
-  security: (done: string, total: string) => `🔒 Security findings checked (${done}/${total})`,
-  vulns: (done: string, total: string) => `📦 Vulnerable dependencies checked (${done}/${total})`,
-  contracts: (done: string, total: string) => `🔌 Contract changes checked with clients (${done}/${total})`,
-  pending: 'Not checked yet',
-  nothing: 'Nothing marked yet.',
-  more: (n: string) => `and ${n} more`,
-  footer: (version: string) => `<sub>Recorded with farol ${version}</sub>`,
-}
 
 /** The "since the last push" block of a PR comment (comment --since-in). */
 export const SINCE_TEXT = {

@@ -1,8 +1,7 @@
 import type { Output } from '../output/schema.js'
 import type { Linker } from './links.js'
 import { changedRoutes, type ChangedRoute } from './route-graph.js'
-import { scoreByFile } from './html-score.js'
-import { FLAG_PANEL_TEXT as FP, FLAG_TEXT as F, HTML_TEXT as T, USAGE_TEXT as U, terms, type Terms } from './strings.js'
+import { HTML_TEXT as T, USAGE_TEXT as U, terms, type Terms } from './strings.js'
 import { compactNumber } from './usage.js'
 
 /** What the routes section needs from the page renderer (implemented by the Html class of html.ts). */
@@ -25,7 +24,7 @@ function riskChip(risk: ChangedRoute['risk']): string {
   return risk ? `<span class="chip ${risk}" title="${esc(T.routeRiskTitle)}">${T.severity[risk]}</span>` : ''
 }
 
-function routeRow(r: ChangedRoute, h: RoutesRenderer, label: string, showKey: boolean, flaggable = true): string {
+function routeRow(r: ChangedRoute, h: RoutesRenderer, label: string, showKey: boolean): string {
   const key = showKey ? `<span class="muted small route-key">${esc(h.shortKey(r.key))}</span>` : ''
   // data-files lets the "reviewed files" filter hide what is already reviewed.
   const hits = h.traffic?.hits.get(r.key)
@@ -33,7 +32,7 @@ function routeRow(r: ChangedRoute, h: RoutesRenderer, label: string, showKey: bo
   const link = h.traffic?.links.get(r.key)
   const errors = issues === 0 ? '' : link === undefined ? `, ${esc(U.distinct(issues))}` : `, <a class="dd-link" href="${esc(link)}" target="_blank" rel="noopener" title="${esc(U.openInDatadog)}">${esc(U.distinct(issues))} ↗</a>`
   const traffic = hits === undefined || !h.traffic ? '' : `<span class="chip traffic">${esc(U.hits(compactNumber(hits), h.traffic.kind))}${errors}</span>`
-  return `<details class="route" data-files="${esc(r.files.join('|'))}"><summary title="${esc(r.key)}"><span class="tag ${r.kind}">${T.routeKinds[r.kind]}</span><code class="route-path">${esc(label)}</code>${key}${traffic}<span class="small route-files" data-total="${r.files.length}">${esc(T.routeFiles(r.files.length))}</span>${riskChip(r.risk)}${flaggable && r.files.length > 0 ? `<button type="button" class="flag-toggle" data-flag-key="${esc(r.key)}" aria-pressed="false" title="${esc(F.title)}">${F.toggle}</button>` : ''}</summary>
+  return `<details class="route" data-files="${esc(r.files.join('|'))}"><summary title="${esc(r.key)}"><span class="tag ${r.kind}">${T.routeKinds[r.kind]}</span><code class="route-path">${esc(label)}</code>${key}${traffic}<span class="small route-files" data-total="${r.files.length}">${esc(T.routeFiles(r.files.length))}</span>${riskChip(r.risk)}</summary>
 <div class="route-body">${r.chains.length > 0 ? `<div class="fs-target graph-wrap"><button type="button" class="fullscreen" title="${esc(T.fullscreenTitle)}">${T.fullscreen}</button><pre class="mermaid">${esc(r.mermaid)}</pre></div><p class="muted small diagram-note">${T.diagramNote}</p>` : `<p class="muted small">${T.noEntry}</p>`}</div></details>`
 }
 
@@ -42,13 +41,13 @@ function sharedPaths(routes: readonly ChangedRoute[]): Set<string> {
   return new Set(routes.filter((r, i) => routes.findIndex((o) => o.path === r.path) !== i).map((r) => r.path))
 }
 
-function routeRows(list: readonly ChangedRoute[], h: RoutesRenderer, flaggable = true): string {
+function routeRows(list: readonly ChangedRoute[], h: RoutesRenderer): string {
   // With traffic, the busiest entry points come first (stable: the others keep their order).
   const hits = h.traffic?.hits
   const routes = hits && hits.size > 0 ? [...list].sort((a, b) => (hits.get(b.key) ?? -1) - (hits.get(a.key) ?? -1)) : list
   const more = routes.length > MAX_ROWS ? `<p class="muted">${T.more(routes.length - MAX_ROWS)}</p>` : ''
   const shared = sharedPaths(routes)
-  return `<div class="routes-list">${routes.slice(0, MAX_ROWS).map((r) => routeRow(r, h, r.path, shared.has(r.path), flaggable)).join('\n')}</div>${more}`
+  return `<div class="routes-list">${routes.slice(0, MAX_ROWS).map((r) => routeRow(r, h, r.path, shared.has(r.path))).join('\n')}</div>${more}`
 }
 
 /** URL segments of a page path. */
@@ -119,51 +118,6 @@ function renderTree(node: TreeNode, h: RoutesRenderer, depth: number, t: Terms):
 }
 
 /**
- * Files behind the changed pages and files that add to the merge risk score, each with a "reviewed" box, plus a
- * regular expression to mark many at once. Widest reach first, then the most risk points.
- */
-function reviewPanel(pages: readonly ChangedRoute[], points: ReadonlyMap<string, number>, h: RoutesRenderer, t: Terms, key: string): string {
-  const counts = new Map<string, number>()
-  for (const p of pages) for (const f of p.files) counts.set(f, (counts.get(f) ?? 0) + 1)
-  for (const f of points.keys()) if (!counts.has(f)) counts.set(f, 0)
-  if (counts.size === 0) return ''
-  const files = [...counts.entries()].sort((a, b) => b[1] - a[1] || (points.get(b[0]) ?? 0) - (points.get(a[0]) ?? 0) || (a[0] < b[0] ? -1 : 1))
-  const boxes = files
-    .map(([f, n]) => {
-      const pts = points.get(f) ?? 0
-      return `<label class="review-file"><input type="checkbox" data-file="${esc(f)}"> ${h.path(f)} <span class="flag-note"></span><span class="muted small">${esc(n === 0 ? T.reviewNoPages(t) : T.reviewAffects(n, t))}${pts > 0 ? ` · ${esc(T.reviewPoints(pts))}` : ''}</span></label>`
-    })
-    .join('')
-  return `<details class="review" id="review" data-key="${esc(key)}" data-template="${esc(T.reviewRemaining(t))}" data-marked="${esc(T.reviewMarked)}" data-shown="${esc(T.reviewShown)}" data-flag-status="${esc(F.status('{n}', '{files}'))}" data-flag-note="${esc(F.fileNote)}" data-flag-title="${esc(F.fileNoteTitle)}"><summary>${T.reviewTitle} <span class="muted small" id="review-status"></span></summary>
-<p class="small muted">${T.reviewIntro(t)} ${esc(F.hint)}</p>
-<div class="review-tools"><input type="search" id="review-search" placeholder="${esc(T.reviewSearch)}" spellcheck="false"><button type="button" id="review-mark-shown">${T.reviewMarkShown}</button><button type="button" id="review-unmark-shown">${T.reviewUnmarkShown}</button><label class="small"><input type="checkbox" id="review-hide-done"> ${T.reviewHideDone}</label><span class="small muted" id="review-shown"></span></div>
-<div class="review-tools"><input type="text" id="review-regex" placeholder="${esc(T.reviewRegex)}" spellcheck="false"><button type="button" id="review-clear">${T.reviewClear}</button><span class="small" id="review-error" hidden>${T.reviewBadRegex}</span></div>
-<div class="review-files">${boxes}</div></details>`
-}
-
-/**
- * The feature-flag panel, below the reviewed-files panel: every page/operation with changed files, each with a 🚩
- * toggle (the same state as the toggles of the pages/operations section), and a search box.
- */
-export function flagSection(o: Output, h: RoutesRenderer, links: Linker): string {
-  const pages = changedRoutes(o, links, (p) => h.shortPath(p)).filter((r) => !r.hasChildren && r.files.length > 0)
-  if (pages.length === 0) return ''
-  const items = pages
-    .map((r) => `<div class="flag-item" data-search="${esc(`${r.path} ${r.key}`.toLowerCase())}"><button type="button" class="flag-toggle" data-flag-key="${esc(r.key)}" aria-pressed="false" title="${esc(F.title)}">${F.toggle}</button><code class="route-path">${esc(r.path)}</code>${r.kind === 'added' ? `<span class="tag added">${FP.newTag}</span>` : ''}<span class="muted small">${esc(FP.files(r.files.length))}</span></div>`)
-    .join('')
-  return `<details class="review flags" id="flags"><summary>${FP.title} <span class="muted small" id="flags-status"></span></summary>
-<p class="small muted">${FP.intro}</p>
-<div class="review-tools"><input type="search" id="flags-search" placeholder="${esc(FP.search)}" spellcheck="false"></div>
-<div class="flag-items">${items}</div></details>`
-}
-
-/** The "reviewed files" panel, shown at the top of the page, above the overview. */
-export function reviewSection(o: Output, h: RoutesRenderer, links: Linker): string {
-  const pages = changedRoutes(o, links, (p) => h.shortPath(p)).filter((r) => !r.hasChildren)
-  return reviewPanel(pages, scoreByFile(o), h, terms(o.surface), o.head.sha ?? o.head.ref)
-}
-
-/**
  * Pages (routes without children) the PR changes, as a list or as a tree of modules (URL segments); opening a page
  * draws its import graph (Mermaid). Layout routes, which wrap pages and already appear in their graphs, are grouped
  * below, collapsed.
@@ -175,16 +129,14 @@ export function routesSection(o: Output, h: RoutesRenderer, links: Linker): stri
   const layouts = routes.filter((r) => r.hasChildren)
   const count = (kind: ChangedRoute['kind']) => pages.filter((r) => r.kind === kind).length
   const legend = `<div class="legend"><span class="lg lg-route">${t.one}</span><span class="lg lg-module">${T.legend.module}</span><span class="lg lg-changed">${T.legend.changed}</span><span class="lg lg-added">${T.legend.added}</span><span class="lg lg-high">${T.legend.high}</span><span class="lg lg-medium">${T.legend.medium}</span><span class="muted small">${T.legend.arrow}</span></div>`
-  // The panel itself is at the top of the page.
-  const review = scoreByFile(o).size > 0 || pages.length > 0 ? `<p class="small"><a href="#review">${T.reviewJump}</a></p>` : ''
   const views =
     pages.length === 0
-      ? `${review}<p class="muted">${T.noneFound}</p>`
-      : `<p class="small muted">${T.routesIntro(t)}</p>${review}${legend}
+      ? `<p class="muted">${T.noneFound}</p>`
+      : `<p class="small muted">${T.routesIntro(t)}</p>${legend}
 <input type="radio" name="routes-view" id="routes-view-list" class="view-input" checked><input type="radio" name="routes-view" id="routes-view-tree" class="view-input">
 <div class="view-switch"><label for="routes-view-list">${T.viewList}</label><label for="routes-view-tree">${T.viewTree}</label></div>
 <div class="view view-list">${routeRows(pages, h)}</div><div class="view view-tree">${renderTree(buildRouteTree(pages, o.surface === 'backend' ? backendSegments : urlSegments), h, 0, t)}</div>`
-  const layoutBlock = layouts.length > 0 ? `<details class="layouts"><summary>${T.layoutsTitle(layouts.length)}</summary><p class="small muted">${T.layoutsIntro}</p>${routeRows(layouts, h, false)}</details>` : ''
+  const layoutBlock = layouts.length > 0 ? `<details class="layouts"><summary>${T.layoutsTitle(layouts.length)}</summary><p class="small muted">${T.layoutsIntro}</p>${routeRows(layouts, h)}</details>` : ''
   const disconnected = o.routes.disconnectedNewFiles.length > 0 ? `<h3>${T.disconnectedTitle}</h3><div class="finding-files">${o.routes.disconnectedNewFiles.map((p) => h.path(p)).join('')}</div>` : ''
   return `<section class="panel"><h3>${T.changedRoutesTitle(`<span id="routes-affected">${count('affected')}</span>`, count('added'), t)}</h3>${views}${layoutBlock}${disconnected}</section>`
 }

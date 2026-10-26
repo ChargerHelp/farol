@@ -53,7 +53,8 @@ src/
   classify/   roles, additive rules, reach, reasons, classification, risk, dependencies
   signals/    coverage, lint, suppressions, security, vulnerabilities, per report format
   output/     the JSON schema (the contract) and serialization
-  report/     merge risk score, verdict, test plan, PR comment Markdown, HTML report
+  report/     merge risk score, verdict, test plan, PR comment Markdown, HTML report (its browser
+              scripts and stylesheet live in assets/report/: run npm run assets after editing them)
   review/     calibration, reviewers, inline diffs
   github/     GitHub API through fetch (comments)
 go-helper/    Go program (standard library only) that reads a Go module offline

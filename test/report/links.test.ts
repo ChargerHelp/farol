@@ -6,6 +6,7 @@ import { OutputSchema, type Output } from '../../src/output/schema.js'
 import { renderHtml } from '../../src/report/html.js'
 import { createLinker, diffAnchor } from '../../src/report/links.js'
 import { renderReport } from '../../src/report/markdown.js'
+import { detailsOf } from '../helpers/html.js'
 import { FIXTURES_DIR } from '../helpers/repo.js'
 
 const base = OutputSchema.parse(JSON.parse(readFileSync(join(FIXTURES_DIR, 'signals-coverage-lint', 'expected.json'), 'utf8')))
@@ -32,7 +33,7 @@ describe('links', () => {
 
   it('links files and line ranges in the HTML and the PR comment', () => {
     const l = createLinker(output, { repo: 'acme/shop', pr: 42 })
-    const html = renderHtml(output, l)
+    const html = detailsOf(renderHtml(output, l))
     expect(html).toContain(`href="https://github.com/acme/shop/pull/42/files#${anchor('src/lib/format.ts')}R14"`)
     expect(html).toContain(`href="https://github.com/acme/shop/pull/42/files#${anchor('src/lib/discount.ts')}R1-R3"`)
     const md = renderReport(output, undefined, l)

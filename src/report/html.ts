@@ -1,25 +1,21 @@
 import { REASONS } from '../classify/reasons.js'
 import type { Output } from '../output/schema.js'
-import { keyFindings, type Finding } from './findings.js'
 import type { Linker } from './links.js'
 import { HTML_STYLE } from './html-style.js'
 import { securitySection } from './html-security.js'
-import { flagSection, reviewSection, routesSection } from './html-routes.js'
-import { RESULT_SCRIPT, resultSection } from './html-result.js'
+import { routesSection } from './html-routes.js'
 import { usageHits } from './usage.js'
-import { faviconUri, logoSvg } from './logo.js'
+import { faviconUri } from './logo.js'
 import { contractsSection } from './html-contracts.js'
-import { ENTRY_FILTER_SCRIPT, FULLSCREEN_SCRIPT, HIGHLIGHT_SCRIPT, MERMAID_SCRIPT, PLAN_SCRIPT, TEST_SCRIPT, RISK_FILTER_SCRIPT, SCORE_SCRIPT, THEME_SCRIPT } from './html-scripts.js'
-import { REVIEW_SCRIPT } from './html-review-script.js'
-import { reviewersSection, reviewPlan } from './html-verdict.js'
-import { testPlanSection } from './html-test-plan.js'
+import { FULLSCREEN_SCRIPT, MERMAID_SCRIPT, RISK_FILTER_SCRIPT, THEME_SCRIPT } from './html-scripts.js'
+import { reviewersSection } from './html-verdict.js'
+import { workbenchPage } from './html-workbench.js'
 import { HTML_TEXT as T, REASON_TEXT, terms } from './strings.js'
 import { fileCoverage } from './merge-score.js'
 import { scoreByFile } from './html-score.js'
 
 /** Rows shown per table before "e mais N" (the JSON keeps everything). */
 const MAX_ROWS = 200
-const MAX_FINDING_FILES = 6
 const NO_LINKS: Linker = { file: () => null, lines: () => null }
 
 function esc(text: string): string {
@@ -111,25 +107,6 @@ function ratioClass(ratio: number): string {
   return ratio < 0.5 ? 'bad' : ratio < 0.8 ? 'warn' : 'good'
 }
 
-function header(o: Output, prefix: string): string {
-  const repo = o.repo ?? T.unknownRepo
-  const sha = (s: string | null, ref: string): string => esc(s === null ? ref : `${ref === s ? '' : `${ref} · `}${s.slice(0, 12)}`)
-  return `<header class="top"><div><h1><span class="logo logo-light">${logoSvg('light')}</span><span class="logo logo-dark">${logoSvg('dark')}</span><span class="h1-repo">${esc(repo)}</span></h1><div class="muted small">${T.subtitle}</div></div>
-<div class="small muted"><button type="button" class="theme-toggle" id="theme-toggle" aria-label="${T.themeToggle}">${T.themeToggle}</button><br>${T.base} <code>${sha(o.base.sha, o.base.ref)}</code> → ${T.head} <code>${sha(o.head.sha, o.head.ref)}</code><br>${T.analyzedAt} ${esc(T.formatDate(o.analyzedAt))}${prefix ? `<br>${esc(T.pathPrefix(prefix))}` : ''}</div></header>`
-}
-
-/** Every finding on one line; the files and details open on demand (the review plan already says where to start). */
-function findingsSection(findings: readonly Finding[], h: Html): string {
-  if (findings.length === 0) return `<section class="panel"><h2>${T.findingsTitle}</h2><p class="muted">${T.findingsNone}</p></section>`
-  const items = findings.map((f) => {
-    const files = f.files.slice(0, MAX_FINDING_FILES).map((p) => h.path(p))
-    if (f.files.length > MAX_FINDING_FILES) files.push(`<span class="muted small">${T.more(f.files.length - MAX_FINDING_FILES)}</span>`)
-    return `<li class="${f.severity}"><details><summary><span class="chip ${f.severity}">${T.severity[f.severity]}</span><span class="finding-title">${esc(f.title)}</span>${f.files.length > 0 ? ` <span class="muted small">${T.findingFiles(f.files.length)}</span>` : ''}</summary>
-${f.detail ? `<div class="small">${esc(f.detail)}</div>` : ''}${files.length > 0 ? `<div class="finding-files">${files.join('')}</div>` : ''}
-<div class="small"><a href="#${f.section}">${T.seeSection}</a></div></details></li>`
-  })
-  return `<section class="panel"><h2>${T.findingsTitle} <span class="muted small">${T.findingsHint}</span></h2><ol class="findings">${items.join('\n')}</ol></section>`
-}
 
 function signalStatus(signal: { status: string; message?: string }): string | undefined {
   if (signal.status === 'ok') return undefined
@@ -273,19 +250,24 @@ function securityBadge(o: Output): string {
   return severe > 0 ? `<span class="count bad">${severe}</span>` : all > 0 ? `<span class="count">${all}</span>` : ''
 }
 
-/** Single-file HTML report of an analyze result: one scrolling page, no external resources, light and dark mode. */
+/** Single-file HTML report of an analyze result: the review workbench, with the full analysis as its Details page. */
 export function renderHtml(output: Output, links: Linker = NO_LINKS): string {
   const prefix = displayPrefix([...output.files.map((f) => f.path), ...output.routes.affected.flatMap((r) => r.via.flatMap((v) => v.chain))])
+  return workbenchPage(output, links, prefix, renderDetails(output, links, prefix))
+}
+
+/**
+ * The full analysis as a page of its own (shown in a frame of the workbench): reach of every changed file, security,
+ * dependencies, signals, contracts, reviewers, routes with their import graphs, files, reasons and diagnostics.
+ */
+export function renderDetails(output: Output, links: Linker, prefix: string): string {
   const h = new Html(prefix, links)
   if (output.usage?.status === 'ok') {
     const u = usageHits(output)
     h.traffic = { hits: u.byKey, errors: u.errorsByKey, links: u.linkByKey, kind: output.usage.kind }
   }
-  const findings = keyFindings(output)
   const depsCritical = output.dependencies.summary.critical + output.reasons.filter((r) => r.code === 'manifest-changed' || r.code === 'lockfile-only-change').length
   const sections: [keyof typeof T.tabs, string, string][] = [
-    ['overview', '', [reviewPlan(output, h), findingsSection(findings, h)].join('\n')],
-    ['tests', '', testPlanSection(output)],
     ['risk', output.risk.summary.high > 0 ? `<span class="count bad">${output.risk.summary.high}</span>` : '', riskSection(output, h)],
     ['security', securityBadge(output), securitySection(output, h)],
     ['dependencies', depsCritical > 0 ? `<span class="count bad">${depsCritical}</span>` : output.dependencies.changes.length > 0 ? `<span class="count">${output.dependencies.changes.length}</span>` : '', dependenciesSection(output, h)],
@@ -295,14 +277,9 @@ export function renderHtml(output: Output, links: Linker = NO_LINKS): string {
     ['routes', output.routes.affected.some((r) => !r.hasChildren) ? `<span class="count">${output.routes.affected.filter((r) => !r.hasChildren).length}</span>` : '', routesSection(output, h, links)],
     ['files', `<span class="count">${output.files.length}</span>`, filesSection(output, h)],
     ['details', '', [reasonsSection(output, h), diagnosticsSection(output, h)].join('\n')],
-    ['result', '<span class="count" id="result-count" hidden></span>', resultSection(output)],
   ]
   const body = [
-    header(output, prefix),
     `<nav class="sectionbar">${sections.map(([id, badge]) => `<a href="#${id}">${id === 'routes' ? terms(output.surface).section : T.tabs[id]}${badge}</a>`).join('')}</nav>`,
-    // The reviewed-files panel drives the score and the remaining pages, so it comes first (collapsed).
-    reviewSection(output, h, links),
-    flagSection(output, h, links),
     ...sections.map(([id, , content]) => `<div class="section" id="${id}"><h2 class="section-title">${id === 'routes' ? terms(output.surface).section : T.tabs[id]}</h2>${content}</div>`),
     `<footer>${esc(T.footer(output.tool.version))}</footer>`,
   ]
@@ -321,15 +298,8 @@ ${body.join('\n')}
 </main>
 ${THEME_SCRIPT}
 ${RISK_FILTER_SCRIPT}
-${SCORE_SCRIPT}
-${PLAN_SCRIPT}
-${TEST_SCRIPT}
-${RESULT_SCRIPT}
-${REVIEW_SCRIPT}
 ${MERMAID_SCRIPT}
-${HIGHLIGHT_SCRIPT}
 ${FULLSCREEN_SCRIPT}
-${ENTRY_FILTER_SCRIPT}
 </body>
 </html>
 `

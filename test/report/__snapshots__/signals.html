@@ -8,30 +8,30 @@
 <title>farol · repository</title>
 <style>
 :root {
-  --bg: #f5f7fb; --panel: #ffffff; --text: #0f172a; --muted: #64748b; --line: #e2e8f0; --code: #f1f5f9;
-  --high: #dc2626; --high-bg: #fef2f2; --medium: #d97706; --medium-bg: #fffbeb; --low: #64748b; --low-bg: #f1f5f9;
-  --global: #7c3aed; --unknown: #d97706; --touches: #ea580c; --isolated: #059669; --accent: #4f46e5; --accent-bg: #eef2ff;
-  --shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 4px 18px rgba(15, 23, 42, .06); --ring: rgba(79, 70, 229, .35);
+  --bg: #ffffff; --panel: #ffffff; --text: #1c1c1e; --muted: #8e8e95; --line: #e8e6e3; --code: #f2f1ef;
+  --high: #b42318; --high-bg: #fcefed; --medium: #9a5b00; --medium-bg: #fbf3e6; --low: #8e8e95; --low-bg: #f2f1ef;
+  --global: #6b4fbb; --unknown: #9a5b00; --touches: #b4501b; --isolated: #2e7d4f; --accent: #3056c9; --accent-bg: #eef1fb;
+  --shadow: none; --ring: rgba(48, 86, 201, .35);
 }
 /* Dark tokens: follow the system unless the viewer picked a theme (data-theme on <html>). */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0b1020; --panel: #121a2b; --text: #e2e8f0; --muted: #94a3b8; --line: #1f2a3d; --code: #18233a;
-    --high: #f87171; --high-bg: #2a1416; --medium: #fbbf24; --medium-bg: #2a2010; --low: #94a3b8; --low-bg: #1a2336;
-    --global: #a78bfa; --unknown: #fbbf24; --touches: #fb923c; --isolated: #34d399; --accent: #818cf8; --accent-bg: #1c2145;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25); --ring: rgba(129, 140, 248, .45);
+    --bg: #121214; --panel: #18181b; --text: #ececee; --muted: #7d7d86; --line: #2a2a2f; --code: #222226;
+    --high: #f4796b; --high-bg: #2a1715; --medium: #e0a54b; --medium-bg: #2a2010; --low: #7d7d86; --low-bg: #222226;
+    --global: #b39cf5; --unknown: #e0a54b; --touches: #f0965b; --isolated: #6cc495; --accent: #91a9ff; --accent-bg: #1d2238;
+    --shadow: none; --ring: rgba(145, 169, 255, .45);
   }
 }
 :root[data-theme="dark"] {
-    --bg: #0b1020; --panel: #121a2b; --text: #e2e8f0; --muted: #94a3b8; --line: #1f2a3d; --code: #18233a;
-    --high: #f87171; --high-bg: #2a1416; --medium: #fbbf24; --medium-bg: #2a2010; --low: #94a3b8; --low-bg: #1a2336;
-    --global: #a78bfa; --unknown: #fbbf24; --touches: #fb923c; --isolated: #34d399; --accent: #818cf8; --accent-bg: #1c2145;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25); --ring: rgba(129, 140, 248, .45);
+    --bg: #121214; --panel: #18181b; --text: #ececee; --muted: #7d7d86; --line: #2a2a2f; --code: #222226;
+    --high: #f4796b; --high-bg: #2a1715; --medium: #e0a54b; --medium-bg: #2a2010; --low: #7d7d86; --low-bg: #222226;
+    --global: #b39cf5; --unknown: #e0a54b; --touches: #f0965b; --isolated: #6cc495; --accent: #91a9ff; --accent-bg: #1d2238;
+    --shadow: none; --ring: rgba(145, 169, 255, .45);
 }
 .theme-toggle { border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
 .theme-toggle:hover { border-color: var(--accent); }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
 header.top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: baseline; }
 h1 { font-size: 22px; margin: 0; }
@@ -261,8 +261,8 @@ pre.mermaid:not([data-processed]) { display: none; }
 .tag.added { color: var(--isolated); border-color: var(--isolated); }
 footer { margin-top: 28px; text-align: center; font-size: 12.5px; color: var(--muted); }
 
-body { font: 14.5px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; background: radial-gradient(1100px 420px at 0% -8%, var(--accent-bg), transparent 62%), var(--bg); background-attachment: fixed; }
-main { max-width: 1240px; padding: 28px 20px 64px; }
+body { font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; background: var(--bg); }
+main { max-width: 1240px; padding: 8px 20px 48px; }
 h1 { font-size: 20px; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 /* The logo follows the theme: the light variant by default, the dark one under the dark tokens. */
 .logo { display: inline-flex; line-height: 0; }
@@ -274,11 +274,11 @@ h1 { font-size: 20px; letter-spacing: -.01em; display: flex; align-items: center
 .h1-repo { padding-left: 14px; border-left: 1px solid var(--line); font-weight: 600; line-height: 30px; }
 h3 { font-size: 14.5px; letter-spacing: -.005em; }
 header.top { padding: 16px 22px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); align-items: center; }
-section.panel { border-radius: 16px; padding: 22px 24px; box-shadow: var(--shadow); }
+section.panel { border-radius: 10px; padding: 18px 20px; box-shadow: var(--shadow); }
 .section { margin-top: 34px; }
 .section-title { display: flex; align-items: center; gap: 10px; font-size: 18px; letter-spacing: -.01em; margin-bottom: 2px; }
-.section-title::before { content: ''; width: 4px; height: 18px; border-radius: 4px; background: var(--accent); }
-.sectionbar { top: 10px; margin-top: 18px; padding: 6px; gap: 2px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--panel) 82%, transparent); backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); box-shadow: var(--shadow); }
+.section-title::before { content: none; }
+.sectionbar { top: 10px; margin-top: 18px; padding: 6px; gap: 2px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--panel) 82%, transparent);  }
 .sectionbar a { border-radius: 10px; padding: 6px 12px; font-size: 13.5px; transition: background .15s, color .15s; }
 .sectionbar a:hover { background: var(--accent-bg); color: var(--accent); }
 .count { background: var(--code); font-weight: 600; }
@@ -378,58 +378,7 @@ details.route.is-flagged .route-path { opacity: .7; }
 </style>
 </head>
 <body><main>
-<header class="top"><div><h1><span class="logo logo-light"><svg role="img" aria-label="farol" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="18 20 320 104"><defs><linearGradient id="mainBeamTight" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#22D3EE" /><stop offset="100%" stop-color="#10B981" /></linearGradient><linearGradient id="ambientTight" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4F46E5" stop-opacity="0.10" /><stop offset="100%" stop-color="#22D3EE" stop-opacity="0.02" /></linearGradient><linearGradient id="monolithGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4F46E5" /><stop offset="100%" stop-color="#3730A3" /></linearGradient></defs><g id="mark"><polygon points="50,75 148,34 148,116" fill="url(#ambientTight)" /><polygon points="50,73 50,77 146,84 146,66" fill="url(#mainBeamTight)" /><rect x="88" y="47" width="28" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="55" width="44" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="63" width="24" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="72.5" width="54" height="5" rx="2.5" fill="#FFFFFF" /><rect x="88" y="87" width="38" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="95" width="46" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><rect x="88" y="103" width="26" height="2" rx="1" fill="#94A3B8" opacity="0.45" /><path d="M 26 116 L 26 34 C 26 28, 31 24, 37 25 L 46 27 C 49 28, 50 30, 50 33 L 50 69 L 44 69 C 41.8 69, 40 70.8, 40 73 L 40 77 C 40 79.2, 41.8 81, 44 81 L 50 81 L 50 116 Z" fill="url(#monolithGrad)" /><rect x="43" y="73" width="7" height="4" rx="1" fill="#22D3EE" /><path d="M 26 116 L 34 116 L 34 26.5 L 30 25.5 C 27.5 27, 26 29.5, 26 34 Z" fill="#312E81" opacity="0.4" /></g><text x="185" y="93" font-family="system-ui, -apple-system, 'Inter', 'Satoshi', sans-serif" font-size="56" font-weight="600" letter-spacing="-0.04em" fill="#0F172A">farol</text></svg></span><span class="logo logo-dark"><svg role="img" aria-label="farol" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="18 20 320 104"><defs><linearGradient id="mainBeamDark" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#22D3EE" /><stop offset="100%" stop-color="#10B981" /></linearGradient><linearGradient id="ambientDark" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#6366F1" stop-opacity="0.25" /><stop offset="100%" stop-color="#22D3EE" stop-opacity="0.02" /></linearGradient><linearGradient id="monolithDark" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#818CF8" /><stop offset="100%" stop-color="#4F46E5" /></linearGradient></defs><g id="mark"><polygon points="50,75 148,34 148,116" fill="url(#ambientDark)" /><polygon points="50,73 50,77 146,84 146,66" fill="url(#mainBeamDark)" /><rect x="88" y="47" width="28" height="2" rx="1" fill="#334155" /><rect x="88" y="55" width="44" height="2" rx="1" fill="#334155" /><rect x="88" y="63" width="24" height="2" rx="1" fill="#334155" /><rect x="88" y="72.5" width="54" height="5" rx="2.5" fill="#FFFFFF" /><rect x="88" y="87" width="38" height="2" rx="1" fill="#334155" /><rect x="88" y="95" width="46" height="2" rx="1" fill="#334155" /><rect x="88" y="103" width="26" height="2" rx="1" fill="#334155" /><path d="M 26 116 L 26 34 C 26 28, 31 24, 37 25 L 46 27 C 49 28, 50 30, 50 33 L 50 69 L 44 69 C 41.8 69, 40 70.8, 40 73 L 40 77 C 40 79.2, 41.8 81, 44 81 L 50 81 L 50 116 Z" fill="url(#monolithDark)" /><rect x="43" y="73" width="7" height="4" rx="1" fill="#22D3EE" /><path d="M 26 116 L 34 116 L 34 26.5 L 30 25.5 C 27.5 27, 26 29.5, 26 34 Z" fill="#3730A3" opacity="0.6" /></g><text x="185" y="93" font-family="system-ui, -apple-system, 'Inter', 'Satoshi', sans-serif" font-size="56" font-weight="600" letter-spacing="-0.04em" fill="#F1F5F9">farol</text></svg></span><span class="h1-repo">repository</span></h1><div class="muted small">Shadow-mode PR reading: farol only informs, it never approves or blocks.</div></div>
-<div class="small muted"><button type="button" class="theme-toggle" id="theme-toggle" aria-label="◐ Light / dark">◐ Light / dark</button><br>base <code>main · &lt;base&gt;</code> → head <code>feature · &lt;head&gt;</code><br>analyzed at 2026-01-15 12:00 UTC<br>Paths relative to src/lib/</div></header>
-<nav class="sectionbar"><a href="#overview">Overview</a><a href="#tests">Test plan</a><a href="#risk">Risk</a><a href="#security">Security</a><a href="#dependencies">Dependencies</a><a href="#signals">Coverage</a><a href="#routes">Routes</a><a href="#files">Files<span class="count">3</span></a><a href="#details">Details</a><a href="#result">Result<span class="count" id="result-count" hidden></span></a></nav>
-<details class="review" id="review" data-key="&lt;head&gt;" data-template="{left} of {total} pages still need review" data-marked="· {files} file(s) marked as reviewed" data-shown="showing {shown} of {total} files" data-flag-status="· {n} behind a flag ({files} file(s) out of the review)" data-flag-note="🚩 behind a flag" data-flag-title="Only used by pages/operations marked as behind a feature flag: left out of the review"><summary>Mark files as reviewed <span class="muted small" id="review-status"></span></summary>
-<p class="small muted">Tick the files you already reviewed (or match them with a regular expression): pages whose changed files are all reviewed are hidden, so what is left is what still needs review, and the merge risk score drops by their part. Saved in this browser for this commit. Behind a feature flag? Use 🚩 on a page in the pages/operations section: the files only it uses leave the review.</p>
-<div class="review-tools"><input type="search" id="review-search" placeholder="search files (space-separated words, all must match)" spellcheck="false"><button type="button" id="review-mark-shown">Mark shown</button><button type="button" id="review-unmark-shown">Unmark shown</button><label class="small"><input type="checkbox" id="review-hide-done"> hide reviewed</label><span class="small muted" id="review-shown"></span></div>
-<div class="review-tools"><input type="text" id="review-regex" placeholder="regular expression, e.g. loaders/|\.consts\.ts$" spellcheck="false"><button type="button" id="review-clear">Clear</button><span class="small" id="review-error" hidden>invalid regular expression</span></div>
-<div class="review-files"><label class="review-file"><input type="checkbox" data-file="src/lib/format.ts"> <span class="path" title="src/lib/format.ts">format.ts</span> <span class="flag-note"></span><span class="muted small">no pages · risk 6</span></label><label class="review-file"><input type="checkbox" data-file="src/lib/discount.ts"> <span class="path" title="src/lib/discount.ts">discount.ts</span> <span class="flag-note"></span><span class="muted small">no pages · risk 2</span></label></div></details>
-
-<div class="section" id="overview"><h2 class="section-title">Overview</h2><section class="panel plan plan-quick" id="plan"><div class="plan-head"><div class="plan-verdict">
-<div class="muted small">Review plan</div><div class="plan-title">◐ Quick review</div><p class="plan-advice">Existing code changed in a contained way: check the files below, then approve.</p>
-<ul class="plan-reasons"><li>diff coverage 44%</li><li>1 lint error(s) on changed lines</li></ul></div><div class="score-box" id="merge-score" data-high="60" data-medium="30" data-shown="6">
-<div class="muted small">Merge risk score</div>
-<div class="score-value low"><span id="score-value">8</span><span class="score-max">/100</span></div>
-<div><span class="chip low" id="score-level">low</span><span class="small muted" id="score-reviewed"></span></div>
-<div class="small" id="score-progress" data-template="{percent}% of the reviewable risk already reviewed" hidden></div>
-<div class="bar score-bar " id="score-bar"><span style="width:8%"></span></div>
-<details class="small score-details"><summary>What adds to it (2) and how it is computed</summary><p class="muted">0–100, higher is riskier: the chance that at least one risky thing breaks, as if they were independent. Each changed code file counts by its reach (existing pages/operations that run it, centrality) times what its diff coverage leaves: 100% covered keeps 30% of the risk, uncovered (or coverage not verified) all of it, and a change made only of declarations (types, fields, constants: nothing executable to test) half of it. Security findings, lint errors, suppressions, removed tests, critical dependency changes, vulnerable dependencies and global or unknown reasons add to it too. Marking files as reviewed takes their part out; vulnerabilities and analysis problems stay. High from 60, medium from 30. Numbers are each file's risk on its own.</p><ol class="score-drivers" id="score-drivers"><li data-file="src/lib/format.ts" data-weights="0.05,0.011"><span class="score-points">6</span> <span class="path" title="src/lib/format.ts">format.ts</span> <span class="muted small">lint error no-magic-numbers at line 9 (+1 more)</span></li><li data-file="src/lib/discount.ts" data-weights="0.02"><span class="score-points">2</span> <span class="path" title="src/lib/discount.ts">discount.ts</span> <span class="muted small">added · low reach: new code not used by existing pages · missing from the coverage report</span></li></ol><p class="small muted" id="score-more" hidden data-template="and {n} more">and 0 more</p></details>
-</div></div>
-<div class="facts"><span class="badge small-badge isolated" title="isolated: only adds new paths (new routes and files) — Classification (see Details)">isolated</span>
-<a class="fact " href="#files">2 code files + 1 other</a>
-<a class="fact " href="#routes">0 existing pages affected</a>
-
-
-<a class="fact bad" href="#signals">44% diff coverage</a>
-<a class="fact " href="#security">no security finding</a>
-<a class="fact " href="#dependencies">no critical dependency change</a>
-<a class="fact bad" href="#lint">1 lint error</a></div>
-<h3>Start here <span class="muted small">— riskiest first; tick a file once reviewed</span></h3><ol class="file-list"><li class="file-row" data-file="src/lib/format.ts" data-entries=""><input type="checkbox" class="row-review" data-review-file="src/lib/format.ts" title="Mark as reviewed">
-<div class="file-main"><div><span class="path" title="src/lib/format.ts">format.ts</span><span class="flag-note"></span> <span class="tag ">additive</span></div><div class="small muted">additive change: nothing that existed changed</div></div>
-<div class="file-pills"><span class="pill warn" title="67% of changed lines covered">67% covered</span><span class="pill bad">1 lint error</span></div><div class="file-points low" title="Risk of this file on its own (0–100): reach × what its diff coverage leaves, plus its findings">6</div></li></ol><details class="plan-more"><summary>Then skim: 1 low-risk code file</summary><ol class="file-list compact"><li class="file-row" data-file="src/lib/discount.ts" data-entries=""><input type="checkbox" class="row-review" data-review-file="src/lib/discount.ts" title="Mark as reviewed">
-<div class="file-main"><div><span class="path" title="src/lib/discount.ts">discount.ts</span><span class="flag-note"></span> <span class="tag added">added</span></div><div class="small muted">new code not used by existing pages</div></div>
-<div class="file-pills"><span class="pill bad" title="missing from the coverage report">0% covered</span></div><div class="file-points low" title="Risk of this file on its own (0–100): reach × what its diff coverage leaves, plus its findings">2</div></li></ol></details><details class="plan-more"><summary>Probably no review needed: 1 file (not code, dependencies, tests)</summary><p class="small muted">Docs, assets, lockfiles and tests. Dependency changes are judged in Dependencies, tests in Coverage.</p><div class="other-group"><div class="small muted">Tests (1)</div><div class="finding-files"><span class="path" title="src/lib/format.test.ts">format.test.ts</span></div></div></details></section>
-<section class="panel"><h2>Key findings <span class="muted small">— open one for its files and details</span></h2><ol class="findings"><li class="high"><details><summary><span class="chip high">high</span><span class="finding-title">1 lint error on changed lines</span> <span class="muted small">· 1 file</span></summary>
-<div class="finding-files"><span class="path" title="src/lib/format.ts">format.ts</span></div>
-<div class="small"><a href="#signals">see details</a></div></details></li>
-<li class="medium"><details><summary><span class="chip medium">medium</span><span class="finding-title">Diff coverage of 66.7% in the files present in the report</span> <span class="muted small">· 1 file</span></summary>
-<div class="small">2 changed executable lines not covered in 1 file.</div><div class="finding-files"><span class="path" title="src/lib/format.ts">format.ts</span></div>
-<div class="small"><a href="#signals">see details</a></div></details></li>
-<li class="medium"><details><summary><span class="chip medium">medium</span><span class="finding-title">1 changed file missing from the coverage report</span> <span class="muted small">· 1 file</span></summary>
-<div class="small">No test loaded these files, or the Vitest coverage configuration excludes them (coverage.exclude). They count as fully uncovered in the total.</div><div class="finding-files"><span class="path" title="src/lib/discount.ts">discount.ts</span></div>
-<div class="small"><a href="#signals">see details</a></div></details></li>
-<li class="low"><details><summary><span class="chip low">low</span><span class="finding-title">Dependency audit not verified</span></summary>
-<div class="small">no audit report given (--audit or signals.audit)</div>
-<div class="small"><a href="#security">see details</a></div></details></li>
-<li class="low"><details><summary><span class="chip low">low</span><span class="finding-title">1 lint warning on changed lines</span> <span class="muted small">· 1 file</span></summary>
-<div class="finding-files"><span class="path" title="src/lib/format.ts">format.ts</span></div>
-<div class="small"><a href="#signals">see details</a></div></details></li>
-<li class="low"><details><summary><span class="chip low">low</span><span class="finding-title">No existing code touched</span></summary>
-<div class="small">The PR only adds routes, files, exports or keys (or changes tests).</div>
-<div class="small"><a href="#overview">see details</a></div></details></li></ol></section></div>
-<div class="section" id="tests"><h2 class="section-title">Test plan</h2><section class="panel"><p class="muted">No pages to test: the PR neither adds nor affects any.</p></section></div>
+<nav class="sectionbar"><a href="#risk">Risk</a><a href="#security">Security</a><a href="#dependencies">Dependencies</a><a href="#signals">Coverage</a><a href="#routes">Routes</a><a href="#files">Files<span class="count">3</span></a><a href="#details">Details</a></nav>
 <div class="section" id="risk"><h2 class="section-title">Risk</h2><section class="panel"><p class="small muted">Every changed code file, riskiest first. Risk points (0–100, as in the merge risk score) combine its reach with what its diff coverage leaves and its findings. Reach: centrality of each changed file in the import graph: who uses it directly, how many files depend on it through any chain of imports, and how many of the 4 existing pages reach it. High: used by at least half of the pages (or 10+ pages). Medium: used by some page, or by 10+ files, or new code inside existing pages, or deleted. Low: additive, or not used by existing pages.</p><div class="stats"><div class="stat "><div class="value">0</div><div class="label">high reach</div></div><div class="stat "><div class="value">0</div><div class="label">medium reach</div></div><div class="stat "><div class="value">2</div><div class="label">low reach</div></div></div><div class="filters" id="risk-filters"><span class="filter-label">Risk:</span><label class="filter"><input type="checkbox" data-filter="level" value="low" checked> low <span class="muted">(2)</span></label>
 <span class="filter-label">Change:</span><label class="filter"><input type="checkbox" data-filter="change" value="added" checked> added <span class="muted">(1)</span></label><label class="filter"><input type="checkbox" data-filter="change" value="additive" checked> additive <span class="muted">(1)</span></label><span class="muted small" id="risk-count"></span></div><div id="risk-table"><table><thead><tr><th>File</th><th>Change</th><th class="num">Reach (existing pages)</th><th>Diff coverage</th><th>Findings</th><th class="num">Risk points</th><th>Why</th></tr></thead><tbody><tr data-level="low" data-change="additive"><td><span class="path" title="src/lib/format.ts">format.ts</span></td><td><span class="tag ">additive</span></td><td class="num" title="2 direct importer(s) · 5 transitive dependent(s) · centrality 0.227"><span class="chip low">low</span> 0 / 4<div class="mini-bar"><span style="width:0.0%"></span></div></td><td><span class="pill warn">67%</span></td><td><span class="pill bad">1 lint</span></td><td class="num"><span class="file-points inline low">6</span></td><td class="small muted">additive change: nothing that existed changed</td></tr>
 <tr data-level="low" data-change="added"><td><span class="path" title="src/lib/discount.ts">discount.ts</span></td><td><span class="tag added">added</span></td><td class="num" title="0 direct importer(s) · 0 transitive dependent(s) · centrality 0.000"><span class="chip low">low</span> 0 / 4<div class="mini-bar"><span style="width:0.0%"></span></div></td><td><span class="pill bad">0%</span></td><td></td><td class="num"><span class="file-points inline low">2</span></td><td class="small muted">new code not used by existing pages</td></tr></tbody></table></div></section></div>
@@ -439,7 +388,7 @@ details.route.is-flagged .route-path { opacity: .7; }
 <div class="bar bad"><span style="width:44.4%"></span></div><p class="small muted">Files present in the report only: 66.7% (4 / 6).</p><table><thead><tr><th>File</th><th class="num">Changed executable lines</th><th class="num">Covered</th><th>Uncovered ranges</th></tr></thead><tbody><tr><td><span class="path" title="src/lib/format.ts">format.ts</span></td><td class="num">6</td><td class="num">4</td><td class="ranges"><span class="range" title="src/lib/format.ts:7">7</span>, <span class="range" title="src/lib/format.ts:14">14</span></td></tr>
 <tr><td><span class="path" title="src/lib/discount.ts">discount.ts</span> <span class="tag no">missing from the report</span></td><td class="num">3</td><td class="num">0</td><td class="ranges"><span class="range" title="src/lib/discount.ts:1">1–3</span></td></tr></tbody></table></div><div id="lint"><h3>Lint on changed lines</h3><p class="small">1 error(s) and 1 warning(s) on changed lines; 1 error(s) and 1 warning(s) elsewhere in the files.</p><table><thead><tr><th>Location</th><th>Severity</th><th>Rule</th><th>Message</th></tr></thead><tbody><tr><td><span class="path" title="src/lib/format.ts:9">format.ts:9</span></td><td><span class="tag no">error</span></td><td><code>no-magic-numbers</code></td><td>No magic number: 100.</td></tr>
 <tr><td><span class="path" title="src/lib/format.ts:14">format.ts:14</span></td><td><span class="tag ">warning</span></td><td><code>no-nested-ternary</code></td><td>Do not nest ternary expressions.</td></tr></tbody></table></div><div class="grid2"><div id="suppressions"><h3>Added suppressions</h3><p class="muted">None.</p></div><div id="tests"><h3>Modified existing tests</h3><p class="muted">None.</p></div></div></section></div>
-<div class="section" id="routes"><h2 class="section-title">Routes</h2><section class="panel"><h3>Pages with changes: <span id="routes-affected">0</span> affected, 0 new</h3><p class="small"><a href="#review">Mark files as reviewed ↑ (top of the page)</a></p><p class="muted">None.</p><h3>New files no route reaches</h3><div class="finding-files"><span class="path" title="src/lib/discount.ts">discount.ts</span></div></section></div>
+<div class="section" id="routes"><h2 class="section-title">Routes</h2><section class="panel"><h3>Pages with changes: <span id="routes-affected">0</span> affected, 0 new</h3><p class="muted">None.</p><h3>New files no route reaches</h3><div class="finding-files"><span class="path" title="src/lib/discount.ts">discount.ts</span></div></section></div>
 <div class="section" id="files"><h2 class="section-title">Files</h2><section class="panel"><details open><summary>Source (2)</summary><table><thead><tr><th>File</th><th>Status</th><th class="num">+</th><th class="num">−</th><th>Additive rule</th></tr></thead><tbody><tr><td><span class="path" title="src/lib/discount.ts">discount.ts</span></td><td><span class="tag added">added</span></td><td class="num">3</td><td class="num">0</td><td></td></tr>
 <tr><td><span class="path" title="src/lib/format.ts">format.ts</span></td><td><span class="tag modified">modified</span></td><td class="num">12</td><td class="num">0</td><td><span class="tag yes">additive</span></td></tr></tbody></table></details>
 <details open><summary>Tests (1)</summary><table><thead><tr><th>File</th><th>Status</th><th class="num">+</th><th class="num">−</th><th>Additive rule</th></tr></thead><tbody><tr><td><span class="path" title="src/lib/format.test.ts">format.test.ts</span></td><td><span class="tag added">added</span></td><td class="num">6</td><td class="num">0</td><td></td></tr></tbody></table></details></section></div>
@@ -451,7 +400,6 @@ details.route.is-flagged .route-path { opacity: .7; }
 <h3>Unresolved imports (0)</h3><p class="muted">None.</p>
 <h3>Syntax errors (0)</h3><p class="muted">None.</p>
 <h3>Time per stage (ms)</h3><p class="small"><code>diff 0 · readTree 0 · program 0 · graph 0 · routes 0 · base 0 · classify 0 · signals 0 · diffs 0</code></p></details></section></div>
-<div class="section" id="result"><h2 class="section-title">Result</h2><section class="panel"><p class="small muted">What you marked in this report, as Markdown to paste in the pull request: the initial risk, the risk left, flags, reviewed files and checked findings. It updates as you mark things.</p><div class="result-tools"><button type="button" id="result-copy">Copy as Markdown</button><span class="small" id="result-copied" hidden>Copied ✓</span></div><pre class="result-text" id="result-text"></pre><script type="application/json" id="result-data">{"of":" at `\u003chead>`","version":"\u003cversion>","verdict":"◐ Quick review","score":"8","level":"low","many":"pages","security":[],"vulns":[],"contracts":[],"t":{"heading":"### farol review","initial":"Initial risk","now":"After review","score":"merge risk score **{score}/100** ({level})","files":"{done} of {total} risky files reviewed","entries":"{left} of {total} {many} still to review","flagged":"🚩 Behind a feature flag ({n})","flaggedFiles":"{n} file(s) left out of the review because only flagged entry points use them","reviewed":"✅ Files reviewed ({n})","security":"🔒 Security findings checked ({done}/{total})","vulns":"📦 Vulnerable dependencies checked ({done}/{total})","contracts":"🔌 Contract changes checked with clients ({done}/{total})","nothing":"Nothing marked yet.","more":"and {n} more","footer":"\u003csub>Recorded with farol {version}\u003c/sub>"}}</script></section></div>
 <footer>Generated by farol &lt;version&gt;.</footer>
 </main>
 <script>
@@ -495,350 +443,6 @@ details.route.is-flagged .route-path { opacity: .7; }
   apply()
 })()
 </script>
-<script>
-(() => {
-  const card = document.getElementById('merge-score')
-  if (!card) return
-  const drivers = [...card.querySelectorAll('#score-drivers li')].map((li) => ({ li, file: li.dataset.file, weights: li.dataset.weights.split(',').map(Number) }))
-  const combine = (groups) => Math.round(100 * (1 - groups.reduce((p, g) => g.weights.reduce((q, w) => q * (1 - w), p), 1)))
-  const initial = combine(drivers)
-  const high = Number(card.dataset.high)
-  const medium = Number(card.dataset.medium)
-  const shown = Number(card.dataset.shown)
-  const names = { high: 'high', medium: 'medium', low: 'low' }
-  document.addEventListener('farol-reviewed', (event) => {
-    const reviewed = new Set(event.detail)
-    const left = drivers.filter((d) => d.file === '' || !reviewed.has(d.file))
-    const score = combine(left)
-    const level = score >= high ? 'high' : score >= medium ? 'medium' : 'low'
-    document.getElementById('score-value').textContent = String(score)
-    card.querySelector('.score-value').className = 'score-value ' + level
-    const chip = document.getElementById('score-level')
-    chip.className = 'chip ' + level
-    chip.textContent = names[level]
-    const bar = document.getElementById('score-bar')
-    bar.className = 'bar score-bar ' + (level === 'high' ? 'bad' : level === 'medium' ? 'warn' : '')
-    bar.firstElementChild.style.width = score + '%'
-    const done = drivers.filter((d) => d.file !== '' && reviewed.has(d.file)).length
-    document.getElementById('score-reviewed').textContent = done === 0 ? '' : ' · {files} file(s) reviewed, was {initial}'.replace('{files}', done).replace('{initial}', initial)
-    // Progress is linear in the weights (the score itself saturates when many risky files are left).
-    const weight = (list) => list.reduce((n, d) => n + d.weights.reduce((m, w) => m + w, 0), 0)
-    const reviewable = weight(drivers.filter((d) => d.file !== ''))
-    const progress = document.getElementById('score-progress')
-    progress.hidden = done === 0 || reviewable === 0
-    progress.textContent = progress.dataset.template.replace('{percent}', reviewable === 0 ? 0 : Math.round((100 * weight(drivers.filter((d) => d.file !== '' && reviewed.has(d.file)))) / reviewable))
-    // Contributors keep their order (each one's own risk); reviewed ones leave the list.
-    left.forEach((d, i) => { d.li.hidden = i >= shown })
-    for (const d of drivers) if (!left.includes(d)) d.li.hidden = true
-    const more = document.getElementById('score-more')
-    more.hidden = left.length <= shown
-    more.textContent = more.dataset.template.replace('{n}', left.length - shown)
-  })
-})()
-</script>
-<script>
-(() => {
-  const rows = [...document.querySelectorAll('.file-row')]
-  if (rows.length === 0) return
-  const panelBox = (file) => [...document.querySelectorAll('#review input[data-file]')].find((b) => b.dataset.file === file)
-  for (const row of rows) {
-    const box = row.querySelector('input[data-review-file]')
-    const target = panelBox(box.dataset.reviewFile)
-    if (!target) {
-      box.hidden = true
-      continue
-    }
-    box.addEventListener('change', () => {
-      target.checked = box.checked
-      target.dispatchEvent(new Event('change', { bubbles: true }))
-    })
-  }
-  document.addEventListener('farol-reviewed', (event) => {
-    const reviewed = new Set(event.detail)
-    for (const row of rows) {
-      const box = row.querySelector('input[data-review-file]')
-      const done = reviewed.has(box.dataset.reviewFile)
-      box.checked = done
-      row.classList.toggle('is-reviewed', done)
-      // Covered by a feature flag (set by the review script): nothing to tick.
-      box.disabled = row.classList.contains('is-flagged')
-    }
-  })
-})()
-</script>
-<script>
-(() => {
-  const panel = document.getElementById('test-plan-panel')
-  if (!panel) return
-  const review = document.getElementById('review')
-  const storageKey = 'farol-tested:' + (review ? review.dataset.key : location.pathname)
-  const boxes = [...panel.querySelectorAll('input[data-test-key]')]
-  try {
-    const saved = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'))
-    for (const box of boxes) box.checked = saved.has(box.dataset.testKey)
-  } catch {}
-  // Items whose changed files are all reviewed (or out of the review behind a flag) look like reviewed files.
-  let reviewedItems = 0
-  const mark = (state) => {
-    if (!state) return
-    const ticked = new Set(state.ticked)
-    const out = new Set([...state.ticked, ...state.covered])
-    const flagged = new Set(state.flagged)
-    reviewedItems = 0
-    for (const item of panel.querySelectorAll('li.test-item')) {
-      const files = item.dataset.files ? item.dataset.files.split('|') : []
-      const reviewed = files.length > 0 && files.every((f) => ticked.has(f))
-      const isFlagged = !reviewed && (flagged.has(item.dataset.key) || (files.length > 0 && files.every((f) => out.has(f))))
-      item.classList.toggle('is-reviewed', reviewed)
-      item.classList.toggle('is-flagged', isFlagged)
-      const note = item.querySelector('.flag-note')
-      note.textContent = reviewed ? panel.dataset.reviewedNote : isFlagged ? panel.dataset.flagNote : ''
-      note.title = reviewed ? panel.dataset.reviewedTitle : isFlagged ? panel.dataset.flagTitle : ''
-      if (reviewed || isFlagged) reviewedItems++
-    }
-    apply()
-  }
-  document.addEventListener('farol-reviewed', () => mark(window.farolState))
-  const apply = () => {
-    const done = boxes.filter((b) => b.checked)
-    document.getElementById('test-progress').textContent = panel.dataset.template.replace('{done}', done.length).replace('{total}', boxes.length) + (reviewedItems > 0 ? panel.dataset.reviewedTemplate.replace('{n}', reviewedItems) : '')
-    for (const group of panel.querySelectorAll('details.test-group')) {
-      const own = [...group.querySelectorAll('input[data-test-key]')]
-      const count = group.querySelector('.test-count')
-      count.textContent = own.filter((b) => b.checked).length + ' / ' + own.length
-    }
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(done.map((b) => b.dataset.testKey)))
-    } catch {}
-  }
-  panel.addEventListener('change', apply)
-  apply()
-})()
-</script>
-<script>
-(() => {
-  const data = document.getElementById('result-data')
-  if (!data) return
-  const d = JSON.parse(data.textContent)
-  const out = document.getElementById('result-text')
-  const fill = (text, values) => text.replace(/\{(\w+)\}/g, (m, k) => (values[k] === undefined ? m : String(values[k])))
-  const code = (text) => '`' + String(text).replaceAll('`', "'") + '`'
-  const bullets = (items, max) => [...items.slice(0, max).map((x) => '- ' + code(x)), ...(items.length > max ? ['- ' + fill(d.t.more, { n: items.length - max })] : [])]
-  const checks = (title, list, acks) => {
-    if (list.length === 0) return []
-    const done = list.filter((x) => acks.has(x.id)).length
-    return ['', '**' + fill(title, { done, total: list.length }) + '**', ...list.map((x) => '- [' + (acks.has(x.id) ? 'x' : ' ') + '] ' + code(x.label))]
-  }
-  const pathOf = (key) => {
-    for (const b of document.querySelectorAll('button.flag-toggle')) {
-      if (b.dataset.flagKey !== key) continue
-      const path = b.parentElement && b.parentElement.querySelector('.route-path')
-      if (path) return path.textContent
-    }
-    return key
-  }
-  const render = () => {
-    const st = window.farolState || { ticked: [], covered: [], flagged: [], acks: [], left: 0, total: 0, files: 0 }
-    const acks = new Set(st.acks)
-    const score = (document.getElementById('score-value') || {}).textContent || d.score
-    const level = (document.getElementById('score-level') || {}).textContent || d.level
-    const done = new Set([...st.ticked, ...st.covered]).size
-    const lines = [d.t.heading + ' — ' + d.of, '']
-    lines.push('- **' + d.t.initial + ':** ' + d.verdict + ' · ' + fill(d.t.score, { score: d.score, level: d.level }))
-    const now = [fill(d.t.score, { score, level })]
-    if (st.files > 0) now.push(fill(d.t.files, { done, total: st.files }))
-    if (st.total > 0) now.push(fill(d.t.entries, { left: st.left, total: st.total, many: d.many }))
-    lines.push('- **' + d.t.now + ':** ' + now.join(' · '))
-    const outOfReview = st.covered.filter((f) => !st.ticked.includes(f)).length
-    if (st.flagged.length > 0) lines.push('', '**' + fill(d.t.flagged, { n: st.flagged.length }) + '**' + (outOfReview > 0 ? ' — ' + fill(d.t.flaggedFiles, { n: outOfReview }) : ''), ...bullets(st.flagged.map(pathOf), 30))
-    if (st.ticked.length > 0) lines.push('', '**' + fill(d.t.reviewed, { n: st.ticked.length }) + '**', ...bullets(st.ticked, 30))
-    lines.push(...checks(d.t.security, d.security, acks), ...checks(d.t.vulns, d.vulns, acks), ...checks(d.t.contracts, d.contracts, acks))
-    if (st.flagged.length + st.ticked.length + st.acks.length === 0) lines.push('', d.t.nothing)
-    lines.push('', fill(d.t.footer, { version: d.version }))
-    out.textContent = lines.join('\n')
-    const badge = document.getElementById('result-count')
-    if (badge) {
-      const n = st.flagged.length + st.ticked.length + st.acks.length
-      badge.textContent = String(n)
-      badge.hidden = n === 0
-    }
-  }
-  document.addEventListener('farol-reviewed', render)
-  document.getElementById('result-copy').addEventListener('click', async () => {
-    const text = out.textContent
-    try {
-      await navigator.clipboard.writeText(text)
-    } catch {
-      // No clipboard permission (file:// pages in some browsers): select the text for a manual copy.
-      const range = document.createRange()
-      range.selectNodeContents(out)
-      const sel = getSelection()
-      sel.removeAllRanges()
-      sel.addRange(range)
-      document.execCommand('copy')
-    }
-    const copied = document.getElementById('result-copied')
-    copied.hidden = false
-    setTimeout(() => { copied.hidden = true }, 1800)
-  })
-  render()
-})()
-</script>
-<script>
-(() => {
-  const panel = document.getElementById('review')
-  if (!panel) return
-  const storageKey = 'farol-reviewed:' + panel.dataset.key
-  // The panel starts collapsed: links to it open it.
-  for (const link of document.querySelectorAll('a[href="#review"]')) link.addEventListener('click', () => { panel.open = true })
-  const regexInput = document.getElementById('review-regex')
-  const error = document.getElementById('review-error')
-  const status = document.getElementById('review-status')
-  const boxes = [...panel.querySelectorAll('input[data-file]')]
-  const rows = [...document.querySelectorAll('.view details.route')]
-  const pages = new Set(rows.map((r) => r.querySelector('summary').title))
-  // Pages behind a feature flag (the same page has a toggle in the list and in the tree).
-  const flagButtons = [...document.querySelectorAll('button.flag-toggle')]
-  const flagged = new Set()
-  // Checks on security findings, vulnerable dependencies and contract changes (recorded in the Result tab).
-  const ackBoxes = [...document.querySelectorAll('input[data-ack]')]
-  const keysOf = new Map()
-  for (const row of rows) {
-    const key = row.querySelector('summary').title
-    for (const file of row.dataset.files ? row.dataset.files.split('|') : []) keysOf.set(file, (keysOf.get(file) || new Set()).add(key))
-  }
-  try {
-    const saved = JSON.parse(localStorage.getItem(storageKey) || 'null')
-    if (saved) {
-      for (const box of boxes) box.checked = saved.files.includes(box.dataset.file)
-      regexInput.value = saved.regex || ''
-      for (const key of saved.flags || []) if (pages.has(key)) flagged.add(key)
-      for (const box of ackBoxes) box.checked = (saved.acks || []).includes(box.dataset.ack)
-    }
-  } catch {}
-  for (const button of flagButtons) {
-    button.addEventListener('click', (event) => {
-      // Inside a <summary>: toggle the flag, not the row.
-      event.preventDefault()
-      event.stopPropagation()
-      const key = button.dataset.flagKey
-      if (flagged.has(key)) flagged.delete(key)
-      else flagged.add(key)
-      apply()
-    })
-  }
-  const apply = () => {
-    let regex = null
-    error.hidden = true
-    if (regexInput.value.trim() !== '') {
-      try {
-        regex = new RegExp(regexInput.value)
-      } catch {
-        error.hidden = false
-      }
-    }
-    const acks = new Set(ackBoxes.filter((b) => b.checked).map((b) => b.dataset.ack))
-    const ticked = new Set(boxes.filter((b) => b.checked || (regex && regex.test(b.dataset.file))).map((b) => b.dataset.file))
-    // Files that only flagged pages use are out of the review, like reviewed ones (but labeled as flagged).
-    const covered = new Set([...keysOf].filter(([, keys]) => [...keys].every((k) => flagged.has(k))).map(([file]) => file))
-    const reviewed = new Set([...ticked, ...covered])
-    for (const button of flagButtons) {
-      const on = flagged.has(button.dataset.flagKey)
-      button.setAttribute('aria-pressed', String(on))
-      const row = button.closest('details.route') || button.closest('.flag-item')
-      if (row) row.classList.toggle('is-flagged', on)
-    }
-    const note = (el, file) => {
-      const span = el.querySelector('.flag-note')
-      const on = covered.has(file) && !ticked.has(file)
-      el.classList.toggle('is-flagged', on)
-      if (span) {
-        span.textContent = on ? panel.dataset.flagNote : ''
-        span.title = on ? panel.dataset.flagTitle : ''
-      }
-    }
-    for (const box of boxes) {
-      box.closest('label').classList.toggle('is-reviewed', reviewed.has(box.dataset.file))
-      note(box.closest('label'), box.dataset.file)
-    }
-    for (const row of document.querySelectorAll('.file-row[data-file]')) note(row, row.dataset.file)
-    const left = new Set()
-    for (const row of rows) {
-      const files = row.dataset.files ? row.dataset.files.split('|') : []
-      const remaining = files.filter((f) => !reviewed.has(f)).length
-      const key = row.querySelector('summary').title
-      // Flagged pages stay listed, so the flag can be undone.
-      row.hidden = files.length > 0 && remaining === 0 && !flagged.has(key)
-      if (!row.hidden && !flagged.has(key)) left.add(key)
-      const label = row.querySelector('.route-files')
-      if (label && files.length > 0) label.textContent = remaining === files.length ? files.length + ' changed file' + (files.length === 1 ? '' : 's') : remaining + ' of ' + files.length + ' changed files left'
-    }
-    for (const node of [...document.querySelectorAll('details.tree-node')].reverse()) {
-      const visible = new Set([...node.querySelectorAll('details.route:not([hidden])')].map((r) => r.querySelector('summary').title)).size
-      node.hidden = visible === 0
-      const count = node.querySelector(':scope > summary .tree-count')
-      if (count) count.textContent = visible + ' ' + (visible === 1 ? count.dataset.one : count.dataset.many)
-    }
-    const affected = document.getElementById('routes-affected')
-    if (affected) affected.textContent = String(left.size)
-    const parts = []
-    if (reviewed.size > 0) parts.push(panel.dataset.template.replace('{left}', left.size).replace('{total}', pages.size))
-    if (ticked.size > 0) parts.push(panel.dataset.marked.replace('{files}', ticked.size))
-    if (flagged.size > 0) parts.push(panel.dataset.flagStatus.replace('{n}', flagged.size).replace('{files}', [...covered].filter((f) => !ticked.has(f)).length))
-    status.textContent = parts.join(' ')
-    try {
-      localStorage.setItem(storageKey, JSON.stringify({ files: boxes.filter((b) => b.checked).map((b) => b.dataset.file), regex: regexInput.value, flags: [...flagged], acks: [...acks] }))
-    } catch {}
-    const flagsStatus = document.getElementById('flags-status')
-    if (flagsStatus) flagsStatus.textContent = flagged.size === 0 ? '' : panel.dataset.flagStatus.replace('{n}', flagged.size).replace('{files}', [...covered].filter((f) => !ticked.has(f)).length)
-    // The Result tab reads this when the change is announced.
-    window.farolState = { ticked: [...ticked].sort(), covered: [...covered].sort(), flagged: [...flagged].sort(), acks: [...acks].sort(), left: left.size, total: pages.size, files: boxes.length }
-    document.dispatchEvent(new CustomEvent('farol-reviewed', { detail: [...reviewed] }))
-  }
-  // Search only narrows the list; "Mark shown" / "Unmark shown" act on what it shows.
-  const search = document.getElementById('review-search')
-  const hideDone = document.getElementById('review-hide-done')
-  const shownLabel = document.getElementById('review-shown')
-  const visibleBoxes = () => boxes.filter((b) => !b.closest('label').hidden)
-  const filter = () => {
-    const words = search.value.toLowerCase().split(/\s+/).filter((w) => w !== '')
-    for (const box of boxes) {
-      const label = box.closest('label')
-      const file = box.dataset.file.toLowerCase()
-      label.hidden = !words.every((w) => file.includes(w)) || (hideDone.checked && label.classList.contains('is-reviewed'))
-    }
-    const shown = visibleBoxes().length
-    shownLabel.textContent = shown === boxes.length ? '' : panel.dataset.shown.replace('{shown}', shown).replace('{total}', boxes.length)
-  }
-  const mark = (value) => {
-    for (const box of visibleBoxes()) box.checked = value
-    apply()
-  }
-  document.getElementById('review-mark-shown').addEventListener('click', () => mark(true))
-  document.getElementById('review-unmark-shown').addEventListener('click', () => mark(false))
-  search.addEventListener('input', filter)
-  hideDone.addEventListener('change', filter)
-  document.addEventListener('farol-reviewed', filter)
-  panel.addEventListener('change', (event) => { if (event.target.dataset.file !== undefined) apply() })
-  regexInput.addEventListener('input', apply)
-  for (const box of ackBoxes) box.addEventListener('change', apply)
-  const flagSearch = document.getElementById('flags-search')
-  if (flagSearch) {
-    flagSearch.addEventListener('input', () => {
-      const words = flagSearch.value.toLowerCase().split(/\s+/).filter((w) => w !== '')
-      for (const item of document.querySelectorAll('.flag-item')) item.hidden = !words.every((w) => item.dataset.search.includes(w))
-    })
-  }
-  document.getElementById('review-clear').addEventListener('click', () => {
-    for (const box of boxes) box.checked = false
-    flagged.clear()
-    regexInput.value = ''
-    search.value = ''
-    apply()
-  })
-  apply()
-})()
-</script>
 <script type="module">
 const rows = document.querySelectorAll('details.route')
 let mermaid
@@ -876,25 +480,6 @@ rows.forEach((row) => {
   if (row.open) void draw(row)
 })
 </script>
-<script type="module">
-let hljs
-async function highlight(details) {
-  const table = details.querySelector('table[data-lang]')
-  if (!table || table.dataset.highlighted) return
-  try {
-    if (!hljs) hljs = (await import('https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/es/highlight.min.js')).default
-    const language = table.dataset.lang
-    if (!hljs.getLanguage(language)) return
-    for (const cell of table.querySelectorAll('.src')) cell.innerHTML = hljs.highlight(cell.textContent, { language, ignoreIllegals: true }).value
-    table.dataset.highlighted = 'true'
-  } catch (error) {
-    console.warn('farol: could not highlight the diff', error)
-  }
-}
-for (const details of document.querySelectorAll('details.inline-diff')) {
-  details.addEventListener('toggle', () => { if (details.open) void highlight(details) })
-}
-</script>
 <script>
 (() => {
   const label = '⤢ Full screen'
@@ -911,30 +496,6 @@ for (const details of document.querySelectorAll('details.inline-diff')) {
       button.textContent = document.fullscreenElement && button.closest('.fs-target') === document.fullscreenElement ? exit : label
     }
   })
-})()
-</script>
-<script>
-(() => {
-  const input = document.getElementById('entry-filter')
-  if (!input) return
-  const plan = document.getElementById('plan')
-  const rows = [...plan.querySelectorAll('.file-row')]
-  const count = document.getElementById('entry-filter-count')
-  const apply = () => {
-    const query = input.value.trim().toLowerCase()
-    let shown = 0
-    for (const row of rows) {
-      const entries = (row.dataset.entries || '').toLowerCase().split('|').filter((e) => e !== '')
-      const visible = query === '' || entries.some((e) => e.includes(query))
-      row.classList.toggle('filtered-out', !visible)
-      if (visible) shown++
-    }
-    // Matches in collapsed lists (skim) open them.
-    if (query !== '') for (const details of plan.querySelectorAll('details.plan-more')) if (details.querySelector('.file-row:not(.filtered-out)')) details.open = true
-    count.textContent = query === '' ? '' : count.dataset.template.replace('{n}', shown)
-  }
-  input.addEventListener('input', apply)
-  document.getElementById('entry-filter-clear').addEventListener('click', () => { input.value = ''; apply() })
 })()
 </script>
 </body>

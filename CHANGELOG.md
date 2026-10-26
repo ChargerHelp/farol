@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 — 2026-10-26
+
+- **New HTML report: a review workbench.** A side rail with the live merge risk, *Must check* (breaking contract changes, security findings, lint errors and vulnerable dependencies, each confirmed on its own) and the files by risk (High, Medium, Skim, Test files), each with a "reviewed" box. One file at a time with its diff, the lines no test ran marked, and links to comment on any line in GitHub. A dependency view with the bump and how to check it. *Can affect* with the pages to try by hand and feature flags. *Results*: a Markdown record of the review for the PR comment. The risk turns green when it is low and nothing is left to check. The former sections stay in *Details*.
+- **Merge risk score:** dependency bumps weigh by how much they can break (a 0.x minor 8 points instead of 25); a lint error on the line of a security finding counts once; findings in files outside the project no longer count.
+- **Website and demo** follow the new report.
+
 ## 0.1.3 — 2026-10-24
 
 - **npm package:** leaves out Python bytecode (`__pycache__`), which earlier packages carried by mistake. 0.1.3 is the first version on npm; 0.1.1 and 0.1.2 were unpublished.

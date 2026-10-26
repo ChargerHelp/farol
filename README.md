@@ -46,7 +46,7 @@ follows the risk of the change. As they put it, "The change sets the tier, not t
 
 - **What does this change reach?** Every existing page, API operation, RPC method, job and script that runs the changed code, with the call chain to each.
 - **How risky is the merge?** A verdict (*fast track*, *quick review*, *careful review*) and a 0–100 risk score from reach, diff coverage, security findings, contract breaks and dependency changes.
-- **Where do I start?** The riskiest files first, with inline diffs, untested lines marked, and a checklist of what to try by hand.
+- **Where do I start?** What must be checked by hand (breaking API changes, security findings), then the files by risk, each with its diff and the lines no test ran.
 
 **Free and open source (MIT).** Run it as a CLI with `npx @winninjs/farol`, or on every pull request with the GitHub
 Action `winnin/farol/action`. No account, no hosted service: it runs on your machine or in your CI runner, comments on
@@ -55,7 +55,7 @@ every PR and never blocks a merge. It **never executes your code** and never sen
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/report-overview-dark.png">
-    <img alt="The farol report of a pull request: a careful review at 74/100, the two files to start with, and three breaking contract changes" src="docs/images/report-overview-light.png" width="900">
+    <img alt="The farol report of a pull request: careful review at 69/100, three items to check by hand, the files by risk and what makes up the score" src="docs/images/report-overview-light.png" width="900">
   </picture>
 </p>
 
@@ -68,13 +68,13 @@ The demo holds the reports farol produced in CI for a pull request on the
 frontend with TanStack Router. The pull request adds a status to items and an Insights page, with the kind of problems
 a reviewer should catch: a breaking API change, SQL built with an f-string, a shared component without tests.
 
-- [Backend report](https://winnin.github.io/farol/demo/backend.html): ⚠ careful review, a breaking contract change and a high-severity security finding.
+- [Backend report](https://winnin.github.io/farol/demo/backend.html): ⚠ careful review at 69/100, a breaking contract change and a high-severity security finding.
 - [Frontend report](https://winnin.github.io/farol/demo/frontend.html): ⚠ careful review, a new page and the existing pages a shared component reaches.
 
-The reports are interactive: mark files as reviewed, mark a page as behind a feature flag, open the inline diffs,
-follow the test plan and copy the review record from the Result tab. They are the same files the pull request's
-comments link to ([the pull request](https://github.com/erich-oliveira-winnin/full-stack-fastapi-template/pull/1)); the
-copies live in [`docs/demo/`](docs/demo/).
+The reports are interactive: check the findings, tick files as reviewed and watch the risk drop, mark a page as behind
+a feature flag, and copy the results for the pull request. They were built from the analysis farol ran in CI on
+[the pull request](https://github.com/erich-oliveira-winnin/full-stack-fastapi-template/pull/1); the copies live in
+[`docs/demo/`](docs/demo/).
 
 ## farol after your AI review
 
@@ -99,7 +99,7 @@ what farol shows.
 - **Review the whole PR, or just what changed since your last look.** Every push gets two reports: the full pull request, and only the commits since the previous push. After a round of fixes, the reviewer checks the new commits instead of starting over.
 - **It uses what your CI already has.** Coverage, lint, security and audit reports become diff coverage and findings on the changed lines. Nothing runs twice.
 - **Fail closed.** When farol cannot read part of a change, it says so (`unknown`) and asks for a careful review. It never calls something safe because it did not understand it.
-- **Built for the human in the loop.** Mark files as reviewed, mark pages as behind a feature flag, check off findings, and paste the result back in the PR as a record of what was reviewed.
+- **Built for the human in the loop.** Check off findings, tick files as reviewed and watch the risk drop, mark pages as behind a feature flag, and paste the results back in the PR as a record of what was reviewed.
 
 ## Contents
 
@@ -330,90 +330,89 @@ git blame and CODEOWNERS; reports as a GitHub comment, Markdown or a single-file
 
 ## Reading the review
 
-farol produces two things: a **PR comment** with the verdict, the top files and a test checklist, and a
-**single-file HTML report** (linked from the comment) where the review happens. Here is what each part is for and how
-to use it.
+farol produces two things: a **PR comment** with the verdict, the riskiest files and a test checklist, and a
+**single-file HTML report** (linked from the comment) where the review happens. The report is a workbench: the left
+rail holds the risk that is left and what to read next, the main area shows what you picked.
 
-### Verdict and merge risk score
+<p align="center"><img alt="A file in the farol report: a security finding to check, the file's share of the score, its coverage and the diff with the untested lines marked" src="docs/images/report-file.png" width="900"></p>
 
-What it tells you is how much of your time the PR deserves.
+**The short version:** open the report, clear **Must check**, read the **High** and **Medium** files and tick each one,
+skim the rest, try the pages it can affect, then **Copy results** into the pull request. When the risk is low and
+nothing is left to check, the report says so.
+
+### Merge risk and verdict
+
+The number at the top of the rail, 0–100, is the chance that at least one risky part of the change breaks something.
+It is **live**: every part of it belongs to something you can clear (a file you read, a finding you checked, a
+contract change whose clients you confirmed), and it drops as you clear them. *Was 69* tells you where it started.
 
 | Verdict | Means | What to do |
 |---|---|---|
-| ✓ **Fast track** | Only new code, tests or low-risk changes. | Skim the diff and approve. |
-| ◐ **Quick review** | Existing code changed in a contained way, or a weaker signal (low coverage, lint errors, a config file). | Check the *Start here* files, then approve. |
-| ⚠ **Careful review** | Wide or silent breakage is possible: a score of 60+, a breaking contract change, a high-severity finding, an untested central file, or code farol could not read. | Read the *Start here* files line by line and test what they reach. |
+| ✓ **Fast track** | Only new code, tests or low-risk changes. | Skim the files and approve. |
+| ◐ **Quick review** | Existing code changed in a contained way, or a weaker signal (low coverage, lint errors, a config file). | Read the High and Medium files, then approve. |
+| ⚠ **Careful review** | Wide or silent breakage is possible: a score of 60+, a breaking contract change, a high-severity finding, an untested central file, or code farol could not read. | Clear Must check, read the risky files line by line and try what they reach. |
 
-The **score** (0–100) is the chance that at least one risky item breaks something. Expand *What adds to it* to see
-each item and its points: the files by reach × untested share, findings, contract changes, dependencies. The verdict
-always comes with its reasons; read them before the diff.
+The summary says in one sentence where most of the risk comes from, and **What makes up the N** shows every part of
+the score with its share. The shares add up to the score, so a part's share is exactly what clearing it removes.
+When the score falls below 30 with nothing left in Must check, the risk turns green: *likely safe to approve*.
 
-### Start here
+### Must check
 
-The changed code files, riskiest first. Each row shows how many existing pages or operations run the file, its diff
-coverage, its findings and its own risk points; with Datadog, also its traffic and production errors. Open the inline
-diff: added lines no test runs are marked **○**, lines with findings **⚠**.
+Breaking API contract changes, security findings, lint errors and vulnerable dependencies, listed above every file.
+Reading a file does **not** clear them: each one needs your confirmation (*clients updated or versioned*, *fixed or
+safe in this context*). A lint error on the same line as a security finding counts once.
 
-**How to use it:** review top-down and tick **Mark as reviewed** on each file. The score drops as you go, so you
-always know how much risk is left. Below it come the low-risk files to skim, environment/infrastructure/CI files
-(check their values per environment), and files that need no review (docs, lockfiles, tests).
+### Files by risk
 
-### Behind a feature flag
+Every changed file that adds to the score, in tiers by its own risk: **High**, **Medium**, **Skim** (collapsed) and
+**Test files** (collapsed, trimmed tests only). Tick the box next to a file once you read it; the number on its right
+is its share of the score right now. Opening a file shows:
 
-On every page or operation row, and in a panel at the top: mark an entry point that is entirely behind a flag. Files
-that **only** flagged entry points use leave the review, labeled *behind a flag* rather than reviewed. Use it for
-work-in-progress features shipped dark, so the remaining score reflects what users will actually hit.
+- why it is risky (how many existing pages or operations run it), its share of the score and its diff coverage;
+- its diff, with **the lines no test ran marked in red** and each untested stretch labeled; the coverage line above it jumps to them;
+- **Comment on GitHub**: opens the file's diff in the pull request. Click any line number of the diff to open that line, ready for a comment;
+- the pages or operations that run it, who knows the file (git history and CODEOWNERS), and a note field whose text goes into the results.
 
-### Pages / Operations
+A dependency manifest shows each package bump (`^0.37.0 → ^0.39.1`), what the bump means (a 0.x minor may break the
+API) and how to check it. Bumps weigh by how much they can break: a major or a removed package more than a 0.x minor,
+a compatible minor or patch little.
 
-Every new and affected entry point, as a list or a tree by module. Opening one draws **how** the change reaches it,
-file by file. With Datadog each one shows its traffic share and its distinct errors, busiest first. **Use it** to
-judge blast radius: a change reaching 3 rarely used admin pages is not the same as one reaching the checkout.
+### How much of the new code is tested
 
-### Contracts (backends)
+On the summary, collapsed: the share of changed executable lines that ran in your tests, file by file, with the lines
+that never ran. Files the coverage report never saw are listed apart: no test loaded them, which often means they are
+excluded on purpose (types, constants, translations), so check before reading them as gaps. Without a coverage
+report the line says so; it never counts as tested.
 
-Each endpoint whose request or response shape changed, as **breaking** (clients built for the base can fail),
-**dangerous** (they may misbehave) or **safe** (compatible additions), with the exact field and the calling services
-from Datadog. **Use it** to confirm every breaking change is intended and its clients are updated, then tick
-*checked with clients*.
+### Can affect
 
-<p align="center"><img alt="A breaking contract change: GET /brands no longer returns response[].name" src="docs/images/report-contracts.png" width="760"></p>
+The existing pages or operations that run the changed code, plus the new ones, riskiest first; with Datadog, their
+traffic and errors. Tick the ones you tried by hand. Mark the ones that ship **behind a feature flag**: once every
+page that runs a file is flagged, that file leaves the score, so the risk that is left is what users will hit.
 
-### Security, Dependencies, Coverage
+### Results
 
-The evidence behind the score: security findings on the changed lines (with a *checked* box each), added or bumped
-dependencies with known vulnerabilities, and diff coverage per file. A report that was not given shows as
-**not verified**, never as passing.
+**Copy results** (top bar or the Results page) copies a Markdown comment for the pull request: the risk before and
+after, Must check as a checklist, the files reviewed per tier and the ones left, the pages tried and flagged, the
+coverage and your notes. Paste it in the PR so the next person knows what was looked at. The page also shows, just
+for curiosity, how much of the change needed a careful read and the time that saves.
 
-### Test plan
+### Details
 
-The new and affected pages or operations to try by hand, new ones first, then by the risk of the file that reaches
-them. The PR comment has it as a task list. **Use it** when you run the branch locally or on a preview environment.
-It follows your review: once every changed file behind an item is marked as reviewed, the item is marked too
-(✓ files reviewed), or 🚩 behind a flag. Its own checkbox, for the manual test, stays yours to tick.
-
-### Reviewers
-
-Who should review: the people who wrote the code this PR changes (git blame, weighted by each file's risk), plus
-CODEOWNERS. The PR's own authors and bots are left out, and inactive people are labeled. **Use it** to request the
-person who knows the riskiest file, not just whoever is free.
-
-### Result
-
-A Markdown record of the review: the initial verdict and score, the score left now, the flagged entry points, the
-reviewed files, and the checked findings and contract changes. **Copy as Markdown** and paste it in the PR as your
-review comment, so the next person knows what was looked at.
+The full analysis behind the workbench: the reach and risk points of every changed file, security, dependencies,
+signals (coverage, lint, suppressions, tests), contracts, reviewers, every page or operation with the import graph
+that reaches it, all files, the reasons and the diagnostics.
 
 ### Since the last push
 
 After a push to an open PR, the comment carries a second report with only the commits since the previous push
-(`analyze --since <sha>`; after a force-push, from its merge-base). Its verdict, score and *Start here* cover just
+(`analyze --since <sha>`; after a force-push, from its merge-base). Its verdict, score and files cover just
 those changes. **Use it** for the second round of a review: check that the fixes do what was asked and nothing
 else, then go back to the full report only if the new commits reach somewhere new.
 
 ### Class and reasons
 
-Kept in *Details* and a collapsed block of the comment, so reviewers form their own opinion first:
+Kept in the report's *Details* and a collapsed block of the comment, so reviewers form their own opinion first:
 `isolated` (only adds), `touches-existing` (existing code changed), `global` (a global file, manifest or critical
 dependency) and `unknown` (part of the change could not be read: never safe). Every reason code is in
 [docs/reasons.md](docs/reasons.md).

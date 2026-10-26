@@ -93,13 +93,13 @@ describe('composite action', () => {
   it('runs the root action script against dist/cli.js', () => {
     const r = runAction({ RS_COMMAND: 'html', RS_IN: join(tmp, 'farol.json'), RS_HTML_OUT: join(tmp, 'root.html') }, ROOT_ACTION, ROOT)
     expect(r.code).toBe(0)
-    expect(readFileSync(join(tmp, 'root.html'), 'utf8')).toContain('id="plan"')
+    expect(readFileSync(join(tmp, 'root.html'), 'utf8')).toContain('window.FAROL = ')
   })
 
   it('renders the HTML report from the JSON', () => {
     const html = join(tmp, 'farol.html')
     const r = runAction({ RS_COMMAND: 'html', RS_IN: join(tmp, 'farol.json'), RS_HTML_OUT: html, RS_PR: '7' })
     expect(r.code).toBe(0)
-    expect(readFileSync(html, 'utf8')).toContain('id="plan"')
+    expect(readFileSync(html, 'utf8')).toContain('window.FAROL = ')
   })
 })

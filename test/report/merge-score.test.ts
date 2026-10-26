@@ -2,8 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { OutputSchema, type Output } from '../../src/output/schema.js'
-import { scoreBox, scoreGroups } from '../../src/report/html-score.js'
-import { combineScore, mergeScore, scoreItems, scoreLevel } from '../../src/report/merge-score.js'
+import { combineScore, DEPENDENCY_WEIGHT, mergeScore, scoreGroups, scoreItems, scoreLevel } from '../../src/report/merge-score.js'
 import { FIXTURES_DIR } from '../helpers/repo.js'
 
 function golden(scenario: string): Output {
@@ -67,10 +66,31 @@ describe('merge risk score', () => {
     expect(groups.map((g) => g.points)).toEqual([...groups.map((g) => g.points)].sort((a, b) => b - a))
   })
 
-  it('renders the score with its contributors as data for the reviewed-files script', () => {
+  it('weighs a dependency change by how much its bump can break', () => {
+    const o = golden('01-new-route')
+    const change = (c: Partial<Output['dependencies']['changes'][number]>): Output['dependencies']['changes'][number] => ({ manifest: 'package.json', name: 'lib', section: 'dependencies', change: 'updated', from: '^1.0.0', to: '^1.1.0', bump: 'minor', direction: 'upgrade', critical: false, ...c })
+    const weight = (c: Output['dependencies']['changes'][number]) => scoreItems({ ...o, dependencies: { ...o.dependencies, changes: [c] } }).find((i) => i.kind === 'dependency')?.weight
+    expect(weight(change({}))).toBe(DEPENDENCY_WEIGHT.compatible)
+    expect(weight(change({ from: '^0.37.0', to: '^0.39.1', critical: true, note: 'minor bump of a 0.x version is breaking' }))).toBe(DEPENDENCY_WEIGHT.mayBreak)
+    expect(weight(change({ from: '^1.0.0', to: '^2.0.0', bump: 'major', critical: true }))).toBe(DEPENDENCY_WEIGHT.breaking)
+    expect(weight(change({ change: 'removed', to: null, bump: null, direction: null, critical: true }))).toBe(DEPENDENCY_WEIGHT.breaking)
+    expect(weight(change({ from: 'latest', to: 'next', bump: 'unknown', direction: null, critical: true }))).toBe(DEPENDENCY_WEIGHT.unknown)
+  })
+
+  it('counts a lint error on the line of a security finding once, and leaves out findings outside the project', () => {
     const o = golden('signals-coverage-lint')
-    const html = scoreBox(o, { path: (p) => `<span>${p}</span>` })
-    expect(html).toContain(`<span id="score-value">${mergeScore(o).score}</span>`)
-    expect(html).toMatch(/<li data-file="src\/lib\/discount\.ts" data-weights="[\d.,]+"/)
+    const at = { path: 'src/lib/format.ts', line: 9 }
+    const withFindings = (role: Output['files'][number]['role']): Output => ({
+      ...o,
+      files: o.files.map((f) => (f.path === at.path ? { ...f, role } : f)),
+      signals: {
+        ...o.signals,
+        security: { ...o.signals.security, findings: [{ ...at, severity: 'high', rule: 'bandit', message: 'S608: SQL built from strings', text: 'query = f"..."' }] },
+        lint: { ...o.signals.lint, findings: [{ ...at, severity: 'error', rule: 'S608', message: 'SQL built from strings' }] },
+      },
+    })
+    const kinds = (out: Output) => scoreItems(out).filter((i) => i.file === at.path && i.kind !== 'change').map((i) => i.kind)
+    expect(kinds(withFindings('source'))).toEqual(['security'])
+    expect(kinds(withFindings('excluded'))).toEqual([])
   })
 })

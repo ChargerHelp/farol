@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { OutputSchema, type Output } from '../../src/output/schema.js'
+import { detailsOf } from '../helpers/html.js'
 import { renderHtml } from '../../src/report/html.js'
 import { createLinker } from '../../src/report/links.js'
 import { changedRoutes, routeMermaid, type ChangedRoute } from '../../src/report/route-graph.js'
@@ -55,7 +56,7 @@ describe('route graphs', () => {
   })
 
   it('renders risk filters, the legend and the highest risk per route', () => {
-    const html = renderHtml(golden('05-shared-component'))
+    const html = detailsOf(renderHtml(golden('05-shared-component')))
     expect(html).toContain('<div class="filters" id="risk-filters">')
     expect(html).toContain('<input type="checkbox" data-filter="level" value="high" checked> high')
     expect(html).toContain('<tr data-level="high" data-change="modified">')
@@ -66,20 +67,18 @@ describe('route graphs', () => {
 
   it('renders one collapsible row per changed route with its diagram source', () => {
     const o = golden('05-shared-component')
-    const html = renderHtml({ ...o, repo: 'acme/shop', pr: 3 }, createLinker({ ...o, repo: 'acme/shop', pr: 3 }, { repo: 'acme/shop', pr: 3 }))
+    const html = detailsOf(renderHtml({ ...o, repo: 'acme/shop', pr: 3 }, createLinker({ ...o, repo: 'acme/shop', pr: 3 }, { repo: 'acme/shop', pr: 3 })))
     // Each page appears in the list view and in the tree view.
     expect(html.match(/<details class="route" /g)).toHaveLength(4)
     expect(html).toContain('<label for="routes-view-tree">Tree (by module)</label>')
     expect(html).toContain('<pre class="mermaid">flowchart LR')
     expect(html).toContain('Pages with changes: <span id="routes-affected">2</span> affected, 0 new')
-    // The reviewed-files filter lists the changed files behind the pages, with how many pages each one affects.
-    expect(html).toContain('<label class="review-file"><input type="checkbox" data-file="src/components/Card.tsx">')
     expect(html).toContain('data-files="src/components/Card.tsx"')
     expect(html).not.toContain('Affected layouts and wrappers')
   })
 
   it('lists pages first and groups layout routes in a collapsed block', () => {
-    const html = renderHtml(golden('04-child-of-modified-layout'))
+    const html = detailsOf(renderHtml(golden('04-child-of-modified-layout')))
     // The root route "/" renders AppLayout around every page: it is a layout, the four pages are listed first.
     expect(html).toContain('Pages with changes: <span id="routes-affected">4</span> affected, 1 new')
     expect(html).toContain('<details class="layouts"><summary>Affected layouts and wrappers (1)</summary>')

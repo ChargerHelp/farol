@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>farol live demo</title>
-<meta name="description" content="Two farol reports from a real pull request: a FastAPI backend and a React frontend. Open them, mark files as reviewed, follow the test plan.">
+<meta name="description" content="Two farol reports from a real pull request: a FastAPI backend and a React frontend. Open them, check the findings, review the files and copy the results.">
 <meta property="og:title" content="farol live demo">
 <meta property="og:description" content="Two farol reports from a real pull request: a FastAPI backend and a React frontend.">
 <meta property="og:image" content="https://winnin.github.io/farol/images/social-preview.png">
@@ -16,8 +16,8 @@
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Imljb25CZWFtTGlnaHQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMDZCNkQ0IiAvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzEwQjk4MSIgLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iaWNvbk1vbm9saXRoTGlnaHQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM0RjQ2RTUiIC8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMzczMEEzIiAvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTE4IiBmaWxsPSIjRkZGRkZGIiAvPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTE4IiBmaWxsPSJub25lIiBzdHJva2U9IiNFMkU4RjAiIHN0cm9rZS13aWR0aD0iNCIgLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMzIsIDExNikgc2NhbGUoMS44NSkiPjxwb2x5Z29uIHBvaW50cz0iNTAsNzMgNTAsNzcgMTQ2LDg0IDE0Niw2NiIgZmlsbD0idXJsKCNpY29uQmVhbUxpZ2h0KSIgLz48cmVjdCB4PSI4OCIgeT0iNDciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyIiByeD0iMSIgZmlsbD0iIzk0QTNCOCIgb3BhY2l0eT0iMC41NSIgLz48cmVjdCB4PSI4OCIgeT0iNTUiIHdpZHRoPSI0NCIgaGVpZ2h0PSIyIiByeD0iMSIgZmlsbD0iIzk0QTNCOCIgb3BhY2l0eT0iMC41NSIgLz48cmVjdCB4PSI4OCIgeT0iNjMiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyIiByeD0iMSIgZmlsbD0iIzk0QTNCOCIgb3BhY2l0eT0iMC41NSIgLz48cmVjdCB4PSI4OCIgeT0iNzIuNSIgd2lkdGg9IjU0IiBoZWlnaHQ9IjUiIHJ4PSIyLjUiIGZpbGw9IiNGRkZGRkYiIC8+PHJlY3QgeD0iODgiIHk9Ijg3IiB3aWR0aD0iMzgiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiM5NEEzQjgiIG9wYWNpdHk9IjAuNTUiIC8+PHJlY3QgeD0iODgiIHk9Ijk1IiB3aWR0aD0iNDYiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiM5NEEzQjgiIG9wYWNpdHk9IjAuNTUiIC8+PHJlY3QgeD0iODgiIHk9IjEwMyIgd2lkdGg9IjI2IiBoZWlnaHQ9IjIiIHJ4PSIxIiBmaWxsPSIjOTRBM0I4IiBvcGFjaXR5PSIwLjU1IiAvPjxwYXRoIGQ9Ik0gMjYgMTE2IEwgMjYgMzQgQyAyNiAyOCwgMzEgMjQsIDM3IDI1IEwgNDYgMjcgQyA0OSAyOCwgNTAgMzAsIDUwIDMzIEwgNTAgNjkgTCA0NCA2OSBDIDQxLjggNjksIDQwIDcwLjgsIDQwIDczIEwgNDAgNzcgQyA0MCA3OS4yLCA0MS44IDgxLCA0NCA4MSBMIDUwIDgxIEwgNTAgMTE2IFoiIGZpbGw9InVybCgjaWNvbk1vbm9saXRoTGlnaHQpIiAvPjxyZWN0IHg9IjQzIiB5PSI3MyIgd2lkdGg9IjciIGhlaWdodD0iNCIgcng9IjEiIGZpbGw9IiMyMkQzRUUiIC8+PHBhdGggZD0iTSAyNiAxMTYgTCAzNCAxMTYgTCAzNCAyNiBMIDMwIDI1IEMgMjcuNSAyNywgMjYgMjkuNSwgMjYgMzQgWiIgZmlsbD0iIzMxMkU4MSIgb3BhY2l0eT0iMC40IiAvPjwvZz48L3N2Zz4=" media="(prefers-color-scheme: light)">
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Imljb25CZWFtVGlnaHQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMjJEM0VFIiAvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzEwQjk4MSIgLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExOCIgZmlsbD0iIzBGMTcyQSIgLz48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMUUyOTNCIiBzdHJva2Utd2lkdGg9IjIiIC8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTMyLCAxMTYpIHNjYWxlKDEuODUpIj48cG9seWdvbiBwb2ludHM9IjUwLDczIDUwLDc3IDE0Niw4NCAxNDYsNjYiIGZpbGw9InVybCgjaWNvbkJlYW1UaWdodCkiIC8+PHJlY3QgeD0iODgiIHk9IjQ3IiB3aWR0aD0iMjgiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiMzMzQxNTUiIC8+PHJlY3QgeD0iODgiIHk9IjU1IiB3aWR0aD0iNDQiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiMzMzQxNTUiIC8+PHJlY3QgeD0iODgiIHk9IjYzIiB3aWR0aD0iMjQiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiMzMzQxNTUiIC8+PHJlY3QgeD0iODgiIHk9IjcyLjUiIHdpZHRoPSI1NCIgaGVpZ2h0PSI1IiByeD0iMi41IiBmaWxsPSIjRkZGRkZGIiAvPjxyZWN0IHg9Ijg4IiB5PSI4NyIgd2lkdGg9IjM4IiBoZWlnaHQ9IjIiIHJ4PSIxIiBmaWxsPSIjMzM0MTU1IiAvPjxyZWN0IHg9Ijg4IiB5PSI5NSIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjIiIHJ4PSIxIiBmaWxsPSIjMzM0MTU1IiAvPjxyZWN0IHg9Ijg4IiB5PSIxMDMiIHdpZHRoPSIyNiIgaGVpZ2h0PSIyIiByeD0iMSIgZmlsbD0iIzMzNDE1NSIgLz48cGF0aCBkPSJNIDI2IDExNiBMIDI2IDM0IEMgMjYgMjgsIDMxIDI0LCAzNyAyNSBMIDQ2IDI3IEMgNDkgMjgsIDUwIDMwLCA1MCAzMyBMIDUwIDY5IEwgNDQgNjkgQyA0MS44IDY5LCA0MCA3MC44LCA0MCA3MyBMIDQwIDc3IEMgNDAgNzkuMiwgNDEuOCA4MSwgNDQgODEgTCA1MCA4MSBMIDUwIDExNiBaIiBmaWxsPSIjNjM2NkYxIiAvPjxyZWN0IHg9IjQzIiB5PSI3MyIgd2lkdGg9IjciIGhlaWdodD0iNCIgcng9IjEiIGZpbGw9IiMyMkQzRUUiIC8+PHBhdGggZD0iTSAyNiAxMTYgTCAzNCAxMTYgTCAzNCAyNiBMIDMwIDI1IEMgMjcuNSAyNywgMjYgMjkuNSwgMjYgMzQgWiIgZmlsbD0iIzQzMzhDQSIgLz48L2c+PC9zdmc+" media="(prefers-color-scheme: dark)">
 <style>
-:root { --bg: #f7f8fc; --panel: #ffffff; --text: #0f172a; --text-2: #334155; --muted: #64748b; --border: #e2e6f0; --border-strong: #cfd5e4; --indigo: #4f46e5; --red: #c2410c; --shadow: 0 1px 2px rgba(15,23,42,.04), 0 12px 32px -12px rgba(15,23,42,.14); }
-@media (prefers-color-scheme: dark) { :root { --bg: #0b1020; --panel: #121a2e; --text: #e8ecf5; --text-2: #c3cad8; --muted: #8b95a9; --border: #1f2a42; --border-strong: #2b3754; --indigo: #8b85ff; --red: #fb923c; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 16px 40px -16px rgba(0,0,0,.6); } }
+:root { --bg: #ffffff; --panel: #ffffff; --text: #1c1c1e; --text-2: #55555c; --muted: #8e8e95; --border: #e8e6e3; --border-strong: #d4d2ce; --ink: #2b2b2f; --indigo: #3056c9; --red: #b42318; --shadow: none; }
+@media (prefers-color-scheme: dark) { :root { --bg: #121214; --panel: #18181b; --text: #ececee; --text-2: #b2b2b9; --muted: #7d7d86; --border: #2a2a2f; --border-strong: #3b3b41; --ink: #e6e6e9; --indigo: #91a9ff; --red: #f4796b; --shadow: none; } }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
 a { color: var(--indigo); text-decoration: none; }
@@ -35,14 +35,13 @@ h1 { font-size: clamp(2rem, 4.4vw, 2.8rem); letter-spacing: -.03em; line-height:
 .lede { color: var(--text-2); font-size: 1.1rem; margin: 0 0 28px; max-width: 60ch; }
 .reports { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 720px) { .reports { grid-template-columns: 1fr; } }
-.report { display: flex; flex-direction: column; gap: 10px; padding: 24px; border-radius: 18px; background: var(--panel); border: 1px solid var(--border-strong); box-shadow: var(--shadow); color: inherit; transition: transform .15s, border-color .15s; }
-.report:hover { text-decoration: none; transform: translateY(-2px); border-color: var(--indigo); }
+.report { display: flex; flex-direction: column; gap: 10px; padding: 24px; border-radius: 12px; background: var(--panel); border: 1px solid var(--border-strong); box-shadow: var(--shadow); color: inherit; transition: transform .15s, border-color .15s; }
+.report:hover { text-decoration: none; border-color: var(--ink); }
 .report .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .report h2 { margin: 0; font-size: 1.25rem; letter-spacing: -.01em; }
 .score { font-weight: 700; color: var(--red); white-space: nowrap; }
 .report ul { margin: 0; padding-left: 18px; color: var(--text-2); font-size: .97rem; }
-.open { margin-top: auto; display: inline-flex; align-self: flex-start; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px; background: var(--indigo); color: #fff; font-weight: 600; }
-@media (prefers-color-scheme: dark) { .open { color: #0b1020; } }
+.open { margin-top: auto; display: inline-flex; align-self: flex-start; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px; background: var(--ink); color: var(--bg); font-weight: 600; }
 h3 { margin: 48px 0 10px; font-size: 1.1rem; }
 .try { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 24px; padding: 0; margin: 0; list-style: none; }
 @media (max-width: 720px) { .try { grid-template-columns: 1fr; } }
@@ -69,7 +68,7 @@ footer { margin: 56px 0 40px; color: var(--muted); font-size: .9rem; }
 
   <div class="reports">
     <a class="report" href="backend.html">
-      <div class="row"><h2>Backend · FastAPI</h2><span class="score">⚠ 72/100</span></div>
+      <div class="row"><h2>Backend · FastAPI</h2><span class="score">⚠ 69/100</span></div>
       <ul>
         <li>A breaking change: <code>GET /items/</code> no longer returns <code>count</code></li>
         <li>SQL built with an f-string, flagged as high severity</li>
@@ -90,12 +89,12 @@ footer { margin: 56px 0 40px; color: var(--muted); font-size: .9rem; }
 
   <h3>Things to try in a report</h3>
   <ul class="try">
-    <li>Start at <b>Start here</b>: open the inline diff of the riskiest file</li>
-    <li>Tick <b>Mark as reviewed</b> and watch the score and the test plan follow</li>
-    <li>Mark a page as <b>behind a feature flag</b> in the pages list</li>
-    <li>Open <b>Contracts</b> (backend) to see the breaking change field by field</li>
-    <li>Open an entry in <b>Routes</b> (frontend) or <b>Operations</b> (backend) to see how the change reaches it</li>
-    <li>Copy the review record from the <b>Result</b> tab</li>
+    <li>Start with <b>Must check</b> on the left: open the security finding and tick it once checked</li>
+    <li>Tick files as <b>reviewed</b> in the left rail and watch the merge risk drop</li>
+    <li>Open a file: the lines no test ran are marked in red; click a line number to comment on it in GitHub</li>
+    <li>Open <b>Can affect</b> and mark a page as <b>behind a feature flag</b></li>
+    <li>Open <b>How much of the new code is tested</b> on the summary</li>
+    <li>Copy the <b>Results</b> for the pull request comment</li>
   </ul>
 
   <div class="about">

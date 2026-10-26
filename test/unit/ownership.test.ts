@@ -5,6 +5,7 @@ import { runReviewers } from '../../src/cli/reviewers-run.js'
 import { withReviewers } from '../../src/cli/report.js'
 import { loadContext } from '../../src/cli/context.js'
 import { parseBlameAuthors, parseNumstatAuthors } from '../../src/git/authors.js'
+import { detailsOf, workbenchOf } from '../helpers/html.js'
 import { renderHtml } from '../../src/report/html.js'
 import { renderReport } from '../../src/report/markdown.js'
 import { rankOwners, touchedRanges } from '../../src/review/ownership.js'
@@ -83,7 +84,7 @@ describe('farol reviewers', () => {
     const merged = withReviewers(output, path)
     expect(renderReport(merged)).toContain('**Suggested reviewers:** farol (')
     const html = renderHtml(merged)
-    expect(html).toContain('<li class="owner">')
-    expect(html).toContain('✍ farol 100%')
+    expect((workbenchOf(html).D.reviewers as { name: string; files: string[] }[])[0]).toMatchObject({ name: 'farol', files: ['src/components/Card.tsx'] })
+    expect(detailsOf(html)).toContain('farol')
   })
 })

@@ -3,8 +3,8 @@
  * shadows, the glass section bar, softer chips and pills, hover and focus states. Tokens come from html-style.ts.
  */
 export const THEME_STYLE = `
-body { font: 14.5px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; background: radial-gradient(1100px 420px at 0% -8%, var(--accent-bg), transparent 62%), var(--bg); background-attachment: fixed; }
-main { max-width: 1240px; padding: 28px 20px 64px; }
+body { font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; background: var(--bg); }
+main { max-width: 1240px; padding: 8px 20px 48px; }
 h1 { font-size: 20px; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 /* The logo follows the theme: the light variant by default, the dark one under the dark tokens. */
 .logo { display: inline-flex; line-height: 0; }
@@ -16,11 +16,11 @@ h1 { font-size: 20px; letter-spacing: -.01em; display: flex; align-items: center
 .h1-repo { padding-left: 14px; border-left: 1px solid var(--line); font-weight: 600; line-height: 30px; }
 h3 { font-size: 14.5px; letter-spacing: -.005em; }
 header.top { padding: 16px 22px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); align-items: center; }
-section.panel { border-radius: 16px; padding: 22px 24px; box-shadow: var(--shadow); }
+section.panel { border-radius: 10px; padding: 18px 20px; box-shadow: var(--shadow); }
 .section { margin-top: 34px; }
 .section-title { display: flex; align-items: center; gap: 10px; font-size: 18px; letter-spacing: -.01em; margin-bottom: 2px; }
-.section-title::before { content: ''; width: 4px; height: 18px; border-radius: 4px; background: var(--accent); }
-.sectionbar { top: 10px; margin-top: 18px; padding: 6px; gap: 2px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--panel) 82%, transparent); backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); box-shadow: var(--shadow); }
+.section-title::before { content: none; }
+.sectionbar { top: 10px; margin-top: 18px; padding: 6px; gap: 2px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--panel) 82%, transparent);  }
 .sectionbar a { border-radius: 10px; padding: 6px 12px; font-size: 13.5px; transition: background .15s, color .15s; }
 .sectionbar a:hover { background: var(--accent-bg); color: var(--accent); }
 .count { background: var(--code); font-weight: 600; }

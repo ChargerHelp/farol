@@ -97,7 +97,7 @@ export function buildProgram(): Command {
 
   program
     .command('html')
-    .description('write a single-file HTML report (review plan, score, risk, security, dependencies, coverage, entry points, files) from an analyze JSON')
+    .description('write the single-file HTML report (a review workbench: live merge risk, what to check by hand, files by risk with their diff and coverage, what the change can affect, results for the PR) from an analyze JSON')
     .option('--in <file>', 'analyze JSON')
     .option('--out <file>', 'write the HTML here instead of stdout')
     .option('--repo <owner/name>', 'repository for file links (default: the one in the JSON)')

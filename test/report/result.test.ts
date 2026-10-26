@@ -3,29 +3,54 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { OutputSchema } from '../../src/output/schema.js'
 import { renderHtml } from '../../src/report/html.js'
+import { createLinker } from '../../src/report/links.js'
+import { ASSETS } from '../../src/report/html-assets.js'
+import { detailsOf, workbenchOf } from '../helpers/html.js'
 import { FIXTURES_DIR } from '../helpers/repo.js'
 
 const golden = (scenario: string) => OutputSchema.parse(JSON.parse(readFileSync(join(FIXTURES_DIR, scenario, 'expected.json'), 'utf8')))
 
-describe('review record', () => {
-  it('has the flag panel, checks on findings and contract changes, and the Result tab with its data', () => {
+describe('review workbench', () => {
+  it('gives the page the contract changes to check, the pages/operations to try and the texts of the results', () => {
     const html = renderHtml(golden('p10-contracts'))
-    expect(html).toContain('<details class="review flags" id="flags">')
-    expect(html).toContain('data-flag-key="POST /brands"')
-    expect(html).toContain('data-ack="contract:POST /brands"')
-    expect(html).toContain('<a href="#result">Result')
-    const data = /<script type="application\/json" id="result-data">(.*?)<\/script>/.exec(html)?.[1] ?? ''
-    expect(data).not.toContain('<')
-    const parsed = JSON.parse(data) as { contracts: { id: string; label: string }[]; verdict: string }
-    expect(parsed.contracts.map((c) => c.label)).toEqual(['GET /brands (breaking)', 'GET /brands/{brand_id} (breaking)', 'POST /brands (breaking)'])
-    expect(parsed.verdict).toBe('⚠ Careful review')
+    const { D, T } = workbenchOf(html)
+    const groups = D.groups as { file: string | null; items: { kind: string }[] }[]
+    expect(groups.filter((g) => g.items.some((i) => i.kind === 'contract')).length).toBeGreaterThan(0)
+    expect((D.contracts as { key: string; level: string }[]).filter((e) => e.level === 'breaking').map((e) => e.key)).toEqual(['GET /brands', 'GET /brands/{brand_id}', 'POST /brands'])
+    expect((D.ops as { key: string }[]).map((o) => o.key)).toContain('POST /brands')
+    expect((T.md as { title: string }).title).toBe('### farol review')
+    // The data cannot close its <script> element.
+    expect(/<script>window\.FAROL = (.*?)<\/script>/s.exec(html)?.[1]).not.toContain('<')
   })
 
-  it('shows suggested reviewers in their own tab, not in the overview', () => {
+  it('links every changed file to its diff in the pull request, and the pull request for comments', () => {
+    const o = { ...golden('05-shared-component'), repo: 'acme/shop', pr: 3 }
+    const { D } = workbenchOf(renderHtml(o, createLinker(o, { repo: 'acme/shop', pr: 3 })))
+    const links = D.links as { pr: string; files: Record<string, string> }
+    expect(links.pr).toBe('https://github.com/acme/shop/pull/3')
+    expect(links.files['src/components/Card.tsx']).toMatch(/^https:\/\/github\.com\/acme\/shop\/pull\/3\/files#diff-[0-9a-f]{64}$/)
+  })
+
+  it('lists manifests and trimmed tests that add to the score among the files to review', () => {
+    const o = golden('p10-contracts')
+    const { D } = workbenchOf(renderHtml(o))
+    const files = (D.files as { path: string }[]).map((f) => f.path)
+    for (const g of D.groups as { file: string | null }[]) if (g.file !== null) expect(files).toContain(g.file)
+  })
+
+  it('shows suggested reviewers in the workbench and in their own Details tab', () => {
     const o = golden('p10-contracts')
     const html = renderHtml({ ...o, ownership: { farolReviewers: 1, head: o.head.sha, prAuthors: [], codeowners: [], reviewers: [{ name: 'Ana', score: 40, active: true, files: [] }], files: [] } })
-    const overview = html.slice(html.indexOf('id="overview"'), html.indexOf('id="tests"'))
-    expect(overview).not.toContain('class="ownership"')
-    expect(html).toContain('<div class="section" id="reviewers">')
+    expect((workbenchOf(html).D.reviewers as { name: string; note: string }[])[0]).toEqual({ name: 'Ana', note: 'wrote 40% of the changed code', files: [] })
+    expect(detailsOf(html)).toContain('<div class="section" id="reviewers">')
+  })
+
+  it('ships browser scripts that parse, in the order they share their names', () => {
+    const scripts = ['report/wb-core.js', 'report/wb-views.js', 'report/wb-pages.js'].map((name) => ASSETS[name] ?? '')
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval -- a syntax check, never called
+    expect(() => new Function(scripts.join('\n'))).not.toThrow()
+    const html = renderHtml(golden('p10-contracts'))
+    expect(html.indexOf(scripts[0] ?? '')).toBeLessThan(html.indexOf(scripts[1] ?? ''))
+    expect(html.indexOf(scripts[1] ?? '')).toBeLessThan(html.indexOf(scripts[2] ?? ''))
   })
 })
