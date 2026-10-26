@@ -237395,6 +237395,7 @@ var REASONS = {
   "existing-file-renamed": "touches-existing",
   "existing-file-deleted": "touches-existing",
   "infra-file-changed": "touches-existing",
+  "lockfile-changed-elsewhere": "touches-existing",
   "new-file-reached-by-existing-route": "touches-existing",
   "tests-modified": "info",
   "type-only-change": "info",
@@ -237582,6 +237583,17 @@ function describeChange(c) {
   return `${c.name} ${what}${where}${c.group ? ` [${c.group}]` : ""}${c.note ? `; ${c.note}` : ""}`;
 }
 
+// src/classify/lockfile.ts
+function withDependencyChanges(manifests) {
+  return sortedUnique(manifests.filter((m) => !("error" in m) && m.changes.length > 0).map((m) => m.manifest));
+}
+function lockfileReason(file2, manifests, otherManifests) {
+  if (withDependencyChanges(manifests).length > 0) return reason("lockfile-changed", `lockfile ${file2.status} together with dependency changes`, file2.path);
+  const others = withDependencyChanges(otherManifests);
+  if (others.length > 0) return reason("lockfile-changed-elsewhere", `lockfile ${file2.status} by dependency changes in ${others.join(", ")}: resolved versions this project loads may differ`, file2.path);
+  return reason("lockfile-only-change", `lockfile ${file2.status} without any dependency change in the manifests: resolved versions may differ`, file2.path);
+}
+
 // src/classify/classify.ts
 function withoutExtension(path3) {
   const ext = posix.extname(path3);
@@ -237701,8 +237713,7 @@ function classify(input2) {
       continue;
     }
     if (role === "lockfile") {
-      const withManifests = input2.manifests.some((m) => !("error" in m) && m.changes.length > 0);
-      reasons.push(withManifests ? reason("lockfile-changed", `lockfile ${file2.status} together with dependency changes`, file2.path) : reason("lockfile-only-change", `lockfile ${file2.status} without any dependency change in the manifests: resolved versions may differ`, file2.path));
+      reasons.push(lockfileReason(file2, input2.manifests, input2.otherManifests ?? []));
       continue;
     }
     if (role === "global") {
@@ -251320,8 +251331,8 @@ async function baseRouteTable(ctx, ws, mergeBaseSha, basePath) {
   const resolver = createResolverContext({ fs: fs2, options: ws.project.options, configPath: ws.project.configPath, projectDir: toPosix(ctx.projectDir) });
   return extractRoutes(ctx, resolver, basePath, code2, routeFiles);
 }
-async function manifestDiffs(ctx, files, roleOf, baseSha, headSha) {
-  const manifests = files.filter((f) => roleOf(f.path) === "manifest");
+async function manifestDiffs(ctx, files, select, baseSha, headSha) {
+  const manifests = files.filter((f) => select(f.path));
   const base = await readFiles(ctx.repoRoot, baseSha, manifests.map((f) => f.oldPath ?? f.path));
   const head = await readFiles(ctx.repoRoot, headSha, manifests.map((f) => f.path));
   return Promise.all(manifests.map(async (f) => {
@@ -251337,6 +251348,12 @@ async function manifestDiffs(ctx, files, roleOf, baseSha, headSha) {
       throw error62;
     }
   }));
+}
+async function projectAndOtherManifests(ctx, files, roleOf, baseSha, headSha) {
+  const ecosystem = ECOSYSTEM_FILES[ctx.config.language];
+  const isOther = (path3) => roleOf(path3) === "outside" && MANIFESTS.has(posix14.basename(path3)) && ecosystem.has(posix14.basename(path3));
+  const [manifests, otherManifests] = await Promise.all([manifestDiffs(ctx, files, (p) => roleOf(p) === "manifest", baseSha, headSha), manifestDiffs(ctx, files, isOther, baseSha, headSha)]);
+  return { manifests, otherManifests };
 }
 async function parseToml(text) {
   try {
@@ -251401,7 +251418,7 @@ async function runAnalyze(ctx, options, deps) {
       Object.assign(timings, wsTimings);
       t = deps.clock();
       roleOf = createAnalysisRoleOf(ctx, langWs.graph.nodes);
-      const manifests = await manifestDiffs(ctx, files, roleOf, mb, meta3.head.sha);
+      const { manifests, otherManifests } = await projectAndOtherManifests(ctx, files, roleOf, mb, meta3.head.sha);
       const headContents = await readFiles(ctx.repoRoot, meta3.head.sha, files.filter((f) => f.status !== "deleted").map((f) => f.path));
       readHead = (path3) => headContents.get(path3);
       lang = { language: ctx.config.language, module: langWs.head.module, comments: langWs.head.comments };
@@ -251409,7 +251426,7 @@ async function runAnalyze(ctx, options, deps) {
       const helperContracts = helperContractChanges(langWs.base, langWs.head);
       contracts = contractsSection(helperContracts.changes, helperContracts.readable);
       lap("base");
-      result = classify({ files, roleOf, manifests, backend: { impacts: langWs.impacts }, graph: langWs.graph, routesFile: "", headRoutes: langWs.headRoutes, baseRoutes: langWs.baseRoutes, baseText: /* @__PURE__ */ new Map(), headText: /* @__PURE__ */ new Map() });
+      result = classify({ files, roleOf, manifests, otherManifests, backend: { impacts: langWs.impacts }, graph: langWs.graph, routesFile: "", headRoutes: langWs.headRoutes, baseRoutes: langWs.baseRoutes, baseText: /* @__PURE__ */ new Map(), headText: /* @__PURE__ */ new Map() });
     } else {
       const ws = await loadWorkspace(ctx, meta3.head.sha, wsTimings, deps.clock);
       headRoutes = ws.routes;
@@ -251430,7 +251447,7 @@ async function runAnalyze(ctx, options, deps) {
         const routesBase = changedRoutesBase(files, ws);
         baseRoutes = routesBase === void 0 ? null : await baseRouteTable(ctx, ws, mb, routesBase);
       }
-      const manifests = await manifestDiffs(ctx, files, roleOf, mb, meta3.head.sha);
+      const { manifests, otherManifests } = await projectAndOtherManifests(ctx, files, roleOf, mb, meta3.head.sha);
       const tsModified = files.filter((f) => f.status === "modified" && roleOf(f.path) === "source" && /\.(ts|tsx|mts|cts)$/.test(f.path)).map((f) => f.path);
       const tsBase = await readFiles(ctx.repoRoot, mb, tsModified);
       const tsHead = await readFiles(ctx.repoRoot, meta3.head.sha, tsModified);
@@ -251445,7 +251462,7 @@ async function runAnalyze(ctx, options, deps) {
       const existing = new Set((baseRoutes ?? ws.routes).routes.map((r) => r.key));
       const declImpactMap = declImpacts(baseOut, head, declChanged, () => true, { existing, erasedTypes: true });
       lap("base");
-      result = classify({ files, roleOf, manifests, typeOnlyFiles, declImpacts: declImpactMap, ...backend ? { backend: { impacts: backend.impacts } } : {}, graph: ws.graph, routesFile: ws.routesFile, ...ws.routesFromDirectory ? { routesFromDirectory: true } : {}, headRoutes: ws.routes, baseRoutes, baseText, headText });
+      result = classify({ files, roleOf, manifests, otherManifests, typeOnlyFiles, declImpacts: declImpactMap, ...backend ? { backend: { impacts: backend.impacts } } : {}, graph: ws.graph, routesFile: ws.routesFile, ...ws.routesFromDirectory ? { routesFromDirectory: true } : {}, headRoutes: ws.routes, baseRoutes, baseText, headText });
     }
     for (const f of result.files) if (f.status === "added" && (f.role === "source" || f.role === "barrel") && isScriptFile(f.path) && isDeclarationsOnlyModule(f.path, readHead(f.path) ?? "x(")) f.declarationsOnly = true;
     lap("classify");
@@ -251508,6 +251525,7 @@ import { join as join4, resolve as resolve4 } from "path";
 var HIGH_SCORE = 60;
 var MEDIUM_SCORE = 30;
 var GLOBAL_WEIGHT = 0.3;
+var LOCKFILE_ELSEWHERE_WEIGHT = 0.05;
 var INFRA_WEIGHT = 0.12;
 var DECLARATIONS_FILE_WEIGHT = 0.01;
 var DECLARATIONS_TOTAL_WEIGHT = 0.05;
@@ -251585,6 +251603,7 @@ function scoreItems(o) {
     const effect = REASONS[r.code];
     if (effect === "global" && r.code !== "dependency-critical") add(r.file ?? null, "global", GLOBAL_WEIGHT, `${r.code}: ${r.detail}`);
     if (effect === "unknown") add(r.file ?? null, "unknown", 0.25, `${r.code}: ${r.detail}`);
+    if (r.code === "lockfile-changed-elsewhere") add(r.file ?? null, "dependency", LOCKFILE_ELSEWHERE_WEIGHT, r.detail);
   }
   return items.sort((a, b) => b.weight - a.weight || compareStrings(a.file ?? "", b.file ?? "") || compareStrings(a.title, b.title));
 }
@@ -252110,6 +252129,7 @@ var REASON_TEXT = {
   "existing-file-unreachable": "existing file modified, no route reaches it",
   "existing-file-renamed": "existing file renamed",
   "infra-file-changed": "environment, infrastructure or CI file changed",
+  "lockfile-changed-elsewhere": "lockfile changed by another project's dependencies",
   "existing-file-deleted": "existing file deleted",
   "new-file-reached-by-existing-route": "new file reached by an existing route",
   "tests-modified": "existing test modified",

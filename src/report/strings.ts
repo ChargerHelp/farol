@@ -110,6 +110,7 @@ export const REASON_TEXT: Record<ReasonCode, string> = {
   'existing-file-unreachable': 'existing file modified, no route reaches it',
   'existing-file-renamed': 'existing file renamed',
   'infra-file-changed': 'environment, infrastructure or CI file changed',
+  'lockfile-changed-elsewhere': "lockfile changed by another project's dependencies",
   'existing-file-deleted': 'existing file deleted',
   'new-file-reached-by-existing-route': 'new file reached by an existing route',
   'tests-modified': 'existing test modified',

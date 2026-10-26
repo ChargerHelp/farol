@@ -218,7 +218,12 @@ Versions are compared on the lowest version each range allows.
 | downgrade (direct) | moves into runtime sections |
 | npm: moved out of `dependencies`/`peerDependencies`; other manifest fields changed (`exports`, `scripts`, `engines`…) | lockfile changed with manifest changes |
 | Go: other directives (`go`, `toolchain`, `replace`…); Python: `requires-python`, `build-system`, `tool.uv.sources`… | Python: project metadata and dev-tool settings (`tool.ruff`, `tool.pytest`…) |
-| lockfile changed without any manifest change | |
+| lockfile changed without any dependency change in any manifest of the repository | |
+
+**Monorepos.** A lockfile above the project (one root lockfile for every project) that changed together with
+dependency changes only in other projects' manifests is `lockfile-changed-elsewhere`: class `touches-existing`, weight
+0.05. With hoisting or deduplication, another project's new dependency can still change the versions this project
+loads, so it is never `isolated`; it is not `global` either, or every dependency PR would be `global` in every project.
 
 ## Signals
 
@@ -296,6 +301,7 @@ marking a file as reviewed removes that file's items.
 | Critical / other dependency change | 0.25 / 0.03 |
 | Vulnerability in a changed dependency (critical, high, moderate, low; transitive × 0.6) | 0.5, 0.35, 0.12, 0.03 |
 | Global reason (global file, manifest field, lockfile without manifest) | 0.3 |
+| Shared lockfile changed by another project's dependencies (`lockfile-changed-elsewhere`) | 0.05 |
 | Unknown reason (syntax error, dynamic route, unresolved import) | 0.25 |
 | Docs, templates and other files that are not code | 0 |
 

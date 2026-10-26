@@ -20,7 +20,7 @@ import { diffPyproject, diffRequirementsTxt } from '../python/pyproject.js'
 import { UsageError } from '../config/load.js'
 import { EXIT_FAILURE, EXIT_OK, writeStdout } from './run.js'
 import { createAnalysisRoleOf, createIgnoreOf, extractRoutes, filesUnder, loadWorkspace, SOURCE_EXTENSIONS, type Workspace } from './workspace.js'
-import { diffManifest, ManifestParseError, type ManifestDiff } from '../classify/dependencies.js'
+import { diffManifest, ECOSYSTEM_FILES, MANIFESTS, ManifestParseError, type ManifestDiff } from '../classify/dependencies.js'
 import { isTypeOnlyModule } from '../classify/additive.js'
 import { isDeclarationsOnlyModule, isScriptFile } from '../classify/declarations-only.js'
 import { contractsSection, helperContractChanges } from '../contracts/entries.js'
@@ -122,9 +122,9 @@ async function baseRouteTable(ctx: Context, ws: Workspace, mergeBaseSha: string,
   return extractRoutes(ctx, resolver, basePath, code, routeFiles)
 }
 
-/** Dependency diff of every changed manifest, from its base and head contents. */
-async function manifestDiffs(ctx: Context, files: readonly ChangedFile[], roleOf: (path: string) => AnalysisRole | 'outside', baseSha: string, headSha: string): Promise<(ManifestDiff | { manifest: string; error: string })[]> {
-  const manifests = files.filter((f) => roleOf(f.path) === 'manifest')
+/** Dependency diff of every selected changed manifest, from its base and head contents. */
+async function manifestDiffs(ctx: Context, files: readonly ChangedFile[], select: (path: string) => boolean, baseSha: string, headSha: string): Promise<(ManifestDiff | { manifest: string; error: string })[]> {
+  const manifests = files.filter((f) => select(f.path))
   const base = await readFiles(ctx.repoRoot, baseSha, manifests.map((f) => f.oldPath ?? f.path))
   const head = await readFiles(ctx.repoRoot, headSha, manifests.map((f) => f.path))
   return Promise.all(manifests.map(async (f) => {
@@ -140,6 +140,17 @@ async function manifestDiffs(ctx: Context, files: readonly ChangedFile[], roleOf
       throw error
     }
   }))
+}
+
+/**
+ * Diffs of the project's manifests, and of the changed manifests of its ecosystem outside it (other projects of a
+ * monorepo): those explain a shared lockfile change without making this project's own dependencies change.
+ */
+async function projectAndOtherManifests(ctx: Context, files: readonly ChangedFile[], roleOf: (path: string) => AnalysisRole | 'outside', baseSha: string, headSha: string) {
+  const ecosystem = ECOSYSTEM_FILES[ctx.config.language]
+  const isOther = (path: string): boolean => roleOf(path) === 'outside' && MANIFESTS.has(posix.basename(path)) && ecosystem.has(posix.basename(path))
+  const [manifests, otherManifests] = await Promise.all([manifestDiffs(ctx, files, (p) => roleOf(p) === 'manifest', baseSha, headSha), manifestDiffs(ctx, files, isOther, baseSha, headSha)])
+  return { manifests, otherManifests }
 }
 
 /** pyproject.toml parsed by Python's tomllib; a file it rejects is a parse error of the manifest. */
@@ -211,7 +222,7 @@ export async function runAnalyze(ctx: Context, options: AnalyzeOptions, deps: An
       Object.assign(timings, wsTimings)
       t = deps.clock()
       roleOf = createAnalysisRoleOf(ctx, langWs.graph.nodes)
-      const manifests = await manifestDiffs(ctx, files, roleOf, mb, meta.head.sha)
+      const { manifests, otherManifests } = await projectAndOtherManifests(ctx, files, roleOf, mb, meta.head.sha)
       const headContents = await readFiles(ctx.repoRoot, meta.head.sha, files.filter((f) => f.status !== 'deleted').map((f) => f.path))
       readHead = (path) => headContents.get(path)
       lang = { language: ctx.config.language, module: langWs.head.module, comments: langWs.head.comments }
@@ -219,7 +230,7 @@ export async function runAnalyze(ctx: Context, options: AnalyzeOptions, deps: An
       const helperContracts = helperContractChanges(langWs.base, langWs.head)
       contracts = contractsSection(helperContracts.changes, helperContracts.readable)
       lap('base')
-      result = classify({ files, roleOf, manifests, backend: { impacts: langWs.impacts }, graph: langWs.graph, routesFile: '', headRoutes: langWs.headRoutes, baseRoutes: langWs.baseRoutes, baseText: new Map(), headText: new Map() })
+      result = classify({ files, roleOf, manifests, otherManifests, backend: { impacts: langWs.impacts }, graph: langWs.graph, routesFile: '', headRoutes: langWs.headRoutes, baseRoutes: langWs.baseRoutes, baseText: new Map(), headText: new Map() })
     } else {
       const ws = await loadWorkspace(ctx, meta.head.sha, wsTimings, deps.clock)
       headRoutes = ws.routes
@@ -240,7 +251,7 @@ export async function runAnalyze(ctx: Context, options: AnalyzeOptions, deps: An
         const routesBase = changedRoutesBase(files, ws)
         baseRoutes = routesBase === undefined ? null : await baseRouteTable(ctx, ws, mb, routesBase)
       }
-      const manifests = await manifestDiffs(ctx, files, roleOf, mb, meta.head.sha)
+      const { manifests, otherManifests } = await projectAndOtherManifests(ctx, files, roleOf, mb, meta.head.sha)
       const tsModified = files.filter((f) => f.status === 'modified' && roleOf(f.path) === 'source' && /\.(ts|tsx|mts|cts)$/.test(f.path)).map((f) => f.path)
       const tsBase = await readFiles(ctx.repoRoot, mb, tsModified)
       const tsHead = await readFiles(ctx.repoRoot, meta.head.sha, tsModified)
@@ -257,7 +268,7 @@ export async function runAnalyze(ctx: Context, options: AnalyzeOptions, deps: An
       const existing = new Set((baseRoutes ?? ws.routes).routes.map((r) => r.key))
       const declImpactMap = declImpacts(baseOut, head, declChanged, () => true, { existing, erasedTypes: true })
       lap('base')
-      result = classify({ files, roleOf, manifests, typeOnlyFiles, declImpacts: declImpactMap, ...(backend ? { backend: { impacts: backend.impacts } } : {}), graph: ws.graph, routesFile: ws.routesFile, ...(ws.routesFromDirectory ? { routesFromDirectory: true } : {}), headRoutes: ws.routes, baseRoutes, baseText, headText })
+      result = classify({ files, roleOf, manifests, otherManifests, typeOnlyFiles, declImpacts: declImpactMap, ...(backend ? { backend: { impacts: backend.impacts } } : {}), graph: ws.graph, routesFile: ws.routesFile, ...(ws.routesFromDirectory ? { routesFromDirectory: true } : {}), headRoutes: ws.routes, baseRoutes, baseText, headText })
     }
     // Added files that only declare things weigh almost nothing in the merge score.
     for (const f of result.files) if (f.status === 'added' && (f.role === 'source' || f.role === 'barrel') && isScriptFile(f.path) && isDeclarationsOnlyModule(f.path, readHead(f.path) ?? 'x(')) f.declarationsOnly = true
