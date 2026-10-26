@@ -220,13 +220,14 @@ Versions are compared on the lowest version each range allows.
 | Go: other directives (`go`, `toolchain`, `replace`…); Python: `requires-python`, `build-system`, `tool.uv.sources`… | Python: project metadata and dev-tool settings (`tool.ruff`, `tool.pytest`…) |
 | lockfile changed without any dependency change in any manifest of the repository | |
 
-**Monorepos.** A lockfile above the project (one root lockfile for every project) that changed together with
+**Monorepos.** A lockfile above the project (one root lockfile for every project) that was modified together with
 dependency changes only in other projects' manifests is `lockfile-changed-elsewhere`: class `touches-existing`, weight
 0.05. With hoisting or deduplication, another project's new dependency can still change the versions this project
 loads, so it is never `isolated`; it is not `global` either, or every dependency PR would be `global` in every project.
 Only manifests in the lockfile's directory or below count: a lockfile inside the project is the project's own, and
 another project's dependency change does not explain it. A root lockfile also covers a project below it that has its
-own lockfile: farol does not read lockfiles, so it cannot tell which one that project installs from.
+own lockfile: farol does not read lockfiles, so it cannot tell which one that project installs from. A deleted, added
+or renamed lockfile changes every pinned version: it stays `lockfile-only-change`.
 
 ## Signals
 
