@@ -214,6 +214,7 @@ export async function runAnalyze(ctx: Context, options: AnalyzeOptions, deps: An
     let result: ReturnType<typeof classify>
     let roleOf: (path: string) => AnalysisRole | 'outside'
     let readHead: (path: string) => string | undefined
+    let headExists: (path: string) => boolean
     let lang: SignalInputs['lang']
     let headRoutes: RouteTable
     let contracts: Output['contracts']
@@ -228,6 +229,7 @@ export async function runAnalyze(ctx: Context, options: AnalyzeOptions, deps: An
       const { manifests, otherManifests } = await projectAndOtherManifests(ctx, files, roleOf, mb, meta.head.sha)
       const headContents = await readFiles(ctx.repoRoot, meta.head.sha, files.filter((f) => f.status !== 'deleted').map((f) => f.path))
       readHead = (path) => headContents.get(path)
+      headExists = (path) => headContents.has(path)
       lang = { language: ctx.config.language, module: langWs.head.module, comments: langWs.head.comments }
       headRoutes = langWs.headRoutes
       const helperContracts = helperContractChanges(langWs.base, langWs.head)
@@ -241,6 +243,7 @@ export async function runAnalyze(ctx: Context, options: AnalyzeOptions, deps: An
       t = deps.clock()
       roleOf = createAnalysisRoleOf(ctx, ws.graph.nodes, ws.backend)
       readHead = (path) => ws.fs.readFile(posix.join(toPosix(ctx.repoRoot), path))
+      headExists = (path) => ws.fs.fileExists(posix.join(toPosix(ctx.repoRoot), path))
       const compared = comparedFiles(files, roleOf)
       const baseText = await readFiles(ctx.repoRoot, mb, compared)
       const headText = await readFiles(ctx.repoRoot, meta.head.sha, compared)
@@ -283,6 +286,7 @@ export async function runAnalyze(ctx: Context, options: AnalyzeOptions, deps: An
       coverage: reportPath(ctx, options.coverage, ctx.config.signals.coverage),
       eslint: reportPath(ctx, options.eslint, ctx.config.signals.eslint),
       readHead,
+      headExists,
       ...(lang ? { lang } : {}),
       coverageIgnored: createIgnoreOf(ctx, options.coverageIgnore ?? [], ctx.config.signals.coverageIgnore),
       audit: reportPath(ctx, options.audit, ctx.config.signals.audit),

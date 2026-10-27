@@ -26,6 +26,8 @@ export interface SignalInputs {
   eslint: string | undefined
   /** Head content of a repo-relative file. */
   readHead: (path: string) => string | undefined
+  /** Whether a repo-relative path is a file of the head commit (Go and Python projects: of the changed files only). */
+  headExists: (path: string) => boolean
   /** Whether a changed file is left out of coverage only. */
   coverageIgnored: (path: string) => boolean
   /** Absolute path of the npm/pnpm audit report, if any was given. */
@@ -69,13 +71,13 @@ const SEVERITY_RANK = { high: 0, medium: 1, low: 2 } as const
  * Go and Python static analysis: gosec issues (golangci-lint) or flake8-bandit findings (ruff) on added lines. Without
  * such a report nothing was verified for those files.
  */
-function langSecurity(base: SecuritySignal, gosec: Omit<SecurityFinding, 'text'>[] | undefined, files: readonly ChangedFile[], readHead: (path: string) => string | undefined, skip: (path: string) => boolean, language: string): SecuritySignal {
-  if (gosec === undefined) {
+function langSecurity(base: SecuritySignal, sast: Omit<SecurityFinding, 'text'>[] | undefined, files: readonly ChangedFile[], readHead: (path: string) => string | undefined, skip: (path: string) => boolean, language: string): SecuritySignal {
+  if (sast === undefined) {
     const message = language === 'go' ? 'Go files are checked by gosec: give a golangci-lint JSON report (with gosec enabled) as the lint report' : 'Python files are checked by flake8-bandit: give a ruff JSON report (with the S rules selected) as the lint report'
     return { ...base, status: 'not-provided', message }
   }
   const added = new Map(files.map((f) => [f.path, new Set(f.added.map((l) => l.line))]))
-  const found = gosec
+  const found = sast
     .filter((g) => added.get(g.path)?.has(g.line) && !skip(g.path))
     .map((g) => ({ ...g, text: (readHead(g.path)?.split('\n')[g.line - 1] ?? '').trim().slice(0, 200) }))
   const findings = [...base.findings, ...found].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] || compareStrings(a.path, b.path) || a.line - b.line)
@@ -111,11 +113,11 @@ export function computeSignals(ctx: Context, inputs: SignalInputs): Signals {
     try {
       // Biome first: a GitLab report also has "location", so a "filename" text anywhere in it would match ruff.
       if (isBiomeReport(es.text)) {
-        const head = { changed: inputs.files.map((f) => f.path), exists: (path: string) => inputs.readHead(path) !== undefined }
+        const head = { changed: inputs.files.map((f) => f.path), exists: inputs.headExists }
         lint = lintSignal(parseBiomeReport(es.text, ctx.repoRoot, ctx.projectPrefix, head, canonical), inputs.files)
       } else if (isGolangciReport(es.text)) {
         const parsed = parseGolangciReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical)
-        sast = parsed.gosec
+        sast = parsed.sast
         lint = lintSignal(parsed.messages, inputs.files)
       } else if (isRuffReport(es.text)) {
         const parsed = parseRuffReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical)

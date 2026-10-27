@@ -1,0 +1,9 @@
+[
+  {
+    "description": "Unexpected value.",
+    "check_name": "lint/a/cssRule",
+    "fingerprint": "1",
+    "severity": "major",
+    "location": { "path": "styles.css", "lines": { "begin": 1 } }
+  }
+]

@@ -19,12 +19,12 @@ describe('Go reports', () => {
   it('reads golangci-lint JSON, keeping gosec issues as security findings', () => {
     const text = JSON.stringify({ Issues: [{ FromLinter: 'errcheck', Text: 'Error return value is not checked', Pos: { Filename: 'internal/a.go', Line: 4 } }, { FromLinter: 'gosec', Text: 'G101: Potential hardcoded credentials', Pos: { Filename: 'internal/a.go', Line: 9 } }] })
     expect(isGolangciReport(text)).toBe(true)
-    const { messages, gosec } = parseGolangciReport(text, '/repo', '')
+    const { messages, sast } = parseGolangciReport(text, '/repo', '')
     expect(messages.map((m) => [m.path, m.line, m.rule, m.severity])).toEqual([
       ['internal/a.go', 4, 'errcheck', 'error'],
       ['internal/a.go', 9, 'gosec', 'error'],
     ])
-    expect(gosec).toEqual([{ path: 'internal/a.go', line: 9, rule: 'gosec', severity: 'high', message: 'G101: Potential hardcoded credentials' }])
+    expect(sast).toEqual([{ path: 'internal/a.go', line: 9, rule: 'gosec', severity: 'high', message: 'G101: Potential hardcoded credentials' }])
   })
 
   it('reads govulncheck JSON: called code is high, imported packages moderate', () => {

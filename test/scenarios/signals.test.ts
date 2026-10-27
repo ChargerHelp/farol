@@ -86,6 +86,12 @@ describe('signals', () => {
     golden('signals-biome', 'expected.json', o)
   })
 
+  it('Biome: a finding on an unchanged non-script file named like a changed file is context', async () => {
+    const o = await run('signals-biome', { eslint: 'biome-css.json' })
+    expect(o.reasons.map((r) => r.code)).not.toContain('analysis-error')
+    expect(o.signals.lint).toMatchObject({ status: 'ok', changedLines: { errors: 0, warnings: 0 }, otherLines: { errors: 0, warnings: 1 } })
+  })
+
   it('an empty lint report (what Biome gives for a clean project) is ok with no findings', async () => {
     const o = await run('signals-biome', { eslint: 'empty.json' })
     expect(o.signals.lint).toEqual({ status: 'ok', changedLines: { errors: 0, warnings: 0 }, otherLines: { errors: 0, warnings: 0 }, findings: [], omittedFindings: 0 })

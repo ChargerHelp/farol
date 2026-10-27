@@ -28,6 +28,11 @@
       "code": "new-file-disconnected",
       "file": "src/seed/findings.ts",
       "detail": "new file that no route reaches"
+    },
+    {
+      "code": "new-file-disconnected",
+      "file": "src/seed/styles.css",
+      "detail": "new file that no route reaches"
     }
   ],
   "files": [
@@ -36,6 +41,13 @@
       "status": "added",
       "role": "source",
       "linesAdded": 9,
+      "linesRemoved": 0
+    },
+    {
+      "path": "src/seed/styles.css",
+      "status": "added",
+      "role": "source",
+      "linesAdded": 1,
       "linesRemoved": 0
     },
     {
@@ -76,6 +88,17 @@
         "why": "new code not used by existing pages"
       },
       {
+        "path": "src/seed/styles.css",
+        "change": "added",
+        "level": "low",
+        "directImporters": 0,
+        "transitiveDependents": 0,
+        "centrality": 0,
+        "pagesReached": 0,
+        "routesReached": 0,
+        "why": "new code not used by existing pages"
+      },
+      {
         "path": "src/seed/view.tsx",
         "change": "modified",
         "level": "low",
@@ -90,14 +113,15 @@
     "summary": {
       "high": 0,
       "medium": 0,
-      "low": 2
+      "low": 3
     }
   },
   "routes": {
     "added": [],
     "affected": [],
     "disconnectedNewFiles": [
-      "src/seed/findings.ts"
+      "src/seed/findings.ts",
+      "src/seed/styles.css"
     ]
   },
   "signals": {

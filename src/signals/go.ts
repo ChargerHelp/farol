@@ -49,21 +49,21 @@ export function isGolangciReport(text: string): boolean {
 const GOSEC_HIGH = new Set(['G101', 'G201', 'G202', 'G203', 'G204', 'G304', 'G402'])
 
 /** golangci-lint issues as lint messages, and gosec issues as security findings too. */
-export function parseGolangciReport(text: string, repoRoot: string, projectPrefix: string, canonical?: (path: string) => string): { messages: LintMessage[]; gosec: Omit<SecurityFinding, 'text'>[] } {
+export function parseGolangciReport(text: string, repoRoot: string, projectPrefix: string, canonical?: (path: string) => string): { messages: LintMessage[]; sast: Omit<SecurityFinding, 'text'>[] } {
   const raw = parseJson(text, 'golangci-lint')
   const parsed = GolangciReport.safeParse(raw)
   if (!parsed.success) throw new ReportError('the lint report is not golangci-lint JSON output')
   const messages: LintMessage[] = []
-  const gosec: Omit<SecurityFinding, 'text'>[] = []
+  const sast: Omit<SecurityFinding, 'text'>[] = []
   for (const issue of parsed.data.Issues ?? []) {
     const path = reportPathToRepo(issue.Pos.Filename, repoRoot, projectPrefix, canonical) ?? issue.Pos.Filename
     messages.push({ path, line: issue.Pos.Line, rule: issue.FromLinter, severity: issue.Severity === 'warning' ? 'warning' : 'error', message: issue.Text })
     if (issue.FromLinter === 'gosec') {
       const id = /^(G\d{3})/.exec(issue.Text)?.[1] ?? ''
-      gosec.push({ path, line: issue.Pos.Line, rule: 'gosec', severity: GOSEC_HIGH.has(id) ? 'high' : 'medium', message: issue.Text })
+      sast.push({ path, line: issue.Pos.Line, rule: 'gosec', severity: GOSEC_HIGH.has(id) ? 'high' : 'medium', message: issue.Text })
     }
   }
-  return { messages, gosec }
+  return { messages, sast }
 }
 
 /** `//nolint`, `//lint:ignore` and `#nosec` comments on the lines a PR adds to Go files. */
@@ -98,7 +98,7 @@ function jsonStream(text: string): unknown[] {
       depth++
     } else if (ch === '}') {
       depth--
-      if (depth === 0) out.push(JSON.parse(text.slice(start, i + 1)))
+      if (depth === 0) out.push(parseJson(text.slice(start, i + 1), 'govulncheck'))
     }
   }
   return out
@@ -117,12 +117,7 @@ export function isGovulncheckReport(text: string): boolean {
  * code the project calls (high); package-level (imported) is moderate; module-level (only required) is low.
  */
 export function parseGovulncheckReport(text: string): { advisories: Advisory[]; dependsOn: Map<string, string[]> } {
-  let messages: unknown[]
-  try {
-    messages = jsonStream(text)
-  } catch (error) {
-    throw new ReportError(`the govulncheck report is not valid JSON (${error instanceof Error ? error.message : String(error)})`)
-  }
+  const messages = jsonStream(text)
   const osvs = new Map<string, z.infer<typeof Osv>>()
   const findings: z.infer<typeof Finding>[] = []
   for (const m of messages) {

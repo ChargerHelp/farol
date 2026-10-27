@@ -136,8 +136,8 @@ Biome writes paths relative to the folder it runs in, so run it in the project d
 - Biome `blocker` and `critical` findings (errors, parse errors) are lint errors; `major`, `minor` and `info` are
   warnings.
 - Biome security rules stay lint findings: the built-in rules already check the same patterns.
-- A report run from another folder (the repository root or a parent folder) gives lint status `error`, naming the
-  first wrong path.
+- A report run from another folder, such as the repository root, gives lint status `error`, naming the first wrong
+  path and the project directory.
 - An empty report (`[]`) reads as clean: the format lists findings, not the files Biome linted, so farol cannot see
   whether Biome linted the changed files.
 
