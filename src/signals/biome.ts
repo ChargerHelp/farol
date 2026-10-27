@@ -1,6 +1,5 @@
-import { isAbsolute, posix } from 'node:path'
 import { z } from 'zod'
-import { ReportError } from './coverage.js'
+import { parseJson, ReportError } from './coverage.js'
 import type { LintMessage } from './lint.js'
 import { reportPathToRepo } from './paths.js'
 
@@ -30,25 +29,32 @@ export function isBiomeReport(text: string): boolean {
   return text.trimStart().startsWith('[') && text.includes('"check_name"') && text.includes('"fingerprint"')
 }
 
+/** The head commit as the reader needs it: the changed files (repo-relative) and whether a path is a file. */
+export interface BiomeHead {
+  changed: readonly string[]
+  exists: (path: string) => boolean
+}
+
 /**
- * Biome findings as lint messages. Paths are relative to the folder Biome ran in, which must be the project directory:
- * a path that names a changed file (`changed`, repo-relative) only when read from the repository root throws.
+ * Biome findings as lint messages. Paths are relative to the folder Biome ran in, which must be the project directory.
+ * Throws when a path names no file from the project directory but names a changed file of the project from another
+ * folder (Biome ran from the repository root or a parent folder).
  */
-export function parseBiomeReport(text: string, repoRoot: string, projectPrefix: string, changed: ReadonlySet<string>, canonical?: (path: string) => string): LintMessage[] {
-  let json: unknown
-  try {
-    json = JSON.parse(text)
-  } catch (error) {
-    throw new ReportError(`the Biome report is not valid JSON (${error instanceof Error ? error.message : String(error)})`)
+export function parseBiomeReport(text: string, repoRoot: string, projectPrefix: string, head: BiomeHead, canonical?: (path: string) => string): LintMessage[] {
+  const parsed = Biome.safeParse(parseJson(text, 'Biome'))
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    throw new ReportError(`the lint report is not Biome GitLab output (biome lint --reporter=gitlab): ${issue?.path.join('.')}: ${issue?.message}`)
   }
-  const parsed = Biome.safeParse(json)
-  if (!parsed.success) throw new ReportError('the lint report is not Biome GitLab output (biome lint --reporter=gitlab)')
-  const fromRoot = (raw: string): boolean => {
-    if (projectPrefix === '' || isAbsolute(raw)) return false
-    const path = posix.normalize(raw.replaceAll('\\', '/'))
-    return changed.has(path) && !changed.has(posix.join(projectPrefix, path))
+  const inProject = (path: string): boolean => projectPrefix === '' || path.startsWith(`${projectPrefix}/`)
+  const otherFolder = (raw: string): boolean => {
+    const asWritten = reportPathToRepo(raw, repoRoot, '', canonical)
+    const mapped = reportPathToRepo(raw, repoRoot, projectPrefix, canonical)
+    if (asWritten === undefined || mapped === undefined) return false
+    return head.changed.some((c) => c !== mapped && inProject(c) && (c === asWritten || c.endsWith(`/${asWritten}`))) && !head.exists(mapped)
   }
-  if (parsed.data.some((f) => fromRoot(f.location.path))) throw new ReportError('the Biome report paths start at the repository root: run biome from the project directory')
+  const wrong = parsed.data.find((f) => otherFolder(f.location.path))
+  if (wrong) throw new ReportError(`the Biome report path ${wrong.location.path} is not relative to the project directory: run biome from the project directory`)
   return parsed.data.map((f) => ({
     path: reportPathToRepo(f.location.path, repoRoot, projectPrefix, canonical) ?? f.location.path.replaceAll('\\', '/'),
     line: f.location.lines.begin,

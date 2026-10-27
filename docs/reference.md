@@ -136,7 +136,10 @@ Biome writes paths relative to the folder it runs in, so run it in the project d
 - Biome `blocker` and `critical` findings (errors, parse errors) are lint errors; `major`, `minor` and `info` are
   warnings.
 - Biome security rules stay lint findings: the built-in rules already check the same patterns.
-- A report run from the repository root (paths start with the project folder) gives lint status `error`.
+- A report run from another folder (the repository root or a parent folder) gives lint status `error`, naming the
+  first wrong path.
+- An empty report (`[]`) reads as clean: the format lists findings, not the files Biome linted, so farol cannot see
+  whether Biome linted the changed files.
 
 Configure Vitest coverage with `include: ['src/**/*.{ts,tsx}']`, so files no test imports are reported too.
 Otherwise a new untested file shows as *missing from the report*.

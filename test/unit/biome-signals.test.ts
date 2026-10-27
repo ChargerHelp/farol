@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { isBiomeReport, parseBiomeReport } from '../../src/signals/biome.js'
 import { isRuffReport } from '../../src/signals/python.js'
 
+/** The head commit as the reader sees it: the changed files, and whether a path is a file. */
+const head = (changed: string[], other: string[] = []): { changed: string[]; exists: (path: string) => boolean } => ({ changed, exists: (path) => [...changed, ...other].includes(path) })
+
 const entry = (checkName: string, severity: string, path: string, begin: number): Record<string, unknown> => ({
   description: `${checkName} found`,
   check_name: checkName,
@@ -21,7 +24,7 @@ describe('Biome GitLab reports', () => {
       entry('parse', 'critical', 'src/b.ts', 9),
     ])
     expect(isBiomeReport(text)).toBe(true)
-    expect(parseBiomeReport(text, '/repo', 'svc', new Set()).map((m) => [m.path, m.line, m.rule, m.severity, m.message])).toEqual([
+    expect(parseBiomeReport(text, '/repo', 'svc', head([])).map((m) => [m.path, m.line, m.rule, m.severity, m.message])).toEqual([
       ['svc/src/a.ts', 1, 'lint/a/fatal', 'error', 'lint/a/fatal found'],
       ['svc/src/a.ts', 2, 'lint/a/error', 'error', 'lint/a/error found'],
       ['svc/src/a.ts', 3, 'lint/a/warning', 'warning', 'lint/a/warning found'],
@@ -33,7 +36,7 @@ describe('Biome GitLab reports', () => {
 
   it('rejects a report of the wrong shape, naming the Biome command', () => {
     const text = JSON.stringify([{ ...entry('lint/a/b', 'major', 'src/a.ts', 1), location: { path: 'src/a.ts' } }])
-    expect(() => parseBiomeReport(text, '/repo', '', new Set())).toThrow('the lint report is not Biome GitLab output (biome lint --reporter=gitlab)')
+    expect(() => parseBiomeReport(text, '/repo', '', head([]))).toThrow(/^the lint report is not Biome GitLab output \(biome lint --reporter=gitlab\): 0\.location\.lines: /)
   })
 
   it('does not take a ruff report for a Biome report', () => {
@@ -42,16 +45,19 @@ describe('Biome GitLab reports', () => {
     expect(isBiomeReport(ruff)).toBe(false)
   })
 
-  it('rejects a report whose path names a changed file only when read from the repository root', () => {
-    const changed = new Set(['services/assess/src/a.ts'])
-    for (const path of ['services/assess/src/a.ts', 'services\\assess\\src\\a.ts', './services/assess/src/a.ts']) {
+  it('rejects a report written from another folder than the project directory', () => {
+    const changed = head(['services/assess/src/a.ts'])
+    const paths = ['services/assess/src/a.ts', 'services\\assess\\src\\a.ts', './services/assess/src/a.ts', 'assess/src/a.ts']
+    for (const path of paths) {
       const text = JSON.stringify([entry('lint/a/b', 'major', 'src/b.ts', 1), entry('lint/a/b', 'major', path, 2)])
-      expect(() => parseBiomeReport(text, '/repo', 'services/assess', changed)).toThrow('the Biome report paths start at the repository root: run biome from the project directory')
+      expect(() => parseBiomeReport(text, '/repo', 'services/assess', changed)).toThrow(`the Biome report path ${path} is not relative to the project directory: run biome from the project directory`)
     }
   })
 
-  it('reads a project folder named like the project as a project path', () => {
-    const text = JSON.stringify([entry('lint/a/b', 'major', 'app/page.tsx', 1)])
-    expect(parseBiomeReport(text, '/repo', 'app', new Set(['app/app/page.tsx'])).map((m) => m.path)).toEqual(['app/app/page.tsx'])
+  it('reads a path that is a file of the project as a project path, even when a changed file ends with it', () => {
+    const app = JSON.stringify([entry('lint/a/b', 'major', 'app/page.tsx', 1)])
+    expect(parseBiomeReport(app, '/repo', 'app', head(['app/app/page.tsx'])).map((m) => m.path)).toEqual(['app/app/page.tsx'])
+    const nested = JSON.stringify([entry('lint/a/b', 'major', 'src/a.ts', 1)])
+    expect(parseBiomeReport(nested, '/repo', 'svc', head(['svc/src/x/src/a.ts'], ['svc/src/a.ts'])).map((m) => m.path)).toEqual(['svc/src/a.ts'])
   })
 })

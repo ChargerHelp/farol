@@ -19,14 +19,18 @@ type Statements = { start: number; end: number; count: number }[]
 
 export class ReportError extends Error {}
 
+/** JSON text of a report; invalid JSON is a `ReportError` naming the report. */
+export function parseJson(text: string, label: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch (error) {
+    throw new ReportError(`the ${label} report is not valid JSON (${error instanceof Error ? error.message : String(error)})`)
+  }
+}
+
 /** Parses an Istanbul `coverage-final.json` into statements per repo-relative path. */
 export function parseCoverageReport(text: string, repoRoot: string, projectPrefix: string, canonical?: (path: string) => string): Map<string, Statements> {
-  let raw: unknown
-  try {
-    raw = JSON.parse(text)
-  } catch (error) {
-    throw new ReportError(`the coverage report is not valid JSON (${error instanceof Error ? error.message : String(error)})`)
-  }
+  const raw = parseJson(text, 'coverage')
   const parsed = IstanbulReport.safeParse(raw)
   if (!parsed.success) throw new ReportError('the coverage report is not in the Istanbul coverage-final.json format (use the Vitest "json" reporter)')
   const result = new Map<string, Statements>()
