@@ -324,7 +324,7 @@ matching rules are in the [reference](docs/reference.md#traffic-and-errors-from-
 | **Lint** | `eslint -f json` or `biome lint --reporter=gitlab` | same | golangci-lint JSON | ruff JSON |
 | **Security** | built-in rules (XSS sinks, `eval`, hard-coded secrets, `javascript:` URLs…) | same | gosec (through golangci-lint) | flake8-bandit (ruff `S` rules) |
 | **Vulnerabilities** | `npm audit --json`, `pnpm audit --json` | same | `govulncheck -json` | `pip-audit --format json` |
-| **Suppressions** | `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `as any`… | same | `//nolint`, `//lint:ignore`, `#nosec` | `# noqa`, `# type: ignore`, `# nosec`, `# pragma: no cover`… |
+| **Suppressions** | `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `biome-ignore`, `as any`… | same | `//nolint`, `//lint:ignore`, `#nosec` | `# noqa`, `# type: ignore`, `# nosec`, `# pragma: no cover`… |
 | **Traffic and errors** (optional) | Datadog RUM page views and errors | Datadog APM requests, error spans and callers | same | same |
 
 In every language: environment, infrastructure and CI files (`.env*`, Dockerfiles, compose, CI pipelines, helm, k8s,

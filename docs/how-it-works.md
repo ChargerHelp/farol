@@ -247,7 +247,7 @@ never change the class.
   - Findings on changed lines count; findings elsewhere are context. At most 50 are kept.
   - Formats: ESLint JSON, Biome GitLab JSON (`biome lint --reporter=gitlab`), golangci-lint JSON, ruff JSON.
 - **Added suppressions:**
-  - TypeScript: computed with the scanner and the AST (`eslint-disable*`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `as any`, `: any`), so the same text in strings is ignored.
+  - TypeScript: computed with the scanner and the AST (`eslint-disable*`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `biome-ignore`, `biome-ignore-all`, `biome-ignore-start`, `as any`, `: any`), so the same text in strings is ignored. Biome ignores that name only `format` or `assist` switch no check off and are left out; `biome-ignore-end` closes a range and is not counted again.
   - Go and Python: read from comments (`//nolint`, `//lint:ignore`, `#nosec`; `# noqa`, `# type: ignore`, `# nosec`, `# pragma: no cover`, `# pyright: ignore`, `# pylint: disable`).
 - **Modified tests:** existing test files modified, deleted or renamed, with removed line counts.
 - **Security (added lines):**

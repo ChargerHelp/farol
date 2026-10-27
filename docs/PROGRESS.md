@@ -131,7 +131,8 @@ Milestones from `docs/SPEC.md`. Each one is done only when its acceptance criter
 - Open: files excluded from coverage on purpose (types, constants, translations) still count as untested; the score saturates on large PRs (31 files → 84), where the reviewed count says more than the number.
 
 ### Biome lint reports — done (CHA-14802)
-- `--eslint` also reads `biome lint --reporter=gitlab`; Biome security rules stay lint findings. See DECISIONS 2026-10-26. Open: `biome-ignore` suppressions (CHA-14847).
+- `--eslint` also reads `biome lint --reporter=gitlab`; Biome security rules stay lint findings. See DECISIONS 2026-10-26.
+- `biome-ignore`, `biome-ignore-all` and `biome-ignore-start` comments are suppressions; file-wide and range ones make the key finding high (CHA-14847, DECISIONS 2026-10-27).
 
 ### Traffic from Datadog — done (first version, information only)
 - `farol usage` (RUM page views by `@view.url_path_group`, APM `trace.<op>.hits` by `resource_name`) writes `usage.json`; `analyze --usage` adds an optional `usage` section; comment line, HTML fact, per-route chips (busiest first) and per-file pills. Name formats checked against real Datadog data (RUM path groups, normalized metric tags). GraphQL operations are not matched.

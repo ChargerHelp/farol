@@ -18,7 +18,7 @@ const TEXT_TOKENS = new Set<ts.SyntaxKind>([
   ts.SyntaxKind.RegularExpressionLiteral,
 ])
 
-/** Longest directives first, so `eslint-disable-next-line` is not reported as `eslint-disable`. */
+/** Directive prefixes and their kinds. A prefix only matches a whole word (see `directiveOf`), so the order does not matter. */
 const DIRECTIVES: [string, SuppressionKind][] = [
   ['eslint-disable-next-line', 'eslint-disable-next-line'],
   ['eslint-disable-line', 'eslint-disable-line'],
@@ -26,7 +26,14 @@ const DIRECTIVES: [string, SuppressionKind][] = [
   ['@ts-expect-error', 'ts-expect-error'],
   ['@ts-ignore', 'ts-ignore'],
   ['@ts-nocheck', 'ts-nocheck'],
+  // `biome-ignore-end` closes a range and is not reported: the range counts once, at `biome-ignore-start`.
+  ['biome-ignore', 'biome-ignore'],
+  ['biome-ignore-all', 'biome-ignore-all'],
+  ['biome-ignore-start', 'biome-ignore-start'],
 ]
+
+/** Biome categories that switch no check off: the formatter and assists (such as sorting imports). */
+const BIOME_STYLE_CATEGORIES = new Set(['format', 'assist'])
 
 function commentBody(comment: string): string {
   let body = comment.startsWith('//') ? comment.slice(2) : comment.slice(2, -2)
@@ -41,14 +48,18 @@ function directiveOf(comment: string): SuppressionKind | undefined {
     if (!body.startsWith(prefix)) continue
     const next = body.charAt(prefix.length)
     // `eslint-disable-line` must not match `eslint-disable-lines`; any separator (space, colon, end) is fine.
-    if (next === '' || !/[A-Za-z0-9-]/.test(next)) return kind
+    if (next !== '' && /[A-Za-z0-9-]/.test(next)) continue
+    // Biome reads every space-separated category before the `:`: skip only when all of them are style categories.
+    const categories = (body.slice(prefix.length).split(':', 1)[0] ?? '').split(/\s+/).filter((c) => c !== '').map((c) => c.split(/[/(]/, 1)[0] ?? '')
+    if (prefix.startsWith('biome-') && categories.length > 0 && categories.every((c) => BIOME_STYLE_CATEGORIES.has(c))) return undefined
+    return kind
   }
   return undefined
 }
 
 /**
  * Suppressions added by the diff: eslint-disable comments, @ts-ignore/@ts-expect-error/@ts-nocheck comments,
- * `as any` and `: any`. Comments come from the TypeScript scanner's trivia of every token of the parsed file,
+ * Biome ignore comments (not the formatter's or assists'), `as any` and `: any`. Comments come from the TypeScript scanner's trivia of every token of the parsed file,
  * so the same text inside a string, a template or JSX text is never reported.
  */
 export function findSuppressions(path: string, code: string, addedLines: ReadonlySet<number>): Item[] {

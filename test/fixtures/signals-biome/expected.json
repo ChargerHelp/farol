@@ -221,6 +221,12 @@
           "line": 2,
           "kind": "any-annotation",
           "text": "export function compare(a: number, input: any): boolean {"
+        },
+        {
+          "path": "src/seed/findings.ts",
+          "line": 5,
+          "kind": "biome-ignore",
+          "text": "// biome-ignore lint/suspicious/noDoubleEquals: legacy comparison"
         }
       ]
     },

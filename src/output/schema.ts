@@ -61,7 +61,7 @@ export const LintSignalSchema = z
   })
   .strict()
 
-export const SUPPRESSION_KINDS = ['eslint-disable', 'eslint-disable-line', 'eslint-disable-next-line', 'ts-ignore', 'ts-expect-error', 'ts-nocheck', 'as-any', 'any-annotation', 'nolint', 'lint-ignore', 'nosec', 'noqa', 'type-ignore', 'no-cover', 'pyright-ignore', 'pylint-disable'] as const
+export const SUPPRESSION_KINDS = ['eslint-disable', 'eslint-disable-line', 'eslint-disable-next-line', 'ts-ignore', 'ts-expect-error', 'ts-nocheck', 'biome-ignore', 'biome-ignore-all', 'biome-ignore-start', 'as-any', 'any-annotation', 'nolint', 'lint-ignore', 'nosec', 'noqa', 'type-ignore', 'no-cover', 'pyright-ignore', 'pylint-disable'] as const
 
 export const SuppressionsSignalSchema = z
   .object({
