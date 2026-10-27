@@ -110,7 +110,7 @@ export function computeSignals(ctx: Context, inputs: SignalInputs): Signals {
   else {
     try {
       // Biome first: a GitLab Code Quality report also has the "location" key that ruff detection looks for.
-      if (isBiomeReport(es.text)) lint = lintSignal(parseBiomeReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical), inputs.files)
+      if (isBiomeReport(es.text)) lint = lintSignal(parseBiomeReport(es.text, ctx.repoRoot, ctx.projectPrefix, new Set(inputs.files.map((f) => f.path)), canonical), inputs.files)
       else if (isGolangciReport(es.text)) {
         const parsed = parseGolangciReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical)
         gosec = parsed.gosec

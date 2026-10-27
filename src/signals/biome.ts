@@ -1,4 +1,4 @@
-import { isAbsolute } from 'node:path'
+import { isAbsolute, posix } from 'node:path'
 import { z } from 'zod'
 import { ReportError } from './coverage.js'
 import type { LintMessage } from './lint.js'
@@ -30,8 +30,11 @@ export function isBiomeReport(text: string): boolean {
   return text.trimStart().startsWith('[') && text.includes('"check_name"') && text.includes('"fingerprint"')
 }
 
-/** Biome findings as lint messages. Paths are relative to the folder Biome ran in, which must be the project directory. */
-export function parseBiomeReport(text: string, repoRoot: string, projectPrefix: string, canonical?: (path: string) => string): LintMessage[] {
+/**
+ * Biome findings as lint messages. Paths are relative to the folder Biome ran in, which must be the project directory:
+ * a path that names a changed file (`changed`, repo-relative) only when read from the repository root throws.
+ */
+export function parseBiomeReport(text: string, repoRoot: string, projectPrefix: string, changed: ReadonlySet<string>, canonical?: (path: string) => string): LintMessage[] {
   let json: unknown
   try {
     json = JSON.parse(text)
@@ -40,10 +43,14 @@ export function parseBiomeReport(text: string, repoRoot: string, projectPrefix: 
   }
   const parsed = Biome.safeParse(json)
   if (!parsed.success) throw new ReportError('the lint report is not Biome GitLab output (biome lint --reporter=gitlab)')
-  const fromRoot = (raw: string): boolean => projectPrefix !== '' && !isAbsolute(raw) && raw.replaceAll('\\', '/').startsWith(`${projectPrefix}/`)
+  const fromRoot = (raw: string): boolean => {
+    if (projectPrefix === '' || isAbsolute(raw)) return false
+    const path = posix.normalize(raw.replaceAll('\\', '/'))
+    return changed.has(path) && !changed.has(posix.join(projectPrefix, path))
+  }
   if (parsed.data.some((f) => fromRoot(f.location.path))) throw new ReportError('the Biome report paths start at the repository root: run biome from the project directory')
   return parsed.data.map((f) => ({
-    path: reportPathToRepo(f.location.path, repoRoot, projectPrefix, canonical) ?? f.location.path,
+    path: reportPathToRepo(f.location.path, repoRoot, projectPrefix, canonical) ?? f.location.path.replaceAll('\\', '/'),
     line: f.location.lines.begin,
     rule: f.check_name,
     severity: SEVERITY[f.severity],

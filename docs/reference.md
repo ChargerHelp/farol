@@ -127,9 +127,11 @@ TypeScript also gets built-in security rules (XSS sinks, `eval`, hard-coded secr
 any report.
 
 Biome writes paths relative to the folder it runs in, so run it in the project directory
-(`cd <project> && biome lint --reporter=gitlab . > reports/biome.json`). Rules:
+(`(cd <project> && biome lint --reporter=gitlab .) > reports/biome.json`). Rules:
 
 - Send only stdout to the file (never `2>&1`): the summary goes to stderr.
+- Write the report outside the folder Biome lints, or ignore it: Biome lints its own empty output file and adds a
+  parse error.
 - Do not use `--fix`, `--verbose` (it keeps only verbose diagnostics) or `biome ci` (it adds formatter findings).
 - Biome `blocker` and `critical` findings (errors, parse errors) are lint errors; `major`, `minor` and `info` are
   warnings.

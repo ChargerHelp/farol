@@ -188,8 +188,8 @@ React Router route tables (object and JSX forms, lazy routes, split route module
 ```sh
 npx vitest run --coverage.enabled --coverage.reporter=json --coverage.reportsDirectory=reports/coverage
 npx eslint -f json -o reports/eslint.json <changed files>
-# or, with Biome (run it in the project directory; stdout only, no --verbose):
-# (cd <project> && npx biome lint --reporter=gitlab . > reports/eslint.json) || true
+# or, with Biome (run it in the project directory; stdout only, no --verbose; the report outside what Biome lints):
+# (cd <project> && npx biome lint --reporter=gitlab .) > reports/biome.json || true
 npm audit --json > reports/audit.json                     # or pnpm audit --json
 
 npx @winninjs/farol analyze --base origin/main --head HEAD \
