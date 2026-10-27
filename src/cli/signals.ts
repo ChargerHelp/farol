@@ -4,6 +4,7 @@ import type { ChangedFile } from '../git/types.js'
 import type { CoverageSignal, LintSignal, SecurityFinding, SecuritySignal, Signals, VulnerabilitiesSignal } from '../output/schema.js'
 import { compareStrings } from '../output/order.js'
 import { isCoveragePyReport, isPipAuditReport, isRuffReport, parseCoveragePyReport, parsePipAuditReport, parseRuffReport, pythonSuppressions } from '../signals/python.js'
+import { isBiomeReport, parseBiomeReport } from '../signals/biome.js'
 import { goSuppressions, isGolangciReport, isGovulncheckReport, parseGoCoverProfile, parseGolangciReport, parseGovulncheckReport } from '../signals/go.js'
 import { coverageSignal, parseCoverageReport, ReportError } from '../signals/coverage.js'
 import { coverageNotProvided, lintNotProvided, vulnerabilitiesNotProvided } from '../signals/index.js'
@@ -103,12 +104,14 @@ export function computeSignals(ctx: Context, inputs: SignalInputs): Signals {
 
   let lint: LintSignal
   let gosec: Omit<SecurityFinding, 'text'>[] | undefined
-  const es = readReport(inputs.eslint, inputs.lang ? (inputs.lang.language === 'go' ? 'golangci-lint' : 'ruff') : 'ESLint', 'eslint')
+  const es = readReport(inputs.eslint, inputs.lang ? (inputs.lang.language === 'go' ? 'golangci-lint' : 'ruff') : 'ESLint or Biome', 'eslint')
   if (es.kind === 'missing') lint = lintNotProvided(es.message)
   else if (es.kind === 'error') lint = { ...lintNotProvided(es.message), status: 'error' }
   else {
     try {
-      if (isGolangciReport(es.text)) {
+      // Biome first: a GitLab Code Quality report also has the "location" key that ruff detection looks for.
+      if (isBiomeReport(es.text)) lint = lintSignal(parseBiomeReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical), inputs.files)
+      else if (isGolangciReport(es.text)) {
         const parsed = parseGolangciReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical)
         gosec = parsed.gosec
         lint = lintSignal(parsed.messages, inputs.files)

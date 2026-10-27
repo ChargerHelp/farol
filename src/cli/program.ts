@@ -61,7 +61,7 @@ export function buildProgram(): Command {
     .option('--base <ref>', 'base ref (the PR target)')
     .option('--head <ref>', 'head ref (the PR tip)')
     .option('--coverage <file>', 'coverage report: Istanbul JSON, Go coverprofile or coverage.py JSON (overrides signals.coverage)')
-    .option('--eslint <file>', 'lint report: eslint -f json, golangci-lint JSON or ruff JSON (overrides signals.eslint)')
+    .option('--eslint <file>', 'lint report: eslint -f json, biome lint --reporter=gitlab, golangci-lint JSON or ruff JSON (overrides signals.eslint)')
     .option('--out <file>', 'write the JSON here instead of stdout')
     .option('--ignore <glob...>', 'leave matching changed files out of the analysis (adds to "ignore" in the configuration)')
     .option('--pr <number>', 'pull request number, for links to the PR diff (default: the GitHub Actions event)', positiveInt)

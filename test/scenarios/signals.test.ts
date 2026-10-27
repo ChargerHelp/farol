@@ -64,6 +64,33 @@ describe('signals', () => {
     expect(o.signals.coverage.status).toBe('not-provided')
   })
 
+  it('Biome (GitLab reporter): only findings on changed lines count; security findings come from farol only', async () => {
+    const o = await run('signals-biome', { eslint: 'biome.json' })
+    expect(o.signals.lint).toEqual({
+      status: 'ok',
+      changedLines: { errors: 2, warnings: 3 },
+      otherLines: { errors: 1, warnings: 0 },
+      findings: [
+        { path: 'src/seed/findings.ts', line: 3, rule: 'lint/correctness/noUnusedVariables', severity: 'error', message: 'This variable unused is unused.' },
+        { path: 'src/seed/findings.ts', line: 7, rule: 'lint/security/noGlobalEval', severity: 'error', message: 'eval() exposes to security risks and performance issues.' },
+        { path: 'src/seed/findings.ts', line: 4, rule: 'lint/style/noParameterAssign', severity: 'warning', message: 'Assigning a function parameter is confusing.' },
+        { path: 'src/seed/findings.ts', line: 8, rule: 'lint/suspicious/noDoubleEquals', severity: 'warning', message: 'Using == may be unsafe if you are relying on type coercion.' },
+        { path: 'src/seed/view.tsx', line: 5, rule: 'lint/security/noDangerouslySetInnerHtml', severity: 'warning', message: 'Avoid passing content using the dangerouslySetInnerHTML prop.' },
+      ],
+      omittedFindings: 0,
+    })
+    expect(o.signals.security.findings.map((f) => [f.path, f.line, f.rule])).toEqual([
+      ['src/seed/findings.ts', 7, 'eval'],
+      ['src/seed/view.tsx', 5, 'dangerously-set-inner-html'],
+    ])
+    golden('signals-biome', 'expected.json', o)
+  })
+
+  it('an empty lint report (what Biome gives for a clean project) is ok with no findings', async () => {
+    const o = await run('signals-biome', { eslint: 'empty.json' })
+    expect(o.signals.lint).toEqual({ status: 'ok', changedLines: { errors: 0, warnings: 0 }, otherLines: { errors: 0, warnings: 0 }, findings: [], omittedFindings: 0 })
+  })
+
   it('suppressions: added directives and as any are found, the same text in strings is not', async () => {
     const o = await run('signals-suppressions', 'none')
     expect(o.signals.suppressions.items.map((i) => [i.path, i.line, i.kind])).toEqual([
@@ -78,6 +105,7 @@ describe('signals', () => {
     const o = await run('signals-coverage-lint', 'none')
     expect(o.signals.coverage).toEqual({ status: 'not-provided', message: 'no coverage report given (--coverage or signals.coverage)', files: [], total: null, ignoredFiles: [] })
     expect(o.signals.lint.status).toBe('not-provided')
+    expect(o.signals.lint.message).toBe('no ESLint or Biome report given (--eslint or signals.eslint)')
     expect(o.signals.lint.changedLines).toBeNull()
     golden('signals-coverage-lint', 'expected-no-reports.json', o)
   })

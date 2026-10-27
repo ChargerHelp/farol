@@ -20,7 +20,7 @@ inputs:
     required: false
     default: ""
   eslint:
-    description: "analyze: eslint -f json report (overrides signals.eslint)"
+    description: "analyze: lint report: eslint -f json, biome lint --reporter=gitlab, golangci-lint JSON or ruff JSON (overrides signals.eslint)"
     required: false
     default: ""
   audit:

@@ -238729,7 +238729,7 @@ function resolveSpecifier(project, repoRoot2, containingFile, specifier, mode) {
 
 // src/cli/signals.ts
 import { existsSync as existsSync2, readFileSync as readFileSync2, realpathSync as realpathSync2 } from "fs";
-import { isAbsolute as isAbsolute3 } from "path";
+import { isAbsolute as isAbsolute4 } from "path";
 
 // src/signals/paths.ts
 import { isAbsolute as isAbsolute2, posix as posix7 } from "path";
@@ -238912,6 +238912,46 @@ function pythonSuppressions(files, comments) {
     for (const [pattern, kind] of DIRECTIVES) if (pattern.test(c.text)) items.push({ path: c.file, line: c.line, kind, text: c.text.slice(0, 200) });
   }
   return items.sort((a, b) => compareStrings(a.path, b.path) || a.line - b.line);
+}
+
+// src/signals/biome.ts
+import { isAbsolute as isAbsolute3 } from "path";
+var SEVERITY = {
+  blocker: "error",
+  critical: "error",
+  major: "warning",
+  minor: "warning",
+  info: "warning"
+};
+var Biome = external_exports.array(
+  external_exports.object({
+    check_name: external_exports.string(),
+    description: external_exports.string(),
+    severity: external_exports.enum(Object.keys(SEVERITY)),
+    location: external_exports.object({ path: external_exports.string(), lines: external_exports.object({ begin: external_exports.number().int().positive() }).loose() }).loose()
+  }).loose()
+);
+function isBiomeReport(text) {
+  return text.trimStart().startsWith("[") && text.includes('"check_name"') && text.includes('"fingerprint"');
+}
+function parseBiomeReport(text, repoRoot2, projectPrefix, canonical2) {
+  let json3;
+  try {
+    json3 = JSON.parse(text);
+  } catch (error62) {
+    throw new ReportError(`the Biome report is not valid JSON (${error62 instanceof Error ? error62.message : String(error62)})`);
+  }
+  const parsed = Biome.safeParse(json3);
+  if (!parsed.success) throw new ReportError("the lint report is not Biome GitLab output (biome lint --reporter=gitlab)");
+  const fromRoot = (raw) => projectPrefix !== "" && !isAbsolute3(raw) && raw.replaceAll("\\", "/").startsWith(`${projectPrefix}/`);
+  if (parsed.data.some((f) => fromRoot(f.location.path))) throw new ReportError("the Biome report paths start at the repository root: run biome from the project directory");
+  return parsed.data.map((f) => ({
+    path: reportPathToRepo(f.location.path, repoRoot2, projectPrefix, canonical2) ?? f.location.path,
+    line: f.location.lines.begin,
+    rule: f.check_name,
+    severity: SEVERITY[f.severity],
+    message: f.description
+  }));
 }
 
 // src/signals/go.ts
@@ -239661,7 +239701,7 @@ function readReport(path3, label2, option) {
   }
 }
 function canonical(path3) {
-  if (!isAbsolute3(path3)) return path3;
+  if (!isAbsolute4(path3)) return path3;
   try {
     return realpathSync2(path3);
   } catch {
@@ -239698,12 +239738,13 @@ function computeSignals(ctx, inputs) {
   }
   let lint;
   let gosec;
-  const es = readReport(inputs.eslint, inputs.lang ? inputs.lang.language === "go" ? "golangci-lint" : "ruff" : "ESLint", "eslint");
+  const es = readReport(inputs.eslint, inputs.lang ? inputs.lang.language === "go" ? "golangci-lint" : "ruff" : "ESLint or Biome", "eslint");
   if (es.kind === "missing") lint = lintNotProvided(es.message);
   else if (es.kind === "error") lint = { ...lintNotProvided(es.message), status: "error" };
   else {
     try {
-      if (isGolangciReport(es.text)) {
+      if (isBiomeReport(es.text)) lint = lintSignal(parseBiomeReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical), inputs.files);
+      else if (isGolangciReport(es.text)) {
         const parsed = parseGolangciReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical);
         gosec = parsed.gosec;
         lint = lintSignal(parsed.messages, inputs.files);
@@ -254323,7 +254364,7 @@ async function commentCommand(options, env = process.env, fetchImpl) {
 
 // src/cli/farol-file.ts
 import { existsSync as existsSync5, readFileSync as readFileSync7 } from "fs";
-import { dirname as dirname3, isAbsolute as isAbsolute4, join as join6, resolve as resolve6 } from "path";
+import { dirname as dirname3, isAbsolute as isAbsolute5, join as join6, resolve as resolve6 } from "path";
 var FAROL_FILE = ".farol.json";
 var str = external_exports.string().min(1);
 var globs2 = external_exports.array(str);
@@ -254389,7 +254430,7 @@ function mergeOptions(cmd, cliOptions, values, pathKeys2, farolFilePath) {
   for (const [key, value] of Object.entries(values)) {
     if (key === "$schema" || typeof value === "object" && value !== null && !Array.isArray(value)) continue;
     if (cmd.getOptionValueSource(key) === "cli") continue;
-    merged[key] = pathKeys2.includes(key) && typeof value === "string" && !isAbsolute4(value) ? resolve6(dir, value) : value;
+    merged[key] = pathKeys2.includes(key) && typeof value === "string" && !isAbsolute5(value) ? resolve6(dir, value) : value;
   }
   return merged;
 }
@@ -254933,7 +254974,7 @@ function buildProgram() {
     const fp = loadedFarolFile();
     return mergeOptions(cmd, opts, fp?.data[name], pathKeys(name), fp?.path);
   };
-  program3.command("analyze").description("run the pipeline between two refs and write the JSON result").option("--base <ref>", "base ref (the PR target)").option("--head <ref>", "head ref (the PR tip)").option("--coverage <file>", "coverage report: Istanbul JSON, Go coverprofile or coverage.py JSON (overrides signals.coverage)").option("--eslint <file>", "lint report: eslint -f json, golangci-lint JSON or ruff JSON (overrides signals.eslint)").option("--out <file>", "write the JSON here instead of stdout").option("--ignore <glob...>", 'leave matching changed files out of the analysis (adds to "ignore" in the configuration)').option("--pr <number>", "pull request number, for links to the PR diff (default: the GitHub Actions event)", positiveInt).option("--audit <file>", "vulnerability report: npm/pnpm audit --json, govulncheck -json or pip-audit JSON (overrides signals.audit)").option("--usage <file>", 'traffic per page/operation written by "farol usage" (overrides signals.usage); information only').option("--coverage-ignore <glob...>", "leave matching changed files out of diff coverage only (adds to signals.coverageIgnore)").option("--since <ref>", "incremental: analyze only the changes since this commit (e.g. the head you last reviewed)").option("--reviewers", "suggest reviewers from CODEOWNERS and the git history of the changed files").option("--cache-dir <dir>", "Go/Python: keep helper outputs here between runs (default: $FAROL_CACHE_DIR or ~/.cache/farol)").option("--no-cache", "Go/Python: read every tree again, without the cache").action(
+  program3.command("analyze").description("run the pipeline between two refs and write the JSON result").option("--base <ref>", "base ref (the PR target)").option("--head <ref>", "head ref (the PR tip)").option("--coverage <file>", "coverage report: Istanbul JSON, Go coverprofile or coverage.py JSON (overrides signals.coverage)").option("--eslint <file>", "lint report: eslint -f json, biome lint --reporter=gitlab, golangci-lint JSON or ruff JSON (overrides signals.eslint)").option("--out <file>", "write the JSON here instead of stdout").option("--ignore <glob...>", 'leave matching changed files out of the analysis (adds to "ignore" in the configuration)').option("--pr <number>", "pull request number, for links to the PR diff (default: the GitHub Actions event)", positiveInt).option("--audit <file>", "vulnerability report: npm/pnpm audit --json, govulncheck -json or pip-audit JSON (overrides signals.audit)").option("--usage <file>", 'traffic per page/operation written by "farol usage" (overrides signals.usage); information only').option("--coverage-ignore <glob...>", "leave matching changed files out of diff coverage only (adds to signals.coverageIgnore)").option("--since <ref>", "incremental: analyze only the changes since this commit (e.g. the head you last reviewed)").option("--reviewers", "suggest reviewers from CODEOWNERS and the git history of the changed files").option("--cache-dir <dir>", "Go/Python: keep helper outputs here between runs (default: $FAROL_CACHE_DIR or ~/.cache/farol)").option("--no-cache", "Go/Python: read every tree again, without the cache").action(
     (raw, cmd) => runAction(async () => {
       const opts = withFarolFile("analyze", cmd, raw);
       const options = { ...opts, base: required2(opts.base, "--base", "analyze"), head: required2(opts.head, "--head", "analyze") };

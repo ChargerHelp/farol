@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "surface": "frontend",
+  "tool": {
+    "name": "farol",
+    "version": "<version>"
+  },
+  "repo": null,
+  "pr": null,
+  "base": {
+    "ref": "main",
+    "sha": "<base>"
+  },
+  "mergeBase": "<base>",
+  "head": {
+    "ref": "feature",
+    "sha": "<head>"
+  },
+  "analyzedAt": "2026-01-15T12:00:00.000Z",
+  "classification": "touches-existing",
+  "reasons": [
+    {
+      "code": "existing-file-unreachable",
+      "file": "src/seed/view.tsx",
+      "detail": "func src/seed/view.tsx#View changed; no route reaches it"
+    },
+    {
+      "code": "new-file-disconnected",
+      "file": "src/seed/findings.ts",
+      "detail": "new file that no route reaches"
+    }
+  ],
+  "files": [
+    {
+      "path": "src/seed/findings.ts",
+      "status": "added",
+      "role": "source",
+      "linesAdded": 9,
+      "linesRemoved": 0
+    },
+    {
+      "path": "src/seed/view.tsx",
+      "status": "modified",
+      "role": "source",
+      "linesAdded": 1,
+      "linesRemoved": 0,
+      "additive": false
+    }
+  ],
+  "ignoredFiles": [],
+  "dependencies": {
+    "manifests": [],
+    "lockfiles": [],
+    "changes": [],
+    "summary": {
+      "critical": 0,
+      "major": 0,
+      "minor": 0,
+      "patch": 0,
+      "added": 0,
+      "removed": 0
+    }
+  },
+  "risk": {
+    "totalPages": 4,
+    "files": [
+      {
+        "path": "src/seed/findings.ts",
+        "change": "added",
+        "level": "low",
+        "directImporters": 0,
+        "transitiveDependents": 0,
+        "centrality": 0,
+        "pagesReached": 0,
+        "routesReached": 0,
+        "why": "new code not used by existing pages"
+      },
+      {
+        "path": "src/seed/view.tsx",
+        "change": "modified",
+        "level": "low",
+        "directImporters": 0,
+        "transitiveDependents": 0,
+        "centrality": 0,
+        "pagesReached": 0,
+        "routesReached": 0,
+        "why": "nothing imports it"
+      }
+    ],
+    "summary": {
+      "high": 0,
+      "medium": 0,
+      "low": 2
+    }
+  },
+  "routes": {
+    "added": [],
+    "affected": [],
+    "disconnectedNewFiles": [
+      "src/seed/findings.ts"
+    ]
+  },
+  "signals": {
+    "coverage": {
+      "status": "not-provided",
+      "message": "no coverage report given (--coverage or signals.coverage)",
+      "files": [],
+      "total": null,
+      "ignoredFiles": []
+    },
+    "lint": {
+      "status": "ok",
+      "changedLines": {
+        "errors": 2,
+        "warnings": 3
+      },
+      "otherLines": {
+        "errors": 1,
+        "warnings": 0
+      },
+      "findings": [
+        {
+          "path": "src/seed/findings.ts",
+          "line": 3,
+          "rule": "lint/correctness/noUnusedVariables",
+          "severity": "error",
+          "message": "This variable unused is unused."
+        },
+        {
+          "path": "src/seed/findings.ts",
+          "line": 7,
+          "rule": "lint/security/noGlobalEval",
+          "severity": "error",
+          "message": "eval() exposes to security risks and performance issues."
+        },
+        {
+          "path": "src/seed/findings.ts",
+          "line": 4,
+          "rule": "lint/style/noParameterAssign",
+          "severity": "warning",
+          "message": "Assigning a function parameter is confusing."
+        },
+        {
+          "path": "src/seed/findings.ts",
+          "line": 8,
+          "rule": "lint/suspicious/noDoubleEquals",
+          "severity": "warning",
+          "message": "Using == may be unsafe if you are relying on type coercion."
+        },
+        {
+          "path": "src/seed/view.tsx",
+          "line": 5,
+          "rule": "lint/security/noDangerouslySetInnerHtml",
+          "severity": "warning",
+          "message": "Avoid passing content using the dangerouslySetInnerHTML prop."
+        }
+      ],
+      "omittedFindings": 0
+    },
+    "security": {
+      "status": "ok",
+      "findings": [
+        {
+          "path": "src/seed/findings.ts",
+          "line": 7,
+          "rule": "eval",
+          "severity": "high",
+          "message": "eval() executes arbitrary code",
+          "text": "eval('1 + 1')"
+        },
+        {
+          "path": "src/seed/view.tsx",
+          "line": 5,
+          "rule": "dangerously-set-inner-html",
+          "severity": "high",
+          "message": "raw HTML rendered with dangerouslySetInnerHTML: sanitize it (e.g. DOMPurify) or render text",
+          "text": "<div dangerouslySetInnerHTML={{ __html: html }} />"
+        }
+      ],
+      "summary": {
+        "high": 2,
+        "medium": 0,
+        "low": 0
+      }
+    },
+    "vulnerabilities": {
+      "status": "not-provided",
+      "message": "no audit report given (--audit or signals.audit)",
+      "related": [],
+      "total": null
+    },
+    "suppressions": {
+      "status": "ok",
+      "items": [
+        {
+          "path": "src/seed/findings.ts",
+          "line": 2,
+          "kind": "any-annotation",
+          "text": "export function compare(a: number, input: any): boolean {"
+        }
+      ]
+    },
+    "testsModified": {
+      "status": "ok",
+      "files": []
+    }
+  },
+  "diagnostics": {
+    "unresolvedImports": [],
+    "dynamicRoutes": [],
+    "parseErrors": [],
+    "timingsMs": {
+      "diff": 0,
+      "readTree": 0,
+      "program": 0,
+      "graph": 0,
+      "routes": 0,
+      "base": 0,
+      "classify": 0,
+      "signals": 0,
+      "diffs": 0
+    },
+    "error": null
+  },
+  "review": null
+}
