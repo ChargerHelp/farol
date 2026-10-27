@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { isBiomeReport, parseBiomeReport } from '../../src/signals/biome.js'
+import { type BiomeHead, isBiomeReport, parseBiomeReport } from '../../src/signals/biome.js'
 import { isRuffReport } from '../../src/signals/python.js'
 
 /** The head commit as the reader sees it: the changed files, and whether a path is a file. */
-const head = (changed: string[], other: string[] = []): { changed: string[]; exists: (path: string) => boolean } => ({ changed, exists: (path) => [...changed, ...other].includes(path) })
+const head = (changed: string[], other: string[] = []): BiomeHead => ({ changed, exists: (path) => [...changed, ...other].includes(path) })
 
 const entry = (checkName: string, severity: string, path: string, begin: number): Record<string, unknown> => ({
   description: `${checkName} found`,
@@ -39,6 +39,10 @@ describe('Biome GitLab reports', () => {
     expect(() => parseBiomeReport(text, '/repo', '', head([]))).toThrow(/^the lint report is not Biome GitLab output \(biome lint --reporter=gitlab\): 0\.location\.lines: /)
   })
 
+  it('names the report itself when it is not a list', () => {
+    expect(() => parseBiomeReport('{}', '/repo', '', head([]))).toThrow(/^the lint report is not Biome GitLab output \(biome lint --reporter=gitlab\): \(root\): /)
+  })
+
   it('does not take a ruff report for a Biome report', () => {
     const ruff = JSON.stringify([{ code: 'F401', message: 'unused import', filename: '/repo/src/a.py', location: { row: 1, column: 1 } }])
     expect(isRuffReport(ruff)).toBe(true)
@@ -46,11 +50,11 @@ describe('Biome GitLab reports', () => {
   })
 
   it('rejects a report written from another folder than the project directory', () => {
-    const changed = head(['services/assess/src/a.ts'])
+    const services = head(['services/assess/src/a.ts'])
     const paths = ['services/assess/src/a.ts', 'services\\assess\\src\\a.ts', './services/assess/src/a.ts', 'assess/src/a.ts']
     for (const path of paths) {
       const text = JSON.stringify([entry('lint/a/b', 'major', 'src/b.ts', 1), entry('lint/a/b', 'major', path, 2)])
-      expect(() => parseBiomeReport(text, '/repo', 'services/assess', changed)).toThrow(`the Biome report path ${path} is not relative to the project directory: run biome from the project directory`)
+      expect(() => parseBiomeReport(text, '/repo', 'services/assess', services)).toThrow(`the Biome report path ${path} is not relative to the project directory: run biome in services/assess`)
     }
   })
 

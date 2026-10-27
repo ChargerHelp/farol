@@ -238932,17 +238932,19 @@ function parseBiomeReport(text, repoRoot2, projectPrefix, head, canonical2) {
   const parsed = Biome.safeParse(parseJson2(text, "Biome"));
   if (!parsed.success) {
     const issue2 = parsed.error.issues[0];
-    throw new ReportError(`the lint report is not Biome GitLab output (biome lint --reporter=gitlab): ${issue2?.path.join(".")}: ${issue2?.message}`);
+    const where = issue2 === void 0 || issue2.path.length === 0 ? "(root)" : issue2.path.join(".");
+    throw new ReportError(`the lint report is not Biome GitLab output (biome lint --reporter=gitlab): ${where}: ${issue2?.message ?? ""}`);
   }
   const inProject = (path3) => projectPrefix === "" || path3.startsWith(`${projectPrefix}/`);
-  const otherFolder = (raw) => {
+  const writtenFromOtherFolder = (raw) => {
     const asWritten = reportPathToRepo(raw, repoRoot2, "", canonical2);
     const mapped = reportPathToRepo(raw, repoRoot2, projectPrefix, canonical2);
     if (asWritten === void 0 || mapped === void 0) return false;
-    return head.changed.some((c) => c !== mapped && inProject(c) && (c === asWritten || c.endsWith(`/${asWritten}`))) && !head.exists(mapped);
+    const namesChangedFile = head.changed.some((c) => c !== mapped && inProject(c) && (c === asWritten || c.endsWith(`/${asWritten}`)));
+    return namesChangedFile && !head.exists(mapped);
   };
-  const wrong = parsed.data.find((f) => otherFolder(f.location.path));
-  if (wrong) throw new ReportError(`the Biome report path ${wrong.location.path} is not relative to the project directory: run biome from the project directory`);
+  const wrong = parsed.data.find((f) => writtenFromOtherFolder(f.location.path));
+  if (wrong) throw new ReportError(`the Biome report path ${wrong.location.path} is not relative to the project directory: run biome in ${projectPrefix === "" ? "the repository root" : projectPrefix}`);
   return parsed.data.map((f) => ({
     path: reportPathToRepo(f.location.path, repoRoot2, projectPrefix, canonical2) ?? f.location.path.replaceAll("\\", "/"),
     line: f.location.lines.begin,
@@ -238985,16 +238987,16 @@ function parseGolangciReport(text, repoRoot2, projectPrefix, canonical2) {
   const parsed = GolangciReport.safeParse(raw);
   if (!parsed.success) throw new ReportError("the lint report is not golangci-lint JSON output");
   const messages = [];
-  const gosec = [];
+  const sast = [];
   for (const issue2 of parsed.data.Issues ?? []) {
     const path3 = reportPathToRepo(issue2.Pos.Filename, repoRoot2, projectPrefix, canonical2) ?? issue2.Pos.Filename;
     messages.push({ path: path3, line: issue2.Pos.Line, rule: issue2.FromLinter, severity: issue2.Severity === "warning" ? "warning" : "error", message: issue2.Text });
     if (issue2.FromLinter === "gosec") {
       const id = /^(G\d{3})/.exec(issue2.Text)?.[1] ?? "";
-      gosec.push({ path: path3, line: issue2.Pos.Line, rule: "gosec", severity: GOSEC_HIGH.has(id) ? "high" : "medium", message: issue2.Text });
+      sast.push({ path: path3, line: issue2.Pos.Line, rule: "gosec", severity: GOSEC_HIGH.has(id) ? "high" : "medium", message: issue2.Text });
     }
   }
-  return { messages, gosec };
+  return { messages, sast };
 }
 function goSuppressions(files, comments) {
   const added = new Map(files.map((f) => [f.path, new Set(f.added.map((l) => l.line))]));
@@ -239025,7 +239027,7 @@ function jsonStream(text) {
       depth++;
     } else if (ch === "}") {
       depth--;
-      if (depth === 0) out.push(JSON.parse(text.slice(start, i + 1)));
+      if (depth === 0) out.push(parseJson2(text.slice(start, i + 1), "govulncheck"));
     }
   }
   return out;
@@ -239036,12 +239038,7 @@ function isGovulncheckReport(text) {
   return text.includes('"osv"') || text.includes('"finding"') || text.includes('"config"');
 }
 function parseGovulncheckReport(text) {
-  let messages;
-  try {
-    messages = jsonStream(text);
-  } catch (error62) {
-    throw new ReportError(`the govulncheck report is not valid JSON (${error62 instanceof Error ? error62.message : String(error62)})`);
-  }
+  const messages = jsonStream(text);
   const osvs = /* @__PURE__ */ new Map();
   const findings = [];
   for (const m of messages) {
@@ -239696,13 +239693,13 @@ function asError(error62) {
   throw error62;
 }
 var SEVERITY_RANK = { high: 0, medium: 1, low: 2 };
-function langSecurity(base, gosec, files, readHead, skip, language) {
-  if (gosec === void 0) {
+function langSecurity(base, sast, files, readHead, skip, language) {
+  if (sast === void 0) {
     const message = language === "go" ? "Go files are checked by gosec: give a golangci-lint JSON report (with gosec enabled) as the lint report" : "Python files are checked by flake8-bandit: give a ruff JSON report (with the S rules selected) as the lint report";
     return { ...base, status: "not-provided", message };
   }
   const added = new Map(files.map((f) => [f.path, new Set(f.added.map((l) => l.line))]));
-  const found = gosec.filter((g) => added.get(g.path)?.has(g.line) && !skip(g.path)).map((g) => ({ ...g, text: (readHead(g.path)?.split("\n")[g.line - 1] ?? "").trim().slice(0, 200) }));
+  const found = sast.filter((g) => added.get(g.path)?.has(g.line) && !skip(g.path)).map((g) => ({ ...g, text: (readHead(g.path)?.split("\n")[g.line - 1] ?? "").trim().slice(0, 200) }));
   const findings = [...base.findings, ...found].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] || compareStrings(a.path, b.path) || a.line - b.line);
   return { ...base, findings, summary: { high: findings.filter((f) => f.severity === "high").length, medium: findings.filter((f) => f.severity === "medium").length, low: findings.filter((f) => f.severity === "low").length } };
 }
@@ -239727,11 +239724,11 @@ function computeSignals(ctx, inputs) {
   else {
     try {
       if (isBiomeReport(es.text)) {
-        const head = { changed: inputs.files.map((f) => f.path), exists: (path3) => inputs.readHead(path3) !== void 0 };
+        const head = { changed: inputs.files.map((f) => f.path), exists: inputs.headExists };
         lint = lintSignal(parseBiomeReport(es.text, ctx.repoRoot, ctx.projectPrefix, head, canonical), inputs.files);
       } else if (isGolangciReport(es.text)) {
         const parsed = parseGolangciReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical);
-        sast = parsed.gosec;
+        sast = parsed.sast;
         lint = lintSignal(parsed.messages, inputs.files);
       } else if (isRuffReport(es.text)) {
         const parsed = parseRuffReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical);
@@ -251612,6 +251609,7 @@ async function runAnalyze(ctx, options, deps) {
     let result;
     let roleOf;
     let readHead;
+    let headExists;
     let lang;
     let headRoutes;
     let contracts;
@@ -251626,6 +251624,7 @@ async function runAnalyze(ctx, options, deps) {
       const { manifests, otherManifests } = await projectAndOtherManifests(ctx, files, roleOf, mb, meta3.head.sha);
       const headContents = await readFiles(ctx.repoRoot, meta3.head.sha, files.filter((f) => f.status !== "deleted").map((f) => f.path));
       readHead = (path3) => headContents.get(path3);
+      headExists = (path3) => headContents.has(path3);
       lang = { language: ctx.config.language, module: langWs.head.module, comments: langWs.head.comments };
       headRoutes = langWs.headRoutes;
       const helperContracts = helperContractChanges(langWs.base, langWs.head);
@@ -251639,6 +251638,7 @@ async function runAnalyze(ctx, options, deps) {
       t = deps.clock();
       roleOf = createAnalysisRoleOf(ctx, ws.graph.nodes, ws.backend);
       readHead = (path3) => ws.fs.readFile(posix16.join(toPosix(ctx.repoRoot), path3));
+      headExists = (path3) => ws.fs.fileExists(posix16.join(toPosix(ctx.repoRoot), path3));
       const compared = comparedFiles(files, roleOf);
       const baseText = await readFiles(ctx.repoRoot, mb, compared);
       const headText = await readFiles(ctx.repoRoot, meta3.head.sha, compared);
@@ -251678,6 +251678,7 @@ async function runAnalyze(ctx, options, deps) {
       coverage: reportPath(ctx, options.coverage, ctx.config.signals.coverage),
       eslint: reportPath(ctx, options.eslint, ctx.config.signals.eslint),
       readHead,
+      headExists,
       ...lang ? { lang } : {},
       coverageIgnored: createIgnoreOf(ctx, options.coverageIgnore ?? [], ctx.config.signals.coverageIgnore),
       audit: reportPath(ctx, options.audit, ctx.config.signals.audit),
