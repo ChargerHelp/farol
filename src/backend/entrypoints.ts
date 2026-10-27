@@ -1,6 +1,7 @@
 import type { DocumentNode } from 'graphql'
 import { posix } from 'node:path'
 import { compareStrings, sortedUnique } from '../output/order.js'
+import { isProjectPath } from '../project/fs.js'
 import type { ProjectProgram } from '../project/program.js'
 import type { RouteEntry } from '../routes/types.js'
 import { definedGlobals, usesGlobal } from './globals.js'
@@ -49,10 +50,7 @@ export interface BackendInput {
 export function buildBackendTable(input: BackendInput): BackendTable {
   const root = input.repoRoot.replaceAll('\\', '/')
   const rel = (fileName: string): string => posix.relative(root, fileName.replaceAll('\\', '/'))
-  const isProjectFile = (fileName: string): boolean => {
-    const p = fileName.replaceAll('\\', '/')
-    return p.startsWith(`${root}/`) && !p.includes('/node_modules/')
-  }
+  const isProjectFile = (fileName: string): boolean => isProjectPath(root, fileName)
   const programFiles = input.project.program.getSourceFiles().filter((sf) => isProjectFile(sf.fileName) && !sf.isDeclarationFile && input.isOrigin(rel(sf.fileName)))
 
   // Schema: .graphql files of the tree and gql`…` templates of the program files.

@@ -1,7 +1,6 @@
 import { isDeepStrictEqual } from 'node:util'
 import { compareStrings } from '../output/order.js'
-
-export const DEPENDENCY_SECTIONS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'] as const
+import { DEPENDENCY_SECTIONS } from '../project/workspace-links.js'
 /** go.mod requirements: direct (`require`) or `// indirect`. */
 export const GO_SECTIONS = ['require', 'indirect'] as const
 export type DependencySection = (typeof DEPENDENCY_SECTIONS)[number] | (typeof GO_SECTIONS)[number]

@@ -143,6 +143,14 @@ export function classify(input: ClassifyInput): ClassifyResult {
       reasons.push(reason('unresolved-import', `line ${u.line}: ${what}`, u.file))
     }
   }
+  // A workspace package whose entry does not resolve: what its changed files reach is unknown.
+  const unresolvedPackages = new Map<string, (typeof graph.unresolved)[number]>()
+  for (const u of graph.unresolved) for (const folder of u.packages ?? []) if (!unresolvedPackages.has(folder)) unresolvedPackages.set(folder, u)
+  for (const file of changed) {
+    for (const [folder, u] of unresolvedPackages) {
+      if (folder === '' || file.startsWith(`${folder}/`)) reasons.push(reason('unresolved-import', `cannot resolve "${u.specifier}" (workspace package ${folder === '' ? '.' : folder}), imported at ${u.file} line ${u.line}`, file))
+    }
+  }
 
   // The route table is compared once; its changes are reported against the routes file.
   const tableChanges = input.baseRoutes ? compareRouteTables(input.baseRoutes, headRoutes) : []

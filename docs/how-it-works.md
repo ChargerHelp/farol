@@ -36,7 +36,10 @@ finds what a change reaches, and how the score and the verdict are computed. For
 
 **Reading.**
 
-- farol builds a TypeScript program of the head commit from git objects: the project's tsconfig, path aliases, `baseUrl`, and solution-style configs followed to the reference that includes the routes file. `node_modules` is read only for packages the tsconfig extends and for workspace packages.
+- farol builds a TypeScript program of the head commit from git objects: the project's tsconfig, path aliases, `baseUrl`, and solution-style configs followed to the reference that includes the routes file. `node_modules` on the disk is read only for third-party packages.
+- **Workspace packages** come from the commit too. A dependency declared with `workspace:` links `node_modules/<name>` to the folder of the package with that name. When the package exports a build output that is not committed (`./dist/index.mjs`), farol reads the source it is built from (`src/index.ts`), so a change in the package source reaches the pages that import it, whatever is built or installed on the machine.
+  - Only the `src/` → `dist/` layout maps. A package import that does not resolve is unresolved, and so is every changed file of that package (`unresolved-import`, `unknown`). The same goes for a `workspace:` dependency no folder provides, and for `preserveSymlinks`.
+  - Limits: the package sources are compiled with the project's compiler options; npm and yarn v1 workspaces (plain versions, no `workspace:`) are read through the links on the disk.
 - The routes file is parsed with the compiler API.
 
 **Route forms read.**

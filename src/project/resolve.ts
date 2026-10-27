@@ -1,6 +1,7 @@
 import ts from 'typescript'
 import { posix } from 'node:path'
-import { toPosix } from './fs.js'
+import { ancestors, isProjectPath, toPosix } from './fs.js'
+import { packageName, readManifest } from './workspace-links.js'
 import { getBaseUrl } from './parse.js'
 import type { ProjectProgram } from './program.js'
 
@@ -32,7 +33,7 @@ export type Resolution =
   | { kind: 'module'; file: string } // a TypeScript/JavaScript/JSON file of the program
   | { kind: 'asset'; file: string } // a non-TS file (CSS, SVG, …): leaf node
   | { kind: 'external' } // a package outside the repository
-  | { kind: 'unresolved' }
+  | { kind: 'unresolved'; packages?: string[] } // packages: folders of the in-repo workspace package a bare specifier names
 
 const TS_LIKE = new Set(['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs', '.json', ''])
 
@@ -93,8 +94,36 @@ export function isProjectSpecifier(specifier: string, project: ResolverContext):
   return false
 }
 
-function isInRepo(file: string, repoRoot: string): boolean {
-  return file.startsWith(`${repoRoot}/`) && !file.includes('/node_modules/')
+/**
+ * Whether `<dir>/package.json` declares a `workspace:` dependency `name` (an unreadable or invalid one declares every
+ * name), read from the manifest alone: the working tree has no list of the packages, so no folder is named.
+ */
+function manifestCandidates(project: ResolverContext, dir: string, name: string): readonly string[] | undefined {
+  const manifest = `${dir}/package.json`
+  const text = project.fs.readFile(manifest)
+  const read = text === undefined ? undefined : readManifest(manifest, text)
+  return read === undefined || read.invalid || read.workspace.includes(name) ? [] : undefined
+}
+
+/**
+ * A bare specifier that names a package of the repository: the folder its `node_modules` link points to (the first
+ * one up from the importer, as Node.js looks), or, for a `workspace:` dependency of the importer's manifest that
+ * links nowhere, the folders it may name (`workspaceCandidates`; none on the working tree). Undefined for other packages.
+ */
+function workspacePackages(project: ResolverContext, repoRoot: string, containingFile: string, specifier: string): { packages: string[] } | undefined {
+  const name = packageName(specifier)
+  if (name === undefined) return undefined
+  const dirs = ancestors(posix.dirname(containingFile), repoRoot)
+  for (const dir of dirs) {
+    const link = `${dir}/node_modules/${name}`
+    if (!project.fs.directoryExists(link)) continue
+    const folder = toPosix(project.fs.realpath(link))
+    return isProjectPath(repoRoot, folder) ? { packages: [folder] } : undefined
+  }
+  const manifestDir = dirs.find((d) => project.fs.fileExists(`${d}/package.json`))
+  if (manifestDir === undefined) return undefined
+  const candidates = project.fs.workspaceCandidates ? project.fs.workspaceCandidates(manifestDir, name) : manifestCandidates(project, manifestDir, name)
+  return candidates === undefined ? undefined : { packages: [...candidates] }
 }
 
 /**
@@ -107,7 +136,11 @@ export function resolveSpecifier(project: ResolverContext, repoRoot: string, con
   const resolved = result.resolvedModule
   if (resolved) {
     const file = toPosix(project.fs.realpath(resolved.resolvedFileName))
-    return isInRepo(file, repoRoot) ? { kind: 'module', file } : { kind: 'external' }
+    if (!isProjectPath(repoRoot, file)) return { kind: 'external' }
+    // With preserveSymlinks the program holds the package under its node_modules path, which the graph cannot follow.
+    const heldUnderNodeModules = project.options.preserveSymlinks === true && toPosix(resolved.resolvedFileName).includes('/node_modules/')
+    if (heldUnderNodeModules) return { kind: 'unresolved', ...workspacePackages(project, repoRoot, containingFile, cleaned) }
+    return { kind: 'module', file }
   }
   const ext = posix.extname(cleaned)
   if (!TS_LIKE.has(ext)) {
@@ -119,9 +152,11 @@ export function resolveSpecifier(project: ResolverContext, repoRoot: string, con
     for (const candidate of candidates) {
       if (project.fs.fileExists(candidate)) {
         const file = toPosix(project.fs.realpath(candidate))
-        return isInRepo(file, repoRoot) ? { kind: 'asset', file } : { kind: 'external' }
+        return isProjectPath(repoRoot, file) ? { kind: 'asset', file } : { kind: 'external' }
       }
     }
   }
-  return isProjectSpecifier(cleaned, project) ? { kind: 'unresolved' } : { kind: 'external' }
+  if (isProjectSpecifier(cleaned, project)) return { kind: 'unresolved' }
+  const workspace = workspacePackages(project, repoRoot, containingFile, cleaned)
+  return workspace === undefined ? { kind: 'external' } : { kind: 'unresolved', ...workspace }
 }

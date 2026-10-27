@@ -4,6 +4,7 @@ import ts from 'typescript'
 import type { DeclHelperOutput } from '../decls/types.js'
 import { routeAnchors } from '../classify/reach.js'
 import type { RouteTable } from '../routes/types.js'
+import { isProjectPath } from './fs.js'
 import { parseIsolated } from './parse.js'
 import type { ProjectProgram } from './program.js'
 
@@ -102,7 +103,7 @@ export interface TsDeclInput {
 export function tsDeclGraph(input: TsDeclInput): DeclHelperOutput {
   const root = input.repoRoot.replaceAll('\\', '/')
   const rel = (f: string): string => posix.relative(root, f.replaceAll('\\', '/'))
-  const isProject = (f: string): boolean => f.replaceAll('\\', '/').startsWith(`${root}/`) && !f.includes('/node_modules/') && input.isOrigin(rel(f))
+  const isProject = (f: string): boolean => isProjectPath(root, f) && input.isOrigin(rel(f))
   const checker = input.project.program.getTypeChecker()
   const decls: Decl[] = []
   const nodes: { node: ts.Node; sf: ts.SourceFile; kind: string; owner?: number }[] = []

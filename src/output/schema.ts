@@ -129,7 +129,7 @@ export const SignalsSchema = z
   .strict()
 
 export const UnresolvedImportSchema = z
-  .object({ file: path, specifier: z.string(), line, reason: z.enum(['not-found', 'non-literal']), target: path.optional() })
+  .object({ file: path, specifier: z.string(), line, reason: z.enum(['not-found', 'non-literal']), target: path.optional(), packages: z.array(z.string()).optional() })
   .strict()
 
 export const DynamicRouteSchema = z.object({ file: path, line, detail: z.string() }).strict()
