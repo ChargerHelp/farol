@@ -29,6 +29,31 @@ describe('findSuppressions', () => {
     ])
   })
 
+  it('finds Biome suppression comments, except the range end and formatter or assist ignores', () => {
+    const code = [
+      '// biome-ignore-all lint: generated',
+      '// biome-ignore lint/suspicious/noDoubleEquals: legacy',
+      '// biome-ignore-start lint/style: reason',
+      '// biome-ignore-end lint/style: reason',
+      '// biome-ignore lint/suspicious/noDebugger',
+      '// biome-ignore format: aligned',
+      '// biome-ignore assist/source/organizeImports: order',
+      '// biome-ignored lint: x',
+      '// biome-ignore syntax: legacy parser',
+      '// biome-ignore-all format: generated',
+      '// biome-ignore-start assist/source/organizeImports: order',
+      '// biome-ignore',
+    ].join('\n')
+    expect(findSuppressions('a.ts', code, all(code)).map((i) => [i.line, i.kind])).toEqual([
+      [1, 'biome-ignore-all'],
+      [2, 'biome-ignore'],
+      [3, 'biome-ignore-start'],
+      [5, 'biome-ignore'],
+      [9, 'biome-ignore'],
+      [12, 'biome-ignore'],
+    ])
+  })
+
   it('ignores the same sequences inside strings, templates and JSX text', () => {
     const code = [
       "const s = '// eslint-disable-next-line'",

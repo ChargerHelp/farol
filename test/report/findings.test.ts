@@ -39,6 +39,16 @@ describe('key findings', () => {
     expect(summary(golden('signals-suppressions'))).toContainEqual(['medium', '3 added suppressions'])
   })
 
+  it('rates file-wide and range Biome ignores high and next-line ones medium', () => {
+    const base = golden('signals-suppressions')
+    const withKind = (...kinds: string[]): Output =>
+      OutputSchema.parse({ ...base, signals: { ...base.signals, suppressions: { status: 'ok', items: kinds.map((kind, i) => ({ path: 'src/lib/unsafe.ts', line: i + 1, kind, text: `// ${kind} lint: x` })) } } })
+    expect(summary(withKind('biome-ignore-all'))).toContainEqual(['high', '1 added suppression'])
+    expect(summary(withKind('biome-ignore-start'))).toContainEqual(['high', '1 added suppression'])
+    expect(summary(withKind('biome-ignore'))).toContainEqual(['medium', '1 added suppression'])
+    expect(summary(withKind('biome-ignore', 'biome-ignore-start'))).toContainEqual(['high', '2 added suppressions'])
+  })
+
   it('marks signals without reports as not verified and isolated PRs as such', () => {
     const iso = summary(golden('01-new-route'))
     expect(iso).toEqual([

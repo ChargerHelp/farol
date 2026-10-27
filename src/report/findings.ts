@@ -1,6 +1,6 @@
 import { REASONS, type ReasonCode } from '../classify/reasons.js'
 import { sortedUnique } from '../output/order.js'
-import type { Output } from '../output/schema.js'
+import type { Output, SuppressionKind } from '../output/schema.js'
 import { FINDINGS_TEXT as F, terms } from './strings.js'
 
 export type Severity = 'high' | 'medium' | 'low'
@@ -20,6 +20,9 @@ export const COVERAGE_HIGH = 0.5
 export const COVERAGE_MEDIUM = 0.8
 
 const RANK: Record<Severity, number> = { high: 0, medium: 1, low: 2 }
+
+/** Suppressions that switch checks off for a whole file, a block or a range, or every type error of a line: high. */
+const STRONG_SUPPRESSIONS: ReadonlySet<SuppressionKind> = new Set<SuppressionKind>(['ts-nocheck', 'eslint-disable', 'ts-ignore', 'biome-ignore-all', 'biome-ignore-start'])
 
 function filesOf(output: Output, ...codes: ReasonCode[]): string[] {
   return sortedUnique(output.reasons.filter((r) => codes.includes(r.code) && r.file !== undefined).map((r) => r.file ?? ''))
@@ -99,7 +102,7 @@ function signalFindings(o: Output, out: Finding[]): void {
 
   const sup = o.signals.suppressions
   if (sup.items.length > 0) {
-    const strong = sup.items.some((i) => i.kind === 'ts-nocheck' || i.kind === 'eslint-disable' || i.kind === 'ts-ignore')
+    const strong = sup.items.some((i) => STRONG_SUPPRESSIONS.has(i.kind))
     out.push({
       severity: strong ? 'high' : 'medium',
       title: F.suppressions(sup.items.length),

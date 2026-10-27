@@ -238284,7 +238284,7 @@ var LintSignalSchema = external_exports.object({
   findings: external_exports.array(LintFindingSchema).max(50),
   omittedFindings: count
 }).strict();
-var SUPPRESSION_KINDS = ["eslint-disable", "eslint-disable-line", "eslint-disable-next-line", "ts-ignore", "ts-expect-error", "ts-nocheck", "as-any", "any-annotation", "nolint", "lint-ignore", "nosec", "noqa", "type-ignore", "no-cover", "pyright-ignore", "pylint-disable"];
+var SUPPRESSION_KINDS = ["eslint-disable", "eslint-disable-line", "eslint-disable-next-line", "ts-ignore", "ts-expect-error", "ts-nocheck", "biome-ignore", "biome-ignore-all", "biome-ignore-start", "as-any", "any-annotation", "nolint", "lint-ignore", "nosec", "noqa", "type-ignore", "no-cover", "pyright-ignore", "pylint-disable"];
 var SuppressionsSignalSchema = external_exports.object({
   status,
   message: external_exports.string().optional(),
@@ -239351,8 +239351,13 @@ var DIRECTIVES2 = [
   ["eslint-disable", "eslint-disable"],
   ["@ts-expect-error", "ts-expect-error"],
   ["@ts-ignore", "ts-ignore"],
-  ["@ts-nocheck", "ts-nocheck"]
+  ["@ts-nocheck", "ts-nocheck"],
+  // `biome-ignore-end` closes a range and is not reported: the range counts once, at `biome-ignore-start`.
+  ["biome-ignore", "biome-ignore"],
+  ["biome-ignore-all", "biome-ignore-all"],
+  ["biome-ignore-start", "biome-ignore-start"]
 ];
+var BIOME_STYLE_CATEGORIES = /* @__PURE__ */ new Set(["format", "assist"]);
 function commentBody(comment) {
   let body = comment.startsWith("//") ? comment.slice(2) : comment.slice(2, -2);
   body = body.trimStart();
@@ -239364,7 +239369,10 @@ function directiveOf(comment) {
   for (const [prefix, kind] of DIRECTIVES2) {
     if (!body.startsWith(prefix)) continue;
     const next = body.charAt(prefix.length);
-    if (next === "" || !/[A-Za-z0-9-]/.test(next)) return kind;
+    if (next !== "" && /[A-Za-z0-9-]/.test(next)) continue;
+    const category = body.slice(prefix.length).trimStart().split(/[/:\s]/, 1)[0] ?? "";
+    if (prefix.startsWith("biome-") && BIOME_STYLE_CATEGORIES.has(category)) return void 0;
+    return kind;
   }
   return void 0;
 }
