@@ -239370,8 +239370,8 @@ function directiveOf(comment) {
     if (!body.startsWith(prefix)) continue;
     const next = body.charAt(prefix.length);
     if (next !== "" && /[A-Za-z0-9-]/.test(next)) continue;
-    const category = body.slice(prefix.length).trimStart().split(/[/:\s]/, 1)[0] ?? "";
-    if (prefix.startsWith("biome-") && BIOME_STYLE_CATEGORIES.has(category)) return void 0;
+    const categories = (body.slice(prefix.length).split(":", 1)[0] ?? "").split(/\s+/).filter((c) => c !== "").map((c) => c.split(/[/(]/, 1)[0] ?? "");
+    if (prefix.startsWith("biome-") && categories.length > 0 && categories.every((c) => BIOME_STYLE_CATEGORIES.has(c))) return void 0;
     return kind;
   }
   return void 0;

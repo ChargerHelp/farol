@@ -43,6 +43,9 @@ describe('findSuppressions', () => {
       '// biome-ignore-all format: generated',
       '// biome-ignore-start assist/source/organizeImports: order',
       '// biome-ignore',
+      '// biome-ignore format lint/suspicious/noDoubleEquals: two categories',
+      '// biome-ignore-all assist lint: generated',
+      '// biome-ignore format assist: style only',
     ].join('\n')
     expect(findSuppressions('a.ts', code, all(code)).map((i) => [i.line, i.kind])).toEqual([
       [1, 'biome-ignore-all'],
@@ -51,6 +54,8 @@ describe('findSuppressions', () => {
       [5, 'biome-ignore'],
       [9, 'biome-ignore'],
       [12, 'biome-ignore'],
+      [13, 'biome-ignore'],
+      [14, 'biome-ignore-all'],
     ])
   })
 

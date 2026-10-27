@@ -49,8 +49,9 @@ function directiveOf(comment: string): SuppressionKind | undefined {
     const next = body.charAt(prefix.length)
     // `eslint-disable-line` must not match `eslint-disable-lines`; any separator (space, colon, end) is fine.
     if (next !== '' && /[A-Za-z0-9-]/.test(next)) continue
-    const category = body.slice(prefix.length).trimStart().split(/[/:\s]/, 1)[0] ?? ''
-    if (prefix.startsWith('biome-') && BIOME_STYLE_CATEGORIES.has(category)) return undefined
+    // Biome reads every space-separated category before the `:`: skip only when all of them are style categories.
+    const categories = (body.slice(prefix.length).split(':', 1)[0] ?? '').split(/\s+/).filter((c) => c !== '').map((c) => c.split(/[/(]/, 1)[0] ?? '')
+    if (prefix.startsWith('biome-') && categories.length > 0 && categories.every((c) => BIOME_STYLE_CATEGORIES.has(c))) return undefined
     return kind
   }
   return undefined
