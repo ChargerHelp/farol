@@ -3,19 +3,11 @@ import type { ChangedFile } from '../git/types.js'
 import { compareStrings } from '../output/order.js'
 import type { SecurityFinding, SuppressionsSignal } from '../output/schema.js'
 import type { Advisory } from './audit.js'
-import { ReportError } from './coverage.js'
+import { parseJson, ReportError } from './coverage.js'
 import type { LintMessage } from './lint.js'
 import { reportPathToRepo } from './paths.js'
 
 type Statements = { start: number; end: number; count: number }[]
-
-function json(text: string, label: string): unknown {
-  try {
-    return JSON.parse(text)
-  } catch (error) {
-    throw new ReportError(`the ${label} report is not valid JSON (${error instanceof Error ? error.message : String(error)})`)
-  }
-}
 
 const CoveragePy = z.object({
   meta: z.object({}).loose(),
@@ -29,7 +21,7 @@ export function isCoveragePyReport(text: string): boolean {
 
 /** coverage.py JSON: executed lines are covered statements, missing lines uncovered ones. */
 export function parseCoveragePyReport(text: string, repoRoot: string, projectPrefix: string, canonical?: (path: string) => string): Map<string, Statements> {
-  const parsed = CoveragePy.safeParse(json(text, 'coverage'))
+  const parsed = CoveragePy.safeParse(parseJson(text, 'coverage'))
   if (!parsed.success) throw new ReportError('the coverage report is not coverage.py JSON (coverage json)')
   const result = new Map<string, Statements>()
   for (const [file, entry] of Object.entries(parsed.data.files)) {
@@ -52,7 +44,7 @@ const RUFF_HIGH = new Set(['S105', 'S106', 'S107', 'S301', 'S307', 'S501', 'S602
 
 /** ruff findings as lint messages; flake8-bandit (S…) findings are security findings too. */
 export function parseRuffReport(text: string, repoRoot: string, projectPrefix: string, canonical?: (path: string) => string): { messages: LintMessage[]; sast: Omit<SecurityFinding, 'text'>[] } {
-  const parsed = Ruff.safeParse(json(text, 'ruff'))
+  const parsed = Ruff.safeParse(parseJson(text, 'ruff'))
   if (!parsed.success) throw new ReportError('the lint report is not ruff JSON output (ruff check --output-format json)')
   const messages: LintMessage[] = []
   const sast: Omit<SecurityFinding, 'text'>[] = []
@@ -76,7 +68,7 @@ export function isPipAuditReport(text: string): boolean {
 
 /** pip-audit findings as advisories (pip-audit gives no severity: every advisory counts as moderate). */
 export function parsePipAuditReport(text: string): { advisories: Advisory[]; dependsOn: Map<string, string[]> } {
-  const parsed = PipAudit.safeParse(json(text, 'pip-audit'))
+  const parsed = PipAudit.safeParse(parseJson(text, 'pip-audit'))
   if (!parsed.success) throw new ReportError('the audit report is not pip-audit JSON output (pip-audit --format json)')
   const advisories: Advisory[] = []
   const seen = new Set<string>()

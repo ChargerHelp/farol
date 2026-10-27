@@ -118,13 +118,28 @@ untested.
 
 | | Coverage (`--coverage`) | Lint and security (`--eslint`) | Vulnerabilities (`--audit`) |
 |---|---|---|---|
-| TypeScript | Istanbul `coverage-final.json` (Vitest, Jest) | `eslint -f json` | `npm audit --json`, `pnpm audit --json` |
+| TypeScript | Istanbul `coverage-final.json` (Vitest, Jest) | `eslint -f json` or `biome lint --reporter=gitlab` | `npm audit --json`, `pnpm audit --json` |
 | Go | `go test -coverprofile` | golangci-lint JSON (gosec for security) | `govulncheck -json` |
 | Python | coverage.py JSON (`pytest --cov`) | ruff JSON (`S` rules = flake8-bandit) | `pip-audit --format json` |
 
 The `--eslint` flag takes whichever lint report fits the language: farol recognizes each format by its content.
 TypeScript also gets built-in security rules (XSS sinks, `eval`, hard-coded secrets, `javascript:` URLs…) without
 any report.
+
+Biome writes paths relative to the folder it runs in, so run it in the project directory
+(`(cd <project> && biome lint --reporter=gitlab .) > reports/biome.json`). Rules:
+
+- Send only stdout to the file (never `2>&1`): the summary goes to stderr.
+- Write the report outside the folder Biome lints, or ignore it: Biome lints its own empty output file and adds a
+  parse error.
+- Do not use `--fix`, `--verbose` (it keeps only verbose diagnostics) or `biome ci` (it adds formatter findings).
+- Biome `blocker` and `critical` findings (errors, parse errors) are lint errors; `major`, `minor` and `info` are
+  warnings.
+- Biome security rules stay lint findings: the built-in rules already check the same patterns.
+- A report run from another folder (the repository root or a parent folder) gives lint status `error`, naming the
+  first wrong path.
+- An empty report (`[]`) reads as clean: the format lists findings, not the files Biome linted, so farol cannot see
+  whether Biome linted the changed files.
 
 Configure Vitest coverage with `include: ['src/**/*.{ts,tsx}']`, so files no test imports are reported too.
 Otherwise a new untested file shows as *missing from the report*.

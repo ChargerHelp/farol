@@ -1,0 +1,74 @@
+[
+  {
+    "description": "Assigning a function parameter is confusing.",
+    "check_name": "lint/style/noParameterAssign",
+    "fingerprint": "16677940086070962120",
+    "severity": "minor",
+    "location": {
+      "path": "src/seed/findings.ts",
+      "lines": {
+        "begin": 4
+      }
+    }
+  },
+  {
+    "description": "Using == may be unsafe if you are relying on type coercion.",
+    "check_name": "lint/suspicious/noDoubleEquals",
+    "fingerprint": "17027791927462318624",
+    "severity": "major",
+    "location": {
+      "path": "src/seed/findings.ts",
+      "lines": {
+        "begin": 8
+      }
+    }
+  },
+  {
+    "description": "Avoid passing content using the dangerouslySetInnerHTML prop.",
+    "check_name": "lint/security/noDangerouslySetInnerHtml",
+    "fingerprint": "10270799229390261641",
+    "severity": "major",
+    "location": {
+      "path": "src/seed/view.tsx",
+      "lines": {
+        "begin": 5
+      }
+    }
+  },
+  {
+    "description": "This variable unused is unused.",
+    "check_name": "lint/correctness/noUnusedVariables",
+    "fingerprint": "6847282578202745713",
+    "severity": "critical",
+    "location": {
+      "path": "src/seed/findings.ts",
+      "lines": {
+        "begin": 3
+      }
+    }
+  },
+  {
+    "description": "eval() exposes to security risks and performance issues.",
+    "check_name": "lint/security/noGlobalEval",
+    "fingerprint": "14946637740548048713",
+    "severity": "critical",
+    "location": {
+      "path": "src/seed/findings.ts",
+      "lines": {
+        "begin": 7
+      }
+    }
+  },
+  {
+    "description": "Avoid using target=\"_blank\" without rel=\"noopener\" or rel=\"noreferrer\".",
+    "check_name": "lint/security/noBlankTarget",
+    "fingerprint": "7647368382208525222",
+    "severity": "critical",
+    "location": {
+      "path": "src/seed/view.tsx",
+      "lines": {
+        "begin": 4
+      }
+    }
+  }
+]

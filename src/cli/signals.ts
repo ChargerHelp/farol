@@ -4,6 +4,7 @@ import type { ChangedFile } from '../git/types.js'
 import type { CoverageSignal, LintSignal, SecurityFinding, SecuritySignal, Signals, VulnerabilitiesSignal } from '../output/schema.js'
 import { compareStrings } from '../output/order.js'
 import { isCoveragePyReport, isPipAuditReport, isRuffReport, parseCoveragePyReport, parsePipAuditReport, parseRuffReport, pythonSuppressions } from '../signals/python.js'
+import { isBiomeReport, parseBiomeReport } from '../signals/biome.js'
 import { goSuppressions, isGolangciReport, isGovulncheckReport, parseGoCoverProfile, parseGolangciReport, parseGovulncheckReport } from '../signals/go.js'
 import { coverageSignal, parseCoverageReport, ReportError } from '../signals/coverage.js'
 import { coverageNotProvided, lintNotProvided, vulnerabilitiesNotProvided } from '../signals/index.js'
@@ -102,19 +103,23 @@ export function computeSignals(ctx: Context, inputs: SignalInputs): Signals {
   }
 
   let lint: LintSignal
-  let gosec: Omit<SecurityFinding, 'text'>[] | undefined
-  const es = readReport(inputs.eslint, inputs.lang ? (inputs.lang.language === 'go' ? 'golangci-lint' : 'ruff') : 'ESLint', 'eslint')
+  let sast: Omit<SecurityFinding, 'text'>[] | undefined
+  const es = readReport(inputs.eslint, inputs.lang ? (inputs.lang.language === 'go' ? 'golangci-lint' : 'ruff') : 'ESLint or Biome', 'eslint')
   if (es.kind === 'missing') lint = lintNotProvided(es.message)
   else if (es.kind === 'error') lint = { ...lintNotProvided(es.message), status: 'error' }
   else {
     try {
-      if (isGolangciReport(es.text)) {
+      // Biome first: a GitLab report also has "location", so a "filename" text anywhere in it would match ruff.
+      if (isBiomeReport(es.text)) {
+        const head = { changed: inputs.files.map((f) => f.path), exists: (path: string) => inputs.readHead(path) !== undefined }
+        lint = lintSignal(parseBiomeReport(es.text, ctx.repoRoot, ctx.projectPrefix, head, canonical), inputs.files)
+      } else if (isGolangciReport(es.text)) {
         const parsed = parseGolangciReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical)
-        gosec = parsed.gosec
+        sast = parsed.gosec
         lint = lintSignal(parsed.messages, inputs.files)
       } else if (isRuffReport(es.text)) {
         const parsed = parseRuffReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical)
-        gosec = parsed.sast
+        sast = parsed.sast
         lint = lintSignal(parsed.messages, inputs.files)
       } else lint = lintSignal(parseEslintReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical), inputs.files)
     } catch (error) {
@@ -147,7 +152,7 @@ export function computeSignals(ctx: Context, inputs: SignalInputs): Signals {
   if (inputs.lang) {
     const own = inputs.lang.language === 'go' ? goSuppressions(inputs.files, inputs.lang.comments) : pythonSuppressions(inputs.files, inputs.lang.comments)
     suppressions.items = [...suppressions.items, ...own].sort((a, b) => compareStrings(a.path, b.path) || a.line - b.line)
-    security = langSecurity(security, gosec, inputs.files, inputs.readHead, notCode, inputs.lang.language)
+    security = langSecurity(security, sast, inputs.files, inputs.readHead, notCode, inputs.lang.language)
   }
   return { coverage, lint, security, vulnerabilities, suppressions, testsModified: testsModifiedSignal(inputs.files, inputs.roleOf) }
 }

@@ -135,7 +135,7 @@
     },
     "lint": {
       "status": "not-provided",
-      "message": "no ESLint report given (--eslint or signals.eslint)",
+      "message": "no ESLint or Biome report given (--eslint or signals.eslint)",
       "changedLines": null,
       "otherLines": null,
       "findings": [],

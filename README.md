@@ -188,6 +188,8 @@ React Router route tables (object and JSX forms, lazy routes, split route module
 ```sh
 npx vitest run --coverage.enabled --coverage.reporter=json --coverage.reportsDirectory=reports/coverage
 npx eslint -f json -o reports/eslint.json <changed files>
+# or, with Biome (run it in the project directory; stdout only, no --verbose; the report outside what Biome lints):
+# (cd <project> && npx biome lint --reporter=gitlab .) > reports/biome.json || true
 npm audit --json > reports/audit.json                     # or pnpm audit --json
 
 npx @winninjs/farol analyze --base origin/main --head HEAD \
@@ -319,7 +321,7 @@ matching rules are in the [reference](docs/reference.md#traffic-and-errors-from-
 | **Contract changes** | — | GraphQL schema (breaking / dangerous / safe) | Handler request and response types (net/http, chi, gin, echo); gRPC messages | FastAPI parameters, body, response and Pydantic models |
 | **Dependencies** | `package.json` + npm/pnpm/yarn/bun lockfiles | same | `go.mod` + `go.sum` | `pyproject.toml` (PEP 621, extras, groups, uv, Poetry), `requirements.txt` + `uv.lock`/`poetry.lock`/`Pipfile.lock` |
 | **Diff coverage** | Istanbul `coverage-final.json` (Vitest, Jest) | same | `go test -coverprofile` | coverage.py JSON (`pytest --cov`) |
-| **Lint** | `eslint -f json` | same | golangci-lint JSON | ruff JSON |
+| **Lint** | `eslint -f json` or `biome lint --reporter=gitlab` | same | golangci-lint JSON | ruff JSON |
 | **Security** | built-in rules (XSS sinks, `eval`, hard-coded secrets, `javascript:` URLs…) | same | gosec (through golangci-lint) | flake8-bandit (ruff `S` rules) |
 | **Vulnerabilities** | `npm audit --json`, `pnpm audit --json` | same | `govulncheck -json` | `pip-audit --format json` |
 | **Suppressions** | `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `as any`… | same | `//nolint`, `//lint:ignore`, `#nosec` | `# noqa`, `# type: ignore`, `# nosec`, `# pragma: no cover`… |

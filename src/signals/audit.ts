@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { compareStrings } from '../output/order.js'
 import type { VulnerabilitiesSignal } from '../output/schema.js'
-import { ReportError } from './coverage.js'
+import { parseJson, ReportError } from './coverage.js'
 
 export const SEVERITIES = ['critical', 'high', 'moderate', 'low', 'info'] as const
 export type Severity = (typeof SEVERITIES)[number]
@@ -67,12 +67,7 @@ function idFromUrl(url: string | undefined): string | null {
 
 /** Parses npm (7+) or pnpm audit JSON into advisories. Throws ReportError for anything else. */
 export function parseAuditReport(text: string): { advisories: Advisory[]; dependsOn: Map<string, string[]> } {
-  let raw: unknown
-  try {
-    raw = JSON.parse(text)
-  } catch (error) {
-    throw new ReportError(`the audit report is not valid JSON (${error instanceof Error ? error.message : String(error)})`)
-  }
+  const raw = parseJson(text, 'audit')
   const npm = NpmV2.safeParse(raw)
   if (npm.success) {
     const advisories: Advisory[] = []

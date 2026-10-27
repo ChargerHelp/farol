@@ -245,7 +245,7 @@ never change the class.
   - Formats: Istanbul JSON, Go coverprofile (blocks of several test binaries merged), coverage.py JSON.
 - **Lint on changed lines:**
   - Findings on changed lines count; findings elsewhere are context. At most 50 are kept.
-  - Formats: ESLint JSON, golangci-lint JSON, ruff JSON.
+  - Formats: ESLint JSON, Biome GitLab JSON (`biome lint --reporter=gitlab`), golangci-lint JSON, ruff JSON.
 - **Added suppressions:**
   - TypeScript: computed with the scanner and the AST (`eslint-disable*`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `as any`, `: any`), so the same text in strings is ignored.
   - Go and Python: read from comments (`//nolint`, `//lint:ignore`, `#nosec`; `# noqa`, `# type: ignore`, `# nosec`, `# pragma: no cover`, `# pyright: ignore`, `# pylint: disable`).

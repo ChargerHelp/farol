@@ -4,7 +4,7 @@ import type { ChangedFile } from '../git/types.js'
 import { compareStrings } from '../output/order.js'
 import type { SecurityFinding, SuppressionsSignal } from '../output/schema.js'
 import type { Advisory } from './audit.js'
-import { ReportError } from './coverage.js'
+import { parseJson, ReportError } from './coverage.js'
 import type { LintMessage } from './lint.js'
 import { reportPathToRepo } from './paths.js'
 
@@ -50,12 +50,7 @@ const GOSEC_HIGH = new Set(['G101', 'G201', 'G202', 'G203', 'G204', 'G304', 'G40
 
 /** golangci-lint issues as lint messages, and gosec issues as security findings too. */
 export function parseGolangciReport(text: string, repoRoot: string, projectPrefix: string, canonical?: (path: string) => string): { messages: LintMessage[]; gosec: Omit<SecurityFinding, 'text'>[] } {
-  let raw: unknown
-  try {
-    raw = JSON.parse(text)
-  } catch (error) {
-    throw new ReportError(`the golangci-lint report is not valid JSON (${error instanceof Error ? error.message : String(error)})`)
-  }
+  const raw = parseJson(text, 'golangci-lint')
   const parsed = GolangciReport.safeParse(raw)
   if (!parsed.success) throw new ReportError('the lint report is not golangci-lint JSON output')
   const messages: LintMessage[] = []
