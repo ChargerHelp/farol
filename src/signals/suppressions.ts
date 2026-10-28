@@ -32,27 +32,51 @@ const DIRECTIVES: [string, SuppressionKind][] = [
   ['biome-ignore-start', 'biome-ignore-start'],
 ]
 
-/** Biome categories that switch no check off: the formatter and assists (such as sorting imports). */
-const BIOME_STYLE_CATEGORIES = new Set(['format', 'assist'])
+/** Biome categories that switch off no lint rule: the formatter and assists (such as sorting imports). */
+const BIOME_NON_LINT_CATEGORIES = new Set(['format', 'assist'])
+
+/** Leading spaces and `*` of a comment line. */
+function stripLead(text: string): string {
+  let rest = text.trimStart()
+  while (rest.startsWith('*')) rest = rest.slice(1).trimStart()
+  return rest
+}
 
 function commentBody(comment: string): string {
-  let body = comment.startsWith('//') ? comment.slice(2) : comment.slice(2, -2)
-  body = body.trimStart()
-  while (body.startsWith('*')) body = body.slice(1).trimStart()
-  return body
+  return stripLead(comment.startsWith('//') ? comment.slice(2) : comment.slice(2, -2))
+}
+
+/** Whether the text after a Biome directive names only formatter or assist categories (Biome reads every space-separated category before the `:`). */
+function biomeNonLintOnly(rest: string): boolean {
+  const categories = (rest.split(':', 1)[0] ?? '')
+    .split(/\s+/)
+    .filter((c) => c !== '')
+    .map((c) => c.split(/[/(]/, 1)[0] ?? '')
+  return categories.length > 0 && categories.every((c) => BIOME_NON_LINT_CATEGORIES.has(c))
+}
+
+/** The directive `text` starts with; `biomeOnly` limits it to Biome's. */
+function directiveAt(text: string, biomeOnly: boolean): SuppressionKind | undefined {
+  for (const [prefix, kind] of DIRECTIVES) {
+    const biome = prefix.startsWith('biome-')
+    if ((biomeOnly && !biome) || !text.startsWith(prefix)) continue
+    const next = text.charAt(prefix.length)
+    // `eslint-disable-line` must not match `eslint-disable-lines`; any separator (space, colon, end) is fine.
+    if (next !== '' && /[A-Za-z0-9-]/.test(next)) continue
+    if (biome && biomeNonLintOnly(text.slice(prefix.length))) return undefined
+    return kind
+  }
+  return undefined
 }
 
 function directiveOf(comment: string): SuppressionKind | undefined {
   const body = commentBody(comment)
-  for (const [prefix, kind] of DIRECTIVES) {
-    if (!body.startsWith(prefix)) continue
-    const next = body.charAt(prefix.length)
-    // `eslint-disable-line` must not match `eslint-disable-lines`; any separator (space, colon, end) is fine.
-    if (next !== '' && /[A-Za-z0-9-]/.test(next)) continue
-    // Biome reads every space-separated category before the `:`: skip only when all of them are style categories.
-    const categories = (body.slice(prefix.length).split(':', 1)[0] ?? '').split(/\s+/).filter((c) => c !== '').map((c) => c.split(/[/(]/, 1)[0] ?? '')
-    if (prefix.startsWith('biome-') && categories.length > 0 && categories.every((c) => BIOME_STYLE_CATEGORIES.has(c))) return undefined
-    return kind
+  const first = directiveAt(body, false)
+  if (first !== undefined || comment.startsWith('//')) return first
+  // Biome also reads a directive at the start of any later line of a block comment (after spaces and `*`).
+  for (const line of body.split('\n').slice(1)) {
+    const kind = directiveAt(stripLead(line), true)
+    if (kind !== undefined) return kind
   }
   return undefined
 }
@@ -88,6 +112,8 @@ export function findSuppressions(path: string, code: string, addedLines: Readonl
     for (const child of children) collect(child)
   }
   collect(sf)
+  // A JSDoc at the end of the file belongs to the end-of-file token, which then has children: read its comments too.
+  if (!leaves.includes(sf.endOfFileToken)) leaves.push(sf.endOfFileToken)
   const inText = (pos: number): boolean => textRanges.some(([start, end]) => pos >= start && pos < end)
   const seen = new Set<number>()
   for (const leaf of leaves) {

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { ChangedFile } from '../git/types.js'
 import { compareStrings } from '../output/order.js'
-import type { SecurityFinding, SuppressionsSignal } from '../output/schema.js'
+import type { SecurityFinding, SuppressionKind, SuppressionsSignal } from '../output/schema.js'
 import type { Advisory } from './audit.js'
 import { parseJson, ReportError } from './coverage.js'
 import type { LintMessage } from './lint.js'
@@ -97,7 +97,7 @@ export function normalizeName(name: string): string {
   return name.toLowerCase().replace(/[-_.]+/g, '-')
 }
 
-const DIRECTIVES: [RegExp, SuppressionsSignal['items'][number]['kind']][] = [
+const DIRECTIVES: [RegExp, SuppressionKind][] = [
   [/#\s*noqa\b/i, 'noqa'],
   [/#\s*type:\s*ignore\b/, 'type-ignore'],
   [/#\s*nosec\b/, 'nosec'],

@@ -22,7 +22,7 @@ export const COVERAGE_MEDIUM = 0.8
 const RANK: Record<Severity, number> = { high: 0, medium: 1, low: 2 }
 
 /** Suppressions that switch checks off for a whole file, a block or a range, or every type error of a line: high. */
-const STRONG_SUPPRESSIONS: ReadonlySet<SuppressionKind> = new Set<SuppressionKind>(['ts-nocheck', 'eslint-disable', 'ts-ignore', 'biome-ignore-all', 'biome-ignore-start'])
+const STRONG_SUPPRESSIONS: ReadonlySet<SuppressionKind> = new Set<SuppressionKind>(['ts-nocheck', 'eslint-disable', 'ts-ignore', 'biome-ignore-all', 'biome-ignore-start', 'type-ignore', 'pyright-ignore'])
 
 function filesOf(output: Output, ...codes: ReasonCode[]): string[] {
   return sortedUnique(output.reasons.filter((r) => codes.includes(r.code) && r.file !== undefined).map((r) => r.file ?? ''))

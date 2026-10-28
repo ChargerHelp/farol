@@ -49,6 +49,15 @@ describe('key findings', () => {
     expect(summary(withKind('biome-ignore', 'biome-ignore-start'))).toContainEqual(['high', '2 added suppressions'])
   })
 
+  it('rates Python line-wide type ignores high, like @ts-ignore', () => {
+    const base = golden('signals-suppressions')
+    const withKind = (kind: string): Output =>
+      OutputSchema.parse({ ...base, signals: { ...base.signals, suppressions: { status: 'ok', items: [{ path: 'app/a.py', line: 1, kind, text: 'x = 1  # ignore' }] } } })
+    expect(summary(withKind('type-ignore'))).toContainEqual(['high', '1 added suppression'])
+    expect(summary(withKind('pyright-ignore'))).toContainEqual(['high', '1 added suppression'])
+    expect(summary(withKind('noqa'))).toContainEqual(['medium', '1 added suppression'])
+  })
+
   it('marks signals without reports as not verified and isolated PRs as such', () => {
     const iso = summary(golden('01-new-route'))
     expect(iso).toEqual([

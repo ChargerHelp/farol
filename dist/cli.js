@@ -239357,22 +239357,37 @@ var DIRECTIVES2 = [
   ["biome-ignore-all", "biome-ignore-all"],
   ["biome-ignore-start", "biome-ignore-start"]
 ];
-var BIOME_STYLE_CATEGORIES = /* @__PURE__ */ new Set(["format", "assist"]);
+var BIOME_NON_LINT_CATEGORIES = /* @__PURE__ */ new Set(["format", "assist"]);
+function stripLead(text) {
+  let rest = text.trimStart();
+  while (rest.startsWith("*")) rest = rest.slice(1).trimStart();
+  return rest;
+}
 function commentBody(comment) {
-  let body = comment.startsWith("//") ? comment.slice(2) : comment.slice(2, -2);
-  body = body.trimStart();
-  while (body.startsWith("*")) body = body.slice(1).trimStart();
-  return body;
+  return stripLead(comment.startsWith("//") ? comment.slice(2) : comment.slice(2, -2));
+}
+function biomeNonLintOnly(rest) {
+  const categories = (rest.split(":", 1)[0] ?? "").split(/\s+/).filter((c) => c !== "").map((c) => c.split(/[/(]/, 1)[0] ?? "");
+  return categories.length > 0 && categories.every((c) => BIOME_NON_LINT_CATEGORIES.has(c));
+}
+function directiveAt(text, biomeOnly) {
+  for (const [prefix, kind] of DIRECTIVES2) {
+    const biome = prefix.startsWith("biome-");
+    if (biomeOnly && !biome || !text.startsWith(prefix)) continue;
+    const next = text.charAt(prefix.length);
+    if (next !== "" && /[A-Za-z0-9-]/.test(next)) continue;
+    if (biome && biomeNonLintOnly(text.slice(prefix.length))) return void 0;
+    return kind;
+  }
+  return void 0;
 }
 function directiveOf(comment) {
   const body = commentBody(comment);
-  for (const [prefix, kind] of DIRECTIVES2) {
-    if (!body.startsWith(prefix)) continue;
-    const next = body.charAt(prefix.length);
-    if (next !== "" && /[A-Za-z0-9-]/.test(next)) continue;
-    const categories = (body.slice(prefix.length).split(":", 1)[0] ?? "").split(/\s+/).filter((c) => c !== "").map((c) => c.split(/[/(]/, 1)[0] ?? "");
-    if (prefix.startsWith("biome-") && categories.length > 0 && categories.every((c) => BIOME_STYLE_CATEGORIES.has(c))) return void 0;
-    return kind;
+  const first = directiveAt(body, false);
+  if (first !== void 0 || comment.startsWith("//")) return first;
+  for (const line3 of body.split("\n").slice(1)) {
+    const kind = directiveAt(stripLead(line3), true);
+    if (kind !== void 0) return kind;
   }
   return void 0;
 }
@@ -239401,6 +239416,7 @@ function findSuppressions(path3, code2, addedLines) {
     for (const child of children) collect(child);
   };
   collect(sf);
+  if (!leaves.includes(sf.endOfFileToken)) leaves.push(sf.endOfFileToken);
   const inText = (pos) => textRanges.some(([start, end]) => pos >= start && pos < end);
   const seen = /* @__PURE__ */ new Set();
   for (const leaf of leaves) {
