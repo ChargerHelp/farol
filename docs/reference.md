@@ -141,6 +141,12 @@ Biome writes paths relative to the folder it runs in, so run it in the project d
 - An empty report (`[]`) reads as clean: the format lists findings, not the files Biome linted, so farol cannot see
   whether Biome linted the changed files.
 
+golangci-lint writes paths relative to its configuration file by default (`run.relative-path-mode: cfg`), so pass
+`--path-mode=abs` (or, when golangci-lint runs in another checkout folder such as a container, set
+`run.relative-path-mode: gomod` in `.golangci.yml`). A report whose paths start at another folder, such as the repository root of a monorepo, gives
+lint status `error`, naming the first wrong path and the flag. So does a report of a run that failed (golangci-lint
+writes the reason in `Report.Error`, with no issues).
+
 Configure Vitest coverage with `include: ['src/**/*.{ts,tsx}']`, so files no test imports are reported too.
 Otherwise a new untested file shows as *missing from the report*.
 

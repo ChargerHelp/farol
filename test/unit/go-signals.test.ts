@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { ChangedFile } from '../../src/git/types.js'
 import { goSuppressions, isGolangciReport, parseGoCoverProfile, parseGolangciReport, parseGovulncheckReport } from '../../src/signals/go.js'
+import { reportHead as head } from '../helpers/report-head.js'
+
+const golangci = (...filenames: string[]): string => JSON.stringify({ Issues: filenames.map((Filename, i) => ({ FromLinter: 'errcheck', Text: 'Error return value is not checked', Pos: { Filename, Line: i + 1 } })) })
 
 const changed = (path: string, lines: number[]): ChangedFile => ({ path, status: 'modified', added: lines.map((line) => ({ line, text: '' })), removed: [] }) as unknown as ChangedFile
 
@@ -19,12 +22,35 @@ describe('Go reports', () => {
   it('reads golangci-lint JSON, keeping gosec issues as security findings', () => {
     const text = JSON.stringify({ Issues: [{ FromLinter: 'errcheck', Text: 'Error return value is not checked', Pos: { Filename: 'internal/a.go', Line: 4 } }, { FromLinter: 'gosec', Text: 'G101: Potential hardcoded credentials', Pos: { Filename: 'internal/a.go', Line: 9 } }] })
     expect(isGolangciReport(text)).toBe(true)
-    const { messages, sast } = parseGolangciReport(text, '/repo', '')
+    const { messages, sast } = parseGolangciReport(text, '/repo', '', head(['internal/a.go']))
     expect(messages.map((m) => [m.path, m.line, m.rule, m.severity])).toEqual([
       ['internal/a.go', 4, 'errcheck', 'error'],
       ['internal/a.go', 9, 'gosec', 'error'],
     ])
     expect(sast).toEqual([{ path: 'internal/a.go', line: 9, rule: 'gosec', severity: 'high', message: 'G101: Potential hardcoded credentials' }])
+  })
+
+  it('rejects a golangci-lint report whose paths start at another folder, naming the flag that fixes it', () => {
+    const api = head(['services/api/internal/a.go'])
+    // The configuration file at the repository root, or in services/: paths follow its folder.
+    for (const path of ['services/api/internal/a.go', 'api/internal/a.go']) {
+      expect(() => parseGolangciReport(golangci('internal/b.go', path), '/repo', 'services/api', api)).toThrow(`the golangci-lint report path ${path} is not relative to the project directory: run golangci-lint with --path-mode=abs`)
+    }
+  })
+
+  it('reads absolute golangci-lint paths (--path-mode=abs)', () => {
+    const api = head(['services/api/internal/a.go'])
+    expect(parseGolangciReport(golangci('/repo/services/api/internal/a.go'), '/repo', 'services/api', api).messages.map((m) => m.path)).toEqual(['services/api/internal/a.go'])
+  })
+
+  it('rejects a golangci-lint report of a run that failed, naming its error', () => {
+    // What golangci-lint v2.13.2 writes when it cannot load the packages (here a pattern naming no folder).
+    const text = JSON.stringify({ Issues: [], Report: { Error: 'typechecking error: pattern ./nope/...: lstat ./nope/: no such file or directory' } })
+    expect(() => parseGolangciReport(text, '/repo', '', head([]))).toThrow('golangci-lint did not finish: typechecking error: pattern ./nope/...: lstat ./nope/: no such file or directory')
+  })
+
+  it('reads a golangci-lint report without issues as no findings', () => {
+    expect(parseGolangciReport(JSON.stringify({ Issues: null }), '/repo', 'services/api', head(['services/api/internal/a.go'])).messages).toEqual([])
   })
 
   it('reads govulncheck JSON: called code is high, imported packages moderate', () => {

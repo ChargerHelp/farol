@@ -26,7 +26,7 @@ export interface SignalInputs {
   eslint: string | undefined
   /** Head content of a repo-relative file. */
   readHead: (path: string) => string | undefined
-  /** Whether a repo-relative path is a file of the head commit (Go and Python projects: of the changed files only). */
+  /** Whether a repo-relative path is a file of the head commit. */
   headExists: (path: string) => boolean
   /** Whether a changed file is left out of coverage only. */
   coverageIgnored: (path: string) => boolean
@@ -112,11 +112,11 @@ export function computeSignals(ctx: Context, inputs: SignalInputs): Signals {
   else {
     try {
       // Biome first: a GitLab report also has "location", so a "filename" text anywhere in it would match ruff.
+      const head = { changed: inputs.files.map((f) => f.path), exists: inputs.headExists }
       if (isBiomeReport(es.text)) {
-        const head = { changed: inputs.files.map((f) => f.path), exists: inputs.headExists }
         lint = lintSignal(parseBiomeReport(es.text, ctx.repoRoot, ctx.projectPrefix, head, canonical), inputs.files)
       } else if (isGolangciReport(es.text)) {
-        const parsed = parseGolangciReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical)
+        const parsed = parseGolangciReport(es.text, ctx.repoRoot, ctx.projectPrefix, head, canonical)
         sast = parsed.sast
         lint = lintSignal(parsed.messages, inputs.files)
       } else if (isRuffReport(es.text)) {

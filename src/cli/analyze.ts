@@ -228,8 +228,9 @@ export async function runAnalyze(ctx: Context, options: AnalyzeOptions, deps: An
       roleOf = createAnalysisRoleOf(ctx, langWs.graph.nodes)
       const { manifests, otherManifests } = await projectAndOtherManifests(ctx, files, roleOf, mb, meta.head.sha)
       const headContents = await readFiles(ctx.repoRoot, meta.head.sha, files.filter((f) => f.status !== 'deleted').map((f) => f.path))
+      const headFiles = new Set(await listFiles(ctx.repoRoot, meta.head.sha))
       readHead = (path) => headContents.get(path)
-      headExists = (path) => headContents.has(path)
+      headExists = (path) => headFiles.has(path)
       lang = { language: ctx.config.language, module: langWs.head.module, comments: langWs.head.comments }
       headRoutes = langWs.headRoutes
       const helperContracts = helperContractChanges(langWs.base, langWs.head)

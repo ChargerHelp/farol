@@ -238746,6 +238746,16 @@ function reportPathToRepo(raw, repoRoot2, projectPrefix, canonical2 = (x) => x) 
   }
   return posix7.normalize(posix7.join(projectPrefix, p));
 }
+function firstPathFromOtherFolder(paths, repoRoot2, projectPrefix, head, canonical2) {
+  const inProject = (path3) => projectPrefix === "" || path3.startsWith(`${projectPrefix}/`);
+  return paths.find((raw) => {
+    const asWritten = reportPathToRepo(raw, repoRoot2, "", canonical2);
+    const mapped = reportPathToRepo(raw, repoRoot2, projectPrefix, canonical2);
+    if (asWritten === void 0 || mapped === void 0) return false;
+    const namesChangedFile = head.changed.some((c) => c !== mapped && inProject(c) && (c === asWritten || c.endsWith(`/${asWritten}`)));
+    return namesChangedFile && !head.exists(mapped);
+  });
+}
 function toRanges(lines) {
   const ranges = [];
   for (const line3 of [...lines].sort((a, b) => a - b)) {
@@ -238935,16 +238945,8 @@ function parseBiomeReport(text, repoRoot2, projectPrefix, head, canonical2) {
     const where = issue2 === void 0 || issue2.path.length === 0 ? "(root)" : issue2.path.join(".");
     throw new ReportError(`the lint report is not Biome GitLab output (biome lint --reporter=gitlab): ${where}: ${issue2?.message ?? ""}`);
   }
-  const inProject = (path3) => projectPrefix === "" || path3.startsWith(`${projectPrefix}/`);
-  const writtenFromOtherFolder = (raw) => {
-    const asWritten = reportPathToRepo(raw, repoRoot2, "", canonical2);
-    const mapped = reportPathToRepo(raw, repoRoot2, projectPrefix, canonical2);
-    if (asWritten === void 0 || mapped === void 0) return false;
-    const namesChangedFile = head.changed.some((c) => c !== mapped && inProject(c) && (c === asWritten || c.endsWith(`/${asWritten}`)));
-    return namesChangedFile && !head.exists(mapped);
-  };
-  const wrong = parsed.data.find((f) => writtenFromOtherFolder(f.location.path));
-  if (wrong) throw new ReportError(`the Biome report path ${wrong.location.path} is not relative to the project directory: run biome in ${projectPrefix === "" ? "the repository root" : projectPrefix}`);
+  const wrong = firstPathFromOtherFolder(parsed.data.map((f) => f.location.path), repoRoot2, projectPrefix, head, canonical2);
+  if (wrong !== void 0) throw new ReportError(`the Biome report path ${wrong} is not relative to the project directory: run biome in ${projectPrefix === "" ? "the repository root" : projectPrefix}`);
   return parsed.data.map((f) => ({
     path: reportPathToRepo(f.location.path, repoRoot2, projectPrefix, canonical2) ?? f.location.path.replaceAll("\\", "/"),
     line: f.location.lines.begin,
@@ -238976,16 +238978,21 @@ function parseGoCoverProfile(text, module, projectPrefix) {
   return new Map([...blocks].map(([path3, b]) => [path3, [...b.values()]]));
 }
 var GolangciReport = external_exports.object({
-  Issues: external_exports.array(external_exports.object({ FromLinter: external_exports.string(), Text: external_exports.string(), Severity: external_exports.string().optional(), Pos: external_exports.object({ Filename: external_exports.string(), Line: external_exports.number().int() }).loose() }).loose()).nullable()
+  Issues: external_exports.array(external_exports.object({ FromLinter: external_exports.string(), Text: external_exports.string(), Severity: external_exports.string().optional(), Pos: external_exports.object({ Filename: external_exports.string(), Line: external_exports.number().int() }).loose() }).loose()).nullable(),
+  Report: external_exports.object({ Error: external_exports.string().optional() }).loose().optional()
 }).loose();
 function isGolangciReport(text) {
   return text.trimStart().startsWith("{") && text.includes('"Issues"');
 }
 var GOSEC_HIGH = /* @__PURE__ */ new Set(["G101", "G201", "G202", "G203", "G204", "G304", "G402"]);
-function parseGolangciReport(text, repoRoot2, projectPrefix, canonical2) {
+function parseGolangciReport(text, repoRoot2, projectPrefix, head, canonical2) {
   const raw = parseJson2(text, "golangci-lint");
   const parsed = GolangciReport.safeParse(raw);
   if (!parsed.success) throw new ReportError("the lint report is not golangci-lint JSON output");
+  const failed = parsed.data.Report?.Error;
+  if (failed !== void 0 && failed !== "") throw new ReportError(`golangci-lint did not finish: ${failed}`);
+  const wrong = firstPathFromOtherFolder((parsed.data.Issues ?? []).map((i) => i.Pos.Filename), repoRoot2, projectPrefix, head, canonical2);
+  if (wrong !== void 0) throw new ReportError(`the golangci-lint report path ${wrong} is not relative to the project directory: run golangci-lint with --path-mode=abs`);
   const messages = [];
   const sast = [];
   for (const issue2 of parsed.data.Issues ?? []) {
@@ -239747,11 +239754,11 @@ function computeSignals(ctx, inputs) {
   else if (es.kind === "error") lint = { ...lintNotProvided(es.message), status: "error" };
   else {
     try {
+      const head = { changed: inputs.files.map((f) => f.path), exists: inputs.headExists };
       if (isBiomeReport(es.text)) {
-        const head = { changed: inputs.files.map((f) => f.path), exists: inputs.headExists };
         lint = lintSignal(parseBiomeReport(es.text, ctx.repoRoot, ctx.projectPrefix, head, canonical), inputs.files);
       } else if (isGolangciReport(es.text)) {
-        const parsed = parseGolangciReport(es.text, ctx.repoRoot, ctx.projectPrefix, canonical);
+        const parsed = parseGolangciReport(es.text, ctx.repoRoot, ctx.projectPrefix, head, canonical);
         sast = parsed.sast;
         lint = lintSignal(parsed.messages, inputs.files);
       } else if (isRuffReport(es.text)) {
@@ -251647,8 +251654,9 @@ async function runAnalyze(ctx, options, deps) {
       roleOf = createAnalysisRoleOf(ctx, langWs.graph.nodes);
       const { manifests, otherManifests } = await projectAndOtherManifests(ctx, files, roleOf, mb, meta3.head.sha);
       const headContents = await readFiles(ctx.repoRoot, meta3.head.sha, files.filter((f) => f.status !== "deleted").map((f) => f.path));
+      const headFiles = new Set(await listFiles(ctx.repoRoot, meta3.head.sha));
       readHead = (path3) => headContents.get(path3);
-      headExists = (path3) => headContents.has(path3);
+      headExists = (path3) => headFiles.has(path3);
       lang = { language: ctx.config.language, module: langWs.head.module, comments: langWs.head.comments };
       headRoutes = langWs.headRoutes;
       const helperContracts = helperContractChanges(langWs.base, langWs.head);

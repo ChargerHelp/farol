@@ -143,7 +143,7 @@ Milestones from `docs/SPEC.md`. Each one is done only when its acceptance criter
 - Python entry points: FastAPI, Flask, Django, MCP (tools/resources/prompts), Celery, Temporal and `__main__` scripts.
 
 ### Go projects — done (first version)
-- `language: "go"`: Go helper (go-helper/, stdlib only) + `src/golang/`; chi and net/http routes and `main` binaries as entry points; declaration-level impact; go.mod/go.sum dependencies; coverprofile, golangci-lint (+gosec) and govulncheck reports; `//nolint`/`#nosec` suppressions. Scenarios g1–g7.
+- `language: "go"`: Go helper (go-helper/, stdlib only) + `src/golang/`; chi and net/http routes and `main` binaries as entry points; declaration-level impact; go.mod/go.sum dependencies; coverprofile, golangci-lint (+gosec; a report whose paths start at another folder gives lint `error`, CHA-14863) and govulncheck reports; `//nolint`/`#nosec` suppressions. Scenarios g1–g7.
 - Checked on a real Go PR (reach through a changed entity, diff coverage, lint, vulnerabilities). About 8 s per run.
 - Go entry points: chi, net/http, gin, echo, gRPC services and `main` binaries.
 
