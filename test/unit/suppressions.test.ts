@@ -59,6 +59,32 @@ describe('findSuppressions', () => {
     ])
   })
 
+  it('finds a Biome suppression on any line of a block comment', () => {
+    const code = [
+      '/**',
+      ' * biome-ignore format: aligned',
+      ' * biome-ignore lint/suspicious/noDebugger: legacy',
+      ' */',
+      'debugger',
+      '/**',
+      ' * Explains the next statement.',
+      ' * biome-ignore-all lint: generated',
+      ' */',
+      '/**',
+      ' * biome-ignore format: aligned',
+      ' */',
+    ].join('\n')
+    expect(findSuppressions('a.ts', code, all(code)).map((i) => [i.line, i.kind])).toEqual([
+      [1, 'biome-ignore'],
+      [6, 'biome-ignore-all'],
+    ])
+  })
+
+  it('finds a block comment at the end of the file', () => {
+    const code = ['export const a = 1', '/** @ts-nocheck */'].join('\n')
+    expect(findSuppressions('a.ts', code, all(code)).map((i) => [i.line, i.kind])).toEqual([[2, 'ts-nocheck']])
+  })
+
   it('ignores the same sequences inside strings, templates and JSX text', () => {
     const code = [
       "const s = '// eslint-disable-next-line'",
