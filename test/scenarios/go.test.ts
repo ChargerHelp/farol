@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import type { Output } from '../../src/output/schema.js'
 import { analyzeScenario, normalizeOutput } from '../helpers/analyze.js'
-import { createScenarioRepo, FIXTURES_DIR } from '../helpers/repo.js'
+import { createRepo, createScenarioRepo, FIXTURES_DIR } from '../helpers/repo.js'
 import { runCli } from '../helpers/cli.js'
 
 const cleanups: (() => void)[] = []
@@ -118,6 +118,35 @@ describe('Go scenarios', () => {
     expect(second.stderr.match(/read from the cache/g)).toHaveLength(2)
     expect(JSON.parse(second.stdout)).toMatchObject({ classification: (JSON.parse(first.stdout) as { classification: string }).classification })
     expect(runCli([...args, '--no-cache']).stderr).not.toContain('read from the cache')
+  }, 60_000)
+
+  it('reads a golangci-lint report from the project directory, and reports one whose paths start at the repository root as a lint error', () => {
+    // A Go project in services/api, with an unchanged main.go whose name ends the changed cmd/x/main.go.
+    const repo = createRepo()
+    cleanups.push(() => {
+      repo.cleanup()
+    })
+    const main = (body: string): string => `package main\n\nfunc main() {\n\t${body}\n}\n`
+    repo.write('services/api/farol.config.json', JSON.stringify({ language: 'go', surface: 'backend' }))
+    repo.write('services/api/go.mod', 'module example.com/api\n\ngo 1.22\n')
+    repo.write('services/api/main.go', main('println("api")'))
+    repo.write('services/api/cmd/x/main.go', main('println("x")'))
+    const base = repo.commit('base')
+    repo.git('checkout', '-q', '-b', 'feature')
+    repo.write('services/api/cmd/x/main.go', main('println("x2")'))
+    const head = repo.commit('head')
+    const lint = (...issues: [string, number][]): Output['signals']['lint'] => {
+      const report = join(repo.dir, 'golangci.json')
+      writeFileSync(report, JSON.stringify({ Issues: issues.map(([Filename, Line]) => ({ FromLinter: 'errcheck', Text: 'Error return value is not checked', Pos: { Filename, Line } })) }))
+      const result = runCli(['--cwd', join(repo.dir, 'services/api'), 'analyze', '--base', base, '--head', head, '--eslint', report, '--no-cache'])
+      expect(result.code).toBe(0)
+      return (JSON.parse(result.stdout) as Output).signals.lint
+    }
+    expect(lint(['cmd/x/main.go', 4], ['main.go', 3])).toMatchObject({ status: 'ok', changedLines: { errors: 1, warnings: 0 }, otherLines: { errors: 1, warnings: 0 } })
+    expect(lint(['services/api/cmd/x/main.go', 4])).toMatchObject({
+      status: 'error',
+      message: 'the golangci-lint report path services/api/cmd/x/main.go is not relative to the project directory: run golangci-lint with --path-mode=abs',
+    })
   }, 60_000)
 
   it('reads the routes of a server struct, with local constant prefixes and runtime paths', () => {

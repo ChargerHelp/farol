@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { type BiomeHead, isBiomeReport, parseBiomeReport } from '../../src/signals/biome.js'
+import { isBiomeReport, parseBiomeReport } from '../../src/signals/biome.js'
+import type { ReportHead } from '../../src/signals/paths.js'
 import { isRuffReport } from '../../src/signals/python.js'
 
 /** The head commit as the reader sees it: the changed files, and whether a path is a file. */
-const head = (changed: string[], other: string[] = []): BiomeHead => ({ changed, exists: (path) => [...changed, ...other].includes(path) })
+const head = (changed: string[], other: string[] = []): ReportHead => ({ changed, exists: (path) => [...changed, ...other].includes(path) })
 
 const entry = (checkName: string, severity: string, path: string, begin: number): Record<string, unknown> => ({
   description: `${checkName} found`,

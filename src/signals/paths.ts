@@ -22,6 +22,29 @@ export function reportPathToRepo(raw: string, repoRoot: string, projectPrefix: s
   return posix.normalize(posix.join(projectPrefix, p))
 }
 
+/** The head commit as a report reader needs it: the changed files (repo-relative) and whether a path is a file. */
+export interface ReportHead {
+  changed: readonly string[]
+  exists: (path: string) => boolean
+}
+
+/**
+ * The first report path written from another folder than the project directory: read from the project directory it
+ * names no head file, but read as written it names a changed file of the project (from the repository root, a parent
+ * or a child folder). Checking the head files keeps a project folder named like the project (`app/app/page.tsx`
+ * written as `app/page.tsx`) valid.
+ */
+export function firstPathFromOtherFolder(paths: readonly string[], repoRoot: string, projectPrefix: string, head: ReportHead, canonical?: (path: string) => string): string | undefined {
+  const inProject = (path: string): boolean => projectPrefix === '' || path.startsWith(`${projectPrefix}/`)
+  return paths.find((raw) => {
+    const asWritten = reportPathToRepo(raw, repoRoot, '', canonical)
+    const mapped = reportPathToRepo(raw, repoRoot, projectPrefix, canonical)
+    if (asWritten === undefined || mapped === undefined) return false
+    const namesChangedFile = head.changed.some((c) => c !== mapped && inProject(c) && (c === asWritten || c.endsWith(`/${asWritten}`)))
+    return namesChangedFile && !head.exists(mapped)
+  })
+}
+
 /** Groups sorted line numbers into contiguous ranges. */
 export function toRanges(lines: readonly number[]): { start: number; end: number }[] {
   const ranges: { start: number; end: number }[] = []

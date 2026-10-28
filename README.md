@@ -257,12 +257,15 @@ calls resolved to their implementations.
 
 ```sh
 go test -coverpkg=./... -coverprofile=reports/cover.out ./...
-golangci-lint run --output.json.path=reports/golangci.json --issues-exit-code=0 ./...   # enable gosec
+golangci-lint run --output.json.path=reports/golangci.json --path-mode=abs --issues-exit-code=0 ./...   # enable gosec
 govulncheck -json ./... > reports/govulncheck.json
 
 npx @winninjs/farol analyze --base origin/main --head HEAD \
   --coverage reports/cover.out --eslint reports/golangci.json --audit reports/govulncheck.json --out farol.json
 ```
+
+`--path-mode=abs` makes the paths absolute: by default golangci-lint writes them relative to its configuration file,
+which in a monorepo is often the repository root.
 
 **CI:** copy [`examples/workflow-go.yml`](examples/workflow-go.yml). farol reads modules offline, so the workflow runs
 `go mod download` for the base and the head first.
