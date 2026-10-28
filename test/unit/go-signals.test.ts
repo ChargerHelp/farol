@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ChangedFile } from '../../src/git/types.js'
 import { goSuppressions, isGolangciReport, parseGoCoverProfile, parseGolangciReport, parseGovulncheckReport } from '../../src/signals/go.js'
-import type { ReportHead } from '../../src/signals/paths.js'
-
-/** The head commit as the reader sees it: the changed files, and whether a path is a file. */
-const head = (changedFiles: string[]): ReportHead => ({ changed: changedFiles, exists: (path) => changedFiles.includes(path) })
+import { reportHead as head } from '../helpers/report-head.js'
 
 const golangci = (...filenames: string[]): string => JSON.stringify({ Issues: filenames.map((Filename, i) => ({ FromLinter: 'errcheck', Text: 'Error return value is not checked', Pos: { Filename, Line: i + 1 } })) })
 
@@ -44,6 +41,12 @@ describe('Go reports', () => {
   it('reads absolute golangci-lint paths (--path-mode=abs)', () => {
     const api = head(['services/api/internal/a.go'])
     expect(parseGolangciReport(golangci('/repo/services/api/internal/a.go'), '/repo', 'services/api', api).messages.map((m) => m.path)).toEqual(['services/api/internal/a.go'])
+  })
+
+  it('rejects a golangci-lint report of a run that failed, naming its error', () => {
+    // What golangci-lint v2.13.2 writes when it cannot load the packages (here a pattern naming no folder).
+    const text = JSON.stringify({ Issues: [], Report: { Error: 'typechecking error: pattern ./nope/...: lstat ./nope/: no such file or directory' } })
+    expect(() => parseGolangciReport(text, '/repo', '', head([]))).toThrow('golangci-lint did not finish: typechecking error: pattern ./nope/...: lstat ./nope/: no such file or directory')
   })
 
   it('reads a golangci-lint report without issues as no findings', () => {

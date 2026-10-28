@@ -39,6 +39,7 @@ const GolangciReport = z.object({
   Issues: z
     .array(z.object({ FromLinter: z.string(), Text: z.string(), Severity: z.string().optional(), Pos: z.object({ Filename: z.string(), Line: z.number().int() }).loose() }).loose())
     .nullable(),
+  Report: z.object({ Error: z.string().optional() }).loose().optional(),
 }).loose()
 
 /** Whether a lint report is golangci-lint JSON (`golangci-lint run --output.json.path`, or `--out-format json`). */
@@ -57,6 +58,9 @@ export function parseGolangciReport(text: string, repoRoot: string, projectPrefi
   const raw = parseJson(text, 'golangci-lint')
   const parsed = GolangciReport.safeParse(raw)
   if (!parsed.success) throw new ReportError('the lint report is not golangci-lint JSON output')
+  // A run that cannot load the packages writes no issues and the reason in Report.Error.
+  const failed = parsed.data.Report?.Error
+  if (failed !== undefined && failed !== '') throw new ReportError(`golangci-lint did not finish: ${failed}`)
   const wrong = firstPathFromOtherFolder((parsed.data.Issues ?? []).map((i) => i.Pos.Filename), repoRoot, projectPrefix, head, canonical)
   if (wrong !== undefined) throw new ReportError(`the golangci-lint report path ${wrong} is not relative to the project directory: run golangci-lint with --path-mode=abs`)
   const messages: LintMessage[] = []

@@ -238978,7 +238978,8 @@ function parseGoCoverProfile(text, module, projectPrefix) {
   return new Map([...blocks].map(([path3, b]) => [path3, [...b.values()]]));
 }
 var GolangciReport = external_exports.object({
-  Issues: external_exports.array(external_exports.object({ FromLinter: external_exports.string(), Text: external_exports.string(), Severity: external_exports.string().optional(), Pos: external_exports.object({ Filename: external_exports.string(), Line: external_exports.number().int() }).loose() }).loose()).nullable()
+  Issues: external_exports.array(external_exports.object({ FromLinter: external_exports.string(), Text: external_exports.string(), Severity: external_exports.string().optional(), Pos: external_exports.object({ Filename: external_exports.string(), Line: external_exports.number().int() }).loose() }).loose()).nullable(),
+  Report: external_exports.object({ Error: external_exports.string().optional() }).loose().optional()
 }).loose();
 function isGolangciReport(text) {
   return text.trimStart().startsWith("{") && text.includes('"Issues"');
@@ -238988,6 +238989,8 @@ function parseGolangciReport(text, repoRoot2, projectPrefix, head, canonical2) {
   const raw = parseJson2(text, "golangci-lint");
   const parsed = GolangciReport.safeParse(raw);
   if (!parsed.success) throw new ReportError("the lint report is not golangci-lint JSON output");
+  const failed = parsed.data.Report?.Error;
+  if (failed !== void 0 && failed !== "") throw new ReportError(`golangci-lint did not finish: ${failed}`);
   const wrong = firstPathFromOtherFolder((parsed.data.Issues ?? []).map((i) => i.Pos.Filename), repoRoot2, projectPrefix, head, canonical2);
   if (wrong !== void 0) throw new ReportError(`the golangci-lint report path ${wrong} is not relative to the project directory: run golangci-lint with --path-mode=abs`);
   const messages = [];

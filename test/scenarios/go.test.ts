@@ -121,7 +121,8 @@ describe('Go scenarios', () => {
   }, 60_000)
 
   it('reads a golangci-lint report from the project directory, and reports one whose paths start at the repository root as a lint error', () => {
-    // A Go project in services/api, with an unchanged main.go whose name ends the changed cmd/x/main.go.
+    // A Go project in services/api. main.go ends the path of the changed cmd/x/main.go but is a file of the project,
+    // so a report naming it is not written from another folder.
     const repo = createRepo()
     cleanups.push(() => {
       repo.cleanup()

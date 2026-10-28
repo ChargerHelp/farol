@@ -265,7 +265,9 @@ npx @winninjs/farol analyze --base origin/main --head HEAD \
 ```
 
 `--path-mode=abs` makes the paths absolute: by default golangci-lint writes them relative to its configuration file,
-which in a monorepo is often the repository root.
+which in a monorepo is often the repository root. Absolute paths only map when golangci-lint and farol use the same
+checkout folder; when golangci-lint runs elsewhere (a container), set `run.relative-path-mode: gomod` in
+`.golangci.yml` instead.
 
 **CI:** copy [`examples/workflow-go.yml`](examples/workflow-go.yml). farol reads modules offline, so the workflow runs
 `go mod download` for the base and the head first.
