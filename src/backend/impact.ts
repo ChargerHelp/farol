@@ -1,5 +1,6 @@
 import { compareStrings, sortedUnique } from '../output/order.js'
 import type { ResolverChanges } from './resolvers.js'
+import { restAnchor } from './rest.js'
 import type { SchemaDiff } from './schema.js'
 
 /** What a changed schema or resolver file does to the operations. */
@@ -39,11 +40,20 @@ function operationsUsingMember(member: string, table: ImpactTable): string[] {
 }
 
 function operationsUsingResolver(key: string, table: ImpactTable): string[] {
-  return [...table.resolverKeys.entries()].filter(([, keys]) => keys.has(key)).map(([op]) => op)
+  return [...table.resolverKeys.entries()].filter(([, keys]) => keys.has(key)).map(([op]) => op).sort(compareStrings)
 }
 
-/** Impact of one changed file from its SDL diff and its resolver/endpoint diff (either may be absent). */
-export function backendFileImpact(table: ImpactTable, schema: SchemaDiff | undefined, resolvers: (ResolverChanges & { keys: string[] }) | undefined): BackendFileImpact {
+/**
+ * Impact of one changed file from its SDL diff and its resolver/endpoint diff (either may be absent). Endpoint keys of
+ * the diff are paths as written in `file`; they run the endpoints of their handler anchor (one per Hono mount).
+ */
+export function backendFileImpact(table: ImpactTable, file: string, schema: SchemaDiff | undefined, resolvers: (ResolverChanges & { keys: string[] }) | undefined): BackendFileImpact {
+  const using = (k: string): string[] => operationsUsingResolver(k.includes(' ') ? restAnchor(file, k) : k, table)
+  /** The full endpoint keys of a handler when its mounts change them, else the key as written. */
+  const label = (k: string): string => {
+    const ops = k.includes(' ') ? using(k) : []
+    return ops.length === 0 || (ops.length === 1 && ops[0] === k) ? k : ops.join(', ')
+  }
   const affected = new Map<string, string>()
   const problems: string[] = []
   const addedOperations: string[] = []
@@ -64,18 +74,23 @@ export function backendFileImpact(table: ImpactTable, schema: SchemaDiff | undef
   }
   if (resolvers) {
     for (const k of resolvers.removed) {
-      problems.push(`${k.includes(' ') ? 'endpoint' : 'resolver'} ${k} was removed`)
-      hit(operationsUsingResolver(k, table), k)
+      problems.push(`${k.includes(' ') ? 'endpoint' : 'resolver'} ${label(k)} was removed`)
+      hit(using(k), k)
     }
     for (const k of resolvers.changed) {
-      problems.push(`${k.includes(' ') ? 'endpoint' : 'resolver'} ${k} changed`)
-      hit(operationsUsingResolver(k, table), k)
+      problems.push(`${k.includes(' ') ? 'endpoint' : 'resolver'} ${label(k)} changed`)
+      hit(using(k), k)
     }
+    // The endpoints under a removed mount are gone from the head: they cannot be named, the change still counts.
+    for (const prefix of resolvers.removedMounts) problems.push(`mount ${prefix} was removed`)
     if (resolvers.restChanged) {
       problems.push('code outside the resolvers changed (imports, helpers or module-level code): every resolver of the file may behave differently')
-      for (const k of resolvers.keys) hit(operationsUsingResolver(k, table), `module code of ${k}`)
+      for (const k of resolvers.keys) hit(using(k), `module code of ${k}`)
     }
-    for (const k of resolvers.added) (k.includes(' ') ? addedOperations : added).push(k)
+    for (const k of resolvers.added) {
+      if (k.includes(' ')) addedOperations.push(...label(k).split(', '))
+      else added.push(k)
+    }
   }
   return {
     additive: problems.length === 0,

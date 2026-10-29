@@ -1,7 +1,7 @@
 import ts from 'typescript'
 import { compareStrings, sortedUnique } from '../output/order.js'
 import { parseIsolated } from '../project/parse.js'
-import { restNodes } from './rest.js'
+import { mountId, mountNodes, restNodes, type RestNode } from './rest.js'
 
 /** One resolver of a resolver map: `Type.field` and the code that implements it. */
 export interface ResolverEntry {
@@ -67,19 +67,21 @@ export function resolverNodes(sf: ts.SourceFile, typeFields: ReadonlyMap<string,
 }
 
 /** Entry points defined in a file: GraphQL resolvers (`Type.field`) and REST handlers (`GET /path`). */
-export function entryNodes(sf: ts.SourceFile, typeFields: ReadonlyMap<string, ReadonlySet<string>>, rest: boolean): { key: string; node: ts.Node; value: ts.Node }[] {
+export function entryNodes(sf: ts.SourceFile, typeFields: ReadonlyMap<string, ReadonlySet<string>>, rest: boolean): ({ key: string; node: ts.Node; value: ts.Node } | RestNode)[] {
   return [...resolverNodes(sf, typeFields), ...(rest ? restNodes(sf) : [])]
 }
 
 /** Resolver entries of a file, parsed on its own (used for the base and the head of changed files). */
-export function resolverEntries(file: string, code: string, typeFields: ReadonlyMap<string, ReadonlySet<string>>, withRest = true): { entries: ResolverEntry[]; rest: string[]; imports: Set<string> } {
+export function resolverEntries(file: string, code: string, typeFields: ReadonlyMap<string, ReadonlySet<string>>, withRest = true): { entries: ResolverEntry[]; rest: string[]; imports: Set<string>; mounts: Map<string, string> } {
   const { sourceFile: sf } = parseIsolated(file, code)
   const nodes = entryNodes(sf, typeFields, withRest)
   const entries = nodes.map(({ key, node }) => ({ key, file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, text: normalized(node, sf) }))
   // Everything outside the resolver members (helpers, module-level code), for "did anything else change". Imports are
   // compared as bindings: adding one is not a change to what existed.
   const imports = new Set<string>()
-  const removed: [number, number][] = nodes.map(({ node }) => [node.getStart(sf), node.end])
+  // Hono mounts are compared on their own (`mountId` → prefix as written), like the handlers.
+  const mounts = withRest ? mountNodes(sf) : []
+  const removed: [number, number][] = [...nodes, ...mounts].map(({ node }) => [node.getStart(sf), node.end])
   for (const statement of sf.statements) {
     if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
       const clause = statement.importClause
@@ -97,7 +99,9 @@ export function resolverEntries(file: string, code: string, typeFields: Readonly
   const blank = (node: ts.Node): string => {
     let text = code.slice(node.getStart(sf), node.end)
     const offset = node.getStart(sf)
-    for (const [start, end] of removed.filter(([a, b]) => a >= offset && b <= node.end).sort((a, b) => b[0] - a[0])) text = text.slice(0, start - offset) + text.slice(end - offset)
+    const inside = removed.filter(([a, b]) => a >= offset && b <= node.end)
+    const outer = inside.filter(([a, b]) => !inside.some(([c, d]) => c <= a && d >= b && (c !== a || d !== b)))
+    for (const [start, end] of outer.sort((a, b) => b[0] - a[0])) text = text.slice(0, start - offset) + text.slice(end - offset)
     return stripComments(text).replace(/\s+/g, ' ').replace(/,(\s*,)+/g, ',').replace(/\{\s*,/g, '{').replace(/,\s*\}/g, '}').trim()
   }
   const items: string[] = []
@@ -111,7 +115,7 @@ export function resolverEntries(file: string, code: string, typeFields: Readonly
     for (const prop of object.properties) items.push(blank(prop))
     items.push(blank(statement).replace(blank(object), '{}'))
   }
-  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, imports }
+  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, imports, mounts: new Map(mounts.map((m) => [mountId(file, m.call), m.prefix])) }
 }
 
 /** Code without comments (they never change behavior), tokenized with the TypeScript scanner so strings stay intact. */
@@ -141,6 +145,9 @@ export interface ResolverChanges {
   changed: string[]
   /** Code outside the resolver members changed (imports, helpers, module-level code): every resolver may be affected. */
   restChanged: boolean
+  /** Hono mounts: added ones (`mountId`) and the prefixes, as written, of removed or changed ones. */
+  addedMounts: string[]
+  removedMounts: string[]
 }
 
 /** Resolver-level comparison of a changed resolver file: only resolvers whose own code changed are affected. */
@@ -152,6 +159,8 @@ export function diffResolvers(base: ReturnType<typeof resolverEntries>, head: Re
     removed: [...before.keys()].filter((k) => !after.has(k)).sort(compareStrings),
     changed: [...before.keys()].filter((k) => after.has(k) && after.get(k) !== before.get(k)).sort(compareStrings),
     restChanged: base.rest.some((item) => !head.rest.includes(item)) || [...base.imports].some((i) => !head.imports.has(i)),
+    addedMounts: [...head.mounts.keys()].filter((m) => !base.mounts.has(m)).sort(compareStrings),
+    removedMounts: sortedUnique([...base.mounts].filter(([m]) => !head.mounts.has(m)).map(([, prefix]) => prefix)),
   }
 }
 

@@ -258,5 +258,5 @@ function loadBackendWorkspace(ctx: Context, fs: ProjectFileSystem, treeFiles: st
   // Invalid SDL is a syntax error of its file (unknown when the file changed).
   for (const p of backend.problems) if (p.detail.startsWith('invalid GraphQL')) graph.parseErrors.push({ file: p.file, line: p.line, message: p.detail })
   lap('routes')
-  return { fs, project, graph, routes: { routes: backend.operations, dynamic: [], sources: [] }, routesFile: '', backend, ...(treeFiles ? { treeFiles } : {}) }
+  return { fs, project, graph, routes: { routes: backend.operations, dynamic: backend.dynamic, sources: [] }, routesFile: '', backend, ...(treeFiles ? { treeFiles } : {}) }
 }
