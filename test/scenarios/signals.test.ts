@@ -27,10 +27,12 @@ function golden(scenario: string, file: string, output: Output): void {
   expect(actual).toBe(readFileSync(path, 'utf8'))
 }
 
-async function run(scenario: string, reports: { coverage?: string; eslint?: string } | 'none'): Promise<Output> {
+/** `root` replaces <root> in the reports (default: the temporary repository; another path is another checkout). */
+async function run(scenario: string, reports: { coverage?: string; eslint?: string } | 'none', root?: string): Promise<Output> {
   const s = createScenarioRepo(scenario)
   repos.push(s)
-  const options = reports === 'none' ? {} : { coverage: reports.coverage && report(scenario, reports.coverage, s.repo.dir), eslint: reports.eslint && report(scenario, reports.eslint, s.repo.dir) }
+  const at = root ?? s.repo.dir
+  const options = reports === 'none' ? {} : { coverage: reports.coverage && report(scenario, reports.coverage, at), eslint: reports.eslint && report(scenario, reports.eslint, at) }
   return (await analyzeRepo(s.repo, Object.fromEntries(Object.entries(options).filter(([, v]) => v !== undefined)))).output
 }
 
@@ -62,6 +64,14 @@ describe('signals', () => {
       omittedFindings: 0,
     })
     expect(o.signals.coverage.status).toBe('not-provided')
+  })
+
+  it('reports written in another checkout (a container at /src) are an error naming a path, not ok or missing', async () => {
+    const o = await run('signals-coverage-lint', { coverage: 'coverage-final.json', eslint: 'eslint.json' }, '/src')
+    expect(o.signals.lint.status).toBe('error')
+    expect(o.signals.lint.message).toMatch(/^the ESLint report names no file in the repository .+ \(first path: \/src\/src\/lib\/format\.ts\): write the report in the same checkout as farol$/)
+    expect(o.signals.coverage.status).toBe('error')
+    expect(o.signals.coverage.message).toMatch(/^the coverage report names no file in the repository .+ \(first path: \/src\/src\/[^)]+\): write the report in the same checkout as farol$/)
   })
 
   it('Biome (GitLab reporter): only findings on changed lines count; security findings come from farol only', async () => {

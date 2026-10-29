@@ -62,4 +62,8 @@ describe('Biome GitLab reports', () => {
     const nested = JSON.stringify([entry('lint/a/b', 'major', 'src/a.ts', 1)])
     expect(parseBiomeReport(nested, '/repo', 'svc', head(['svc/src/x/src/a.ts'], ['svc/src/a.ts'])).map((m) => m.path)).toEqual(['svc/src/a.ts'])
   })
+
+  it('rejects a report written in another checkout', () => {
+    expect(() => parseBiomeReport(JSON.stringify([entry('lint/a', 'major', '/src/svc/a.ts', 1)]), '/repo', 'svc', head(['svc/a.ts']))).toThrow('the Biome report names no file in the repository /repo (first path: /src/svc/a.ts)')
+  })
 })

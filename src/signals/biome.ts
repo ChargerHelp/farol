@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { parseJson, ReportError } from './coverage.js'
+import { assertSameCheckout, parseJson, ReportError } from './coverage.js'
 import type { LintMessage } from './lint.js'
 import { firstPathFromOtherFolder, type ReportHead, reportPathToRepo } from './paths.js'
 
@@ -41,7 +41,9 @@ export function parseBiomeReport(text: string, repoRoot: string, projectPrefix: 
     const where = issue === undefined || issue.path.length === 0 ? '(root)' : issue.path.join('.')
     throw new ReportError(`the lint report is not Biome GitLab output (biome lint --reporter=gitlab): ${where}: ${issue?.message ?? ''}`)
   }
-  const wrong = firstPathFromOtherFolder(parsed.data.map((f) => f.location.path), repoRoot, projectPrefix, head, canonical)
+  const paths = parsed.data.map((f) => f.location.path)
+  assertSameCheckout(paths, 'Biome', repoRoot, projectPrefix, canonical)
+  const wrong = firstPathFromOtherFolder(paths, repoRoot, projectPrefix, head, canonical)
   if (wrong !== undefined) throw new ReportError(`the Biome report path ${wrong} is not relative to the project directory: run biome in ${projectPrefix === '' ? 'the repository root' : projectPrefix}`)
   return parsed.data.map((f) => ({
     path: reportPathToRepo(f.location.path, repoRoot, projectPrefix, canonical) ?? f.location.path.replaceAll('\\', '/'),

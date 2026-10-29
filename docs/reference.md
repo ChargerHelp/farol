@@ -126,6 +126,10 @@ The `--eslint` flag takes whichever lint report fits the language: farol recogni
 TypeScript also gets built-in security rules (XSS sinks, `eval`, hard-coded secrets, `javascript:` URLs…) without
 any report.
 
+Write every report in the same checkout as farol. A report whose paths are all outside the repository (the tool ran
+in a container or another runner folder) gives that signal status `error`, naming the first path. A report with only
+some paths outside the repository (coverage.py listing installed packages) reads as before; those entries are left out.
+
 Biome writes paths relative to the folder it runs in, so run it in the project directory
 (`(cd <project> && biome lint --reporter=gitlab .) > reports/biome.json`). Rules:
 

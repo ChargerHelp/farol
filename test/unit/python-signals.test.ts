@@ -29,6 +29,13 @@ describe('Python reports', () => {
     expect(sast).toEqual([{ path: 'src/a.py', line: 9, rule: 'bandit', severity: 'high', message: 'S608: Possible SQL injection' }])
   })
 
+  it('reads a coverage.py report that also lists installed packages, and rejects one from another checkout', () => {
+    const files = (...names: string[]): string => JSON.stringify({ meta: { version: '7' }, files: Object.fromEntries(names.map((n) => [n, { executed_lines: [1], missing_lines: [] }])) })
+    expect([...parseCoveragePyReport(files('/usr/lib/python3/site-packages/x/__init__.py', 'app/__init__.py'), '/repo', 'svc').keys()]).toEqual(['svc/app/__init__.py'])
+    expect(() => parseCoveragePyReport(files('/src/svc/app/__init__.py'), '/repo', 'svc')).toThrow('the coverage report names no file in the repository /repo (first path: /src/svc/app/__init__.py)')
+    expect(() => parseRuffReport(JSON.stringify([{ code: 'S608', message: 'm', filename: '/src/svc/a.py', location: { row: 1, column: 1 } }]), '/repo', 'svc')).toThrow('the ruff report names no file in the repository /repo (first path: /src/svc/a.py)')
+  })
+
   it('reads pip-audit JSON once per package and advisory', () => {
     const vuln = { id: 'PYSEC-2026-1', fix_versions: ['2.0'], aliases: ['CVE-2026-9'], description: 'Bad thing\nmore' }
     const text = JSON.stringify({ dependencies: [{ name: 'Some_Pkg', version: '1.0', vulns: [vuln, vuln] }, { name: 'ok', version: '1', vulns: [] }] })
