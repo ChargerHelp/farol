@@ -23,6 +23,7 @@ function run(partial: Partial<ClassifyInput>): ReturnType<typeof classify> {
     baseRoutes: null,
     baseText: new Map(),
     headText: new Map(),
+    isGenerated: () => false,
     ...partial,
   })
 }
@@ -61,6 +62,25 @@ describe('classify', () => {
     const r = run({ graph, files: [file('src/gone.tsx', 'deleted')] })
     expect(r.classification).toBe('unknown')
     expect(r.reasons[0]).toEqual({ code: 'unresolved-import', file: 'src/Home.tsx', detail: 'line 3: cannot resolve "./gone"' })
+  })
+
+  describe('imports of generated code (git-ignored, "generated" globs)', () => {
+    const generatedImport = (target: string): ImportGraph => ({ ...emptyGraph, nodes: ['src/Home.tsx'], unresolved: [{ file: 'src/Home.tsx', specifier: '../generated/x', line: 2, reason: 'not-found', target }] })
+    const isGenerated = (p: string): boolean => p.startsWith('src/generated/') || p === 'src/generated'
+
+    it.each(['src/generated/prisma/client.js', 'src/generated/proto'])('does not make a changed importer of %s unknown', (target) => {
+      expect(run({ graph: generatedImport(target), files: [file('src/Home.tsx', 'modified')], isGenerated }).reasons.map((r) => r.code)).not.toContain('unresolved-import')
+    })
+
+    it('makes a changed importer unknown when its target is not generated', () => {
+      expect(run({ graph: generatedImport('src/lib/gone.js'), files: [file('src/Home.tsx', 'modified')], isGenerated }).classification).toBe('unknown')
+    })
+
+    it('still makes the PR unknown when it deletes a committed file that an unchanged file imports', () => {
+      const r = run({ graph: generatedImport('src/generated/x'), files: [file('src/generated/x.ts', 'deleted')], isGenerated })
+      expect(r.classification).toBe('unknown')
+      expect(r.reasons[0]?.code).toBe('unresolved-import')
+    })
   })
 
   it('ignores pre-existing unresolved imports that do not involve changed files', () => {

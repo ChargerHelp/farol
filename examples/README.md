@@ -320,6 +320,7 @@ project unless noted.
 | `python.roots` | `["src", "."]` | Python import roots. |
 | `exclude` | `[]` (Go: generated mocks) | Files left out of the analysis (still listed). Globals and routes files are never excluded. |
 | `ignore` | `[]` | Changed files left out of everything: classification, dependencies, signals (project- or repo-relative). |
+| `generated` | `[]` | TypeScript: git-ignored generated import targets inside the project (`src/generated/**` for a Prisma client or protobuf types): not an unresolved import. |
 | `roles.global` | TS: `src/App.tsx`, `src/main.tsx`, `package.json`, `package-lock.json`, `tsconfig*.json`, `eslint.config.*`, `vite.config.ts`; Go, Python: none | A change affects everything: the PR is `global`. May point above the project. |
 | `roles.test` | TS: `**/*.test.ts(x)`; Go: `**/*_test.go`; Python: `tests/**`, `**/test_*.py`, `**/*_test.py`, `**/conftest.py`… | Tests: reported, never treated as code. |
 | `roles.story` | TS: `**/*.stories.tsx` | Stories: reported, never treated as code. |

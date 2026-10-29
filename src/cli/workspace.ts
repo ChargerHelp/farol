@@ -53,7 +53,7 @@ function projectRelative(ctx: Context, repoPath: string): string {
   return ctx.projectPrefix === '' ? repoPath : posix.relative(ctx.projectPrefix, repoPath)
 }
 
-/** Whether a changed file is left out by "ignore" (configuration) or --ignore globs. */
+/** Whether a project- or repo-relative path matches `base` (default: the "ignore" configuration) or `extra` globs. */
 export function createIgnoreOf(ctx: Context, extra: readonly string[], base: readonly string[] = ctx.config.ignore): (repoPath: string) => boolean {
   const ignored = createIgnoreMatcher([...base, ...extra])
   return (repoPath) => ignored(projectRelative(ctx, repoPath), repoPath)

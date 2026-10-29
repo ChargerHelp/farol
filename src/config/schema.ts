@@ -128,6 +128,8 @@ export const ConfigSchema = z
       }))
       .optional(),
     exclude: globs.default([]),
+    /** TypeScript: import targets the build generates and git ignores (Prisma client, protobuf types): not an unresolved import. Project-relative globs, matched against the import path as written. */
+    generated: globs.default([]),
     /** Where `farol usage` reads traffic from (optional). */
     datadog: DatadogSchema.optional(),
     /** Changed files left out of every analysis (classification, dependencies, signals). Project-relative or repo-relative globs. */
@@ -162,6 +164,7 @@ export const ConfigSchema = z
   .strict()
   .superRefine((config, ctx) => {
     if (config.language !== 'typescript' && config.surface !== 'backend') ctx.addIssue({ code: 'custom', path: ['surface'], message: `a ${config.language === 'go' ? 'Go' : 'Python'} project is a backend: set "surface": "backend"` })
+    if (config.language !== 'typescript' && config.generated.length > 0) ctx.addIssue({ code: 'custom', path: ['generated'], message: 'only TypeScript projects read generated import targets: remove it' })
     if (config.surface === 'frontend' && config.routes === undefined) ctx.addIssue({ code: 'custom', path: ['routes'], message: 'routes is required for a frontend (routes.file for React Router, or routes.adapter "next" / "tanstack-router"), or set "surface": "backend"' })
   })
   // A backend has no routes file: an empty one keeps the rest of the code uniform.
