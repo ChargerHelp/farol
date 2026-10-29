@@ -141,8 +141,9 @@ export function classify(input: ClassifyInput): ClassifyResult {
   for (const e of graph.parseErrors) if (changed.has(e.file)) reasons.push(reason('parse-error', `line ${e.line}: ${e.message}`, e.file))
   for (const u of graph.unresolved) {
     // A generated target is missing from git by design; a target this PR removed is still a broken import.
-    const generated = u.target !== undefined && input.isGenerated(u.target)
-    if ((changed.has(u.file) && !generated) || (u.target !== undefined && targetsRemoved(u.target, removed))) {
+    const brokenByChange = changed.has(u.file) && !(u.target !== undefined && input.isGenerated(u.target))
+    const brokenByRemoval = u.target !== undefined && targetsRemoved(u.target, removed)
+    if (brokenByChange || brokenByRemoval) {
       const what = u.reason === 'non-literal' ? `import with a computed path ${u.specifier}` : `cannot resolve "${u.specifier}"`
       reasons.push(reason('unresolved-import', `line ${u.line}: ${what}`, u.file))
     }

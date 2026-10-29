@@ -212704,9 +212704,9 @@ var require_parse = __commonJS({
                 const idx = prev.value.lastIndexOf("[");
                 const pre = prev.value.slice(0, idx);
                 const rest2 = prev.value.slice(idx + 2);
-                const posix20 = POSIX_REGEX_SOURCE[rest2];
-                if (posix20) {
-                  prev.value = pre + posix20;
+                const posix21 = POSIX_REGEX_SOURCE[rest2];
+                if (posix21) {
+                  prev.value = pre + posix21;
                   state.backtrack = true;
                   advance();
                   if (!bos.output && tokens2.indexOf(prev) === 1) {
@@ -213223,7 +213223,7 @@ var require_picomatch = __commonJS({
         throw new TypeError("Expected pattern to be a non-empty string");
       }
       const opts = options || {};
-      const posix20 = opts.windows;
+      const posix21 = opts.windows;
       const regex = isState ? picomatch4.compileRe(glob, options) : picomatch4.makeRe(glob, options, false, true);
       const state = regex.state;
       delete regex.state;
@@ -213233,8 +213233,8 @@ var require_picomatch = __commonJS({
         isIgnored = picomatch4(opts.ignore, ignoreOpts, returnState);
       }
       const matcher2 = (input2, returnObject = false) => {
-        const { isMatch, match, output: output2 } = picomatch4.test(input2, regex, options, { glob, posix: posix20 });
-        const result = { glob, state, regex, posix: posix20, input: input2, output: output2, match, isMatch };
+        const { isMatch, match, output: output2 } = picomatch4.test(input2, regex, options, { glob, posix: posix21 });
+        const result = { glob, state, regex, posix: posix21, input: input2, output: output2, match, isMatch };
         if (typeof opts.onResult === "function") {
           opts.onResult(result);
         }
@@ -213259,7 +213259,7 @@ var require_picomatch = __commonJS({
       }
       return matcher2;
     };
-    picomatch4.test = (input2, regex, options, { glob, posix: posix20 } = {}) => {
+    picomatch4.test = (input2, regex, options, { glob, posix: posix21 } = {}) => {
       if (typeof input2 !== "string") {
         throw new TypeError("Expected input to be a string");
       }
@@ -213267,7 +213267,7 @@ var require_picomatch = __commonJS({
         return { isMatch: false, output: "" };
       }
       const opts = options || {};
-      const format = opts.format || (posix20 ? utils.toPosixSlashes : null);
+      const format = opts.format || (posix21 ? utils.toPosixSlashes : null);
       let match = input2 === glob;
       let output2 = match && format ? format(input2) : input2;
       if (match === false) {
@@ -213276,16 +213276,16 @@ var require_picomatch = __commonJS({
       }
       if (match === false || opts.capture === true) {
         if (opts.matchBase === true || opts.basename === true) {
-          match = picomatch4.matchBase(input2, regex, options, posix20);
+          match = picomatch4.matchBase(input2, regex, options, posix21);
         } else {
           match = regex.exec(output2);
         }
       }
       return { isMatch: Boolean(match), match, output: output2 };
     };
-    picomatch4.matchBase = (input2, glob, options, posix20 = options && options.windows) => {
+    picomatch4.matchBase = (input2, glob, options, posix21 = options && options.windows) => {
       const regex = glob instanceof RegExp ? glob : picomatch4.makeRe(glob, options);
-      return regex.test(utils.basename(input2, { windows: posix20 }));
+      return regex.test(utils.basename(input2, { windows: posix21 }));
     };
     picomatch4.isMatch = (str2, patterns, options) => picomatch4(patterns, options)(str2);
     picomatch4.parse = (pattern, options) => {
@@ -236571,7 +236571,7 @@ var ConfigSchema = external_exports.object({
     ...routes.adapter === "react-router" ? {} : { dir: dir ?? (routes.adapter === "tanstack-router" ? "src/routes" : "") }
   })).optional(),
   exclude: globs.default([]),
-  /** Import targets the build generates and git ignores (Prisma client, protobuf types): not an unresolved import. Project-relative globs, matched against the import path as written. */
+  /** TypeScript: import targets the build generates and git ignores (Prisma client, protobuf types): not an unresolved import. Project-relative globs, matched against the import path as written. */
   generated: globs.default([]),
   /** Where `farol usage` reads traffic from (optional). */
   datadog: DatadogSchema.optional(),
@@ -236599,6 +236599,7 @@ var ConfigSchema = external_exports.object({
   }).strict().prefault({})
 }).strict().superRefine((config2, ctx) => {
   if (config2.language !== "typescript" && config2.surface !== "backend") ctx.addIssue({ code: "custom", path: ["surface"], message: `a ${config2.language === "go" ? "Go" : "Python"} project is a backend: set "surface": "backend"` });
+  if (config2.language !== "typescript" && config2.generated.length > 0) ctx.addIssue({ code: "custom", path: ["generated"], message: "only TypeScript projects read generated import targets: remove it" });
   if (config2.surface === "frontend" && config2.routes === void 0) ctx.addIssue({ code: "custom", path: ["routes"], message: 'routes is required for a frontend (routes.file for React Router, or routes.adapter "next" / "tanstack-router"), or set "surface": "backend"' });
 }).transform((config2) => ({
   ...config2,
@@ -237124,7 +237125,7 @@ async function loadContext(options) {
 
 // src/cli/analyze.ts
 import { readFileSync as readFileSync4 } from "fs";
-import { posix as posix16, resolve as resolve3 } from "path";
+import { posix as posix17, resolve as resolve3 } from "path";
 
 // src/classify/classify.ts
 import { posix as posix3 } from "path";
@@ -237765,8 +237766,9 @@ function classify(input2) {
   const removed = input2.files.flatMap((f) => f.status === "deleted" ? [f.path] : f.status === "renamed" && f.oldPath !== void 0 ? [f.oldPath] : []);
   for (const e of graph.parseErrors) if (changed.has(e.file)) reasons.push(reason("parse-error", `line ${e.line}: ${e.message}`, e.file));
   for (const u of graph.unresolved) {
-    const generated = u.target !== void 0 && input2.isGenerated(u.target);
-    if (changed.has(u.file) && !generated || u.target !== void 0 && targetsRemoved(u.target, removed)) {
+    const brokenByChange = changed.has(u.file) && !(u.target !== void 0 && input2.isGenerated(u.target));
+    const brokenByRemoval = u.target !== void 0 && targetsRemoved(u.target, removed);
+    if (brokenByChange || brokenByRemoval) {
       const what = u.reason === "non-literal" ? `import with a computed path ${u.specifier}` : `cannot resolve "${u.specifier}"`;
       reasons.push(reason("unresolved-import", `line ${u.line}: ${what}`, u.file));
     }
@@ -249658,7 +249660,7 @@ function writeStdout(text) {
 
 // src/cli/workspace.ts
 import { readdirSync as readdirSync3 } from "fs";
-import { posix as posix14 } from "path";
+import { posix as posix15 } from "path";
 
 // src/backend/entrypoints.ts
 import { posix as posix9 } from "path";
@@ -249796,6 +249798,7 @@ function globalUses(project, globals, rel, isProjectFile) {
 
 // src/classify/roles.ts
 var import_picomatch3 = __toESM(require_picomatch2(), 1);
+import { posix as posix10 } from "path";
 var SOURCE_CODE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs|go|py|graphql|gql)$/;
 function createInfraMatcher(config2) {
   const match = matcher(config2.roles.infra);
@@ -249834,6 +249837,16 @@ function normalizeProjectPath(path3) {
   }
   return parts.join("/");
 }
+function createGeneratedMatcher(globs3, projectPrefix, headFiles) {
+  if (globs3.length === 0) return () => false;
+  const match = matcher(globs3);
+  const committedFolders = new Set(headFiles.map((f) => posix10.dirname(f)));
+  return (repoPath) => {
+    if (projectPrefix !== "" && !repoPath.startsWith(`${projectPrefix}/`)) return false;
+    const projectPath = projectPrefix === "" ? repoPath : repoPath.slice(projectPrefix.length + 1);
+    return match(projectPath) && !committedFolders.has(posix10.dirname(repoPath));
+  };
+}
 function createIgnoreMatcher(globs3) {
   const match = matcher(globs3);
   return (projectPath, repoPath) => match(projectPath) || match(repoPath);
@@ -249841,7 +249854,7 @@ function createIgnoreMatcher(globs3) {
 
 // src/project/graph.ts
 var import_typescript12 = __toESM(require_typescript(), 1);
-import { posix as posix10 } from "path";
+import { posix as posix11 } from "path";
 function lineOf(sf, node2) {
   return sf.getLineAndCharacterOfPosition(node2.getStart(sf)).line + 1;
 }
@@ -249861,7 +249874,7 @@ var GraphBuilder = class {
   unresolved = [];
   checker;
   rel(file2) {
-    return posix10.relative(this.options.repoRoot, toPosix(file2));
+    return posix11.relative(this.options.repoRoot, toPosix(file2));
   }
   isProjectFile(file2) {
     return isProjectPath(this.options.repoRoot, file2);
@@ -250001,7 +250014,7 @@ function buildImportGraph(project, options) {
 
 // src/project/program.ts
 var import_typescript13 = __toESM(require_typescript(), 1);
-import { posix as posix11 } from "path";
+import { posix as posix12 } from "path";
 var ProjectError = class extends Error {
   constructor(message) {
     super(message);
@@ -250037,7 +250050,7 @@ function selectConfig(rootConfig, anchorFile, fs2, cwd) {
   const parsed = parseTsconfig(rootConfig, fs2, cwd);
   if (anchorFile === void 0 || parsed.fileNames.includes(anchorFile) || !parsed.projectReferences?.length) return { parsed, configPath: rootConfig };
   for (const ref of parsed.projectReferences) {
-    const refPath = fs2.directoryExists(ref.path) ? posix11.join(ref.path, "tsconfig.json") : ref.path;
+    const refPath = fs2.directoryExists(ref.path) ? posix12.join(ref.path, "tsconfig.json") : ref.path;
     const child = parseTsconfig(refPath, fs2, cwd);
     if (child.fileNames.includes(anchorFile)) return { parsed: child, configPath: refPath };
   }
@@ -250066,7 +250079,7 @@ function createProjectProgram(input2) {
   host.getCurrentDirectory = () => projectDir;
   host.useCaseSensitiveFileNames = () => true;
   host.getCanonicalFileName = (f) => f;
-  host.getDefaultLibFileName = () => posix11.join(projectDir, "__farol_no_lib__.d.ts");
+  host.getDefaultLibFileName = () => posix12.join(projectDir, "__farol_no_lib__.d.ts");
   host.writeFile = () => void 0;
   host.getSourceFile = (fileName, languageVersionOrOptions) => {
     const text = fs2.readFile(fileName);
@@ -250079,13 +250092,13 @@ function createProjectProgram(input2) {
 }
 
 // src/routes/next/index.ts
-import { posix as posix13 } from "path";
+import { posix as posix14 } from "path";
 
 // src/routes/files.ts
-import { posix as posix12 } from "path";
+import { posix as posix13 } from "path";
 var ROUTE_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js"];
 function isNonRouteFile(file2) {
-  const name = posix12.basename(file2);
+  const name = posix13.basename(file2);
   if (name.endsWith(".d.ts") || /\.(test|spec|stories)\.[cm]?[jt]sx?$/.test(name)) return true;
   return file2.split("/").some((part) => part === "__tests__" || part === "__mocks__");
 }
@@ -250193,7 +250206,7 @@ function extract(input2) {
   const middleware = ["middleware", "proxy"].map((n) => moduleIn(fileSet, root, n)).filter((m) => m !== null);
   const routes = [...pagesRoutes(root, input2.files, fileSet, middleware), ...appRoutes(root, input2.files, fileSet, middleware)];
   const dynamic = [];
-  if (routes.length === 0) dynamic.push({ file: root === "" ? "." : root, line: 1, detail: `no Next.js route found: expected modules under ${posix13.join(root, "pages")} or page/route modules under ${posix13.join(root, "app")}` });
+  if (routes.length === 0) dynamic.push({ file: root === "" ? "." : root, line: 1, detail: `no Next.js route found: expected modules under ${posix14.join(root, "pages")} or page/route modules under ${posix14.join(root, "app")}` });
   return routeTable(routes, dynamic, routes.flatMap((r) => [...r.entry === null ? [] : [r.entry], ...r.modules, ...r.layouts]));
 }
 var nextAdapter = { name: "next", source: "directory", extract };
@@ -250932,7 +250945,7 @@ function createRepoRoleOf(ctx) {
   const roleOf = createRoleMatcher(ctx.config);
   const isInfra = createInfraMatcher(ctx.config);
   return (repoPath) => {
-    const rel = ctx.projectPrefix === "" ? repoPath : posix14.relative(ctx.projectPrefix, repoPath);
+    const rel = ctx.projectPrefix === "" ? repoPath : posix15.relative(ctx.projectPrefix, repoPath);
     if (rel.startsWith("../") || rel === "..") {
       if (roleOf(rel) === "global") return "global";
       return isInfra(repoPath) ? "infra" : "outside";
@@ -250942,7 +250955,7 @@ function createRepoRoleOf(ctx) {
   };
 }
 function projectRelative(ctx, repoPath) {
-  return ctx.projectPrefix === "" ? repoPath : posix14.relative(ctx.projectPrefix, repoPath);
+  return ctx.projectPrefix === "" ? repoPath : posix15.relative(ctx.projectPrefix, repoPath);
 }
 function createIgnoreOf(ctx, extra, base = ctx.config.ignore) {
   const ignored = createIgnoreMatcher([...base, ...extra]);
@@ -250958,10 +250971,10 @@ function createAnalysisRoleOf(ctx, graphNodes, backend) {
   };
   const prefix = ctx.projectPrefix;
   const nodeDirs = /* @__PURE__ */ new Set();
-  for (const node2 of graphNodes) for (let d = posix14.dirname(node2); d !== "." && !nodeDirs.has(d); d = posix14.dirname(d)) nodeDirs.add(d);
+  for (const node2 of graphNodes) for (let d = posix15.dirname(node2); d !== "." && !nodeDirs.has(d); d = posix15.dirname(d)) nodeDirs.add(d);
   return (repoPath) => {
-    const name = posix14.basename(repoPath);
-    const dir = posix14.dirname(repoPath) === "." ? "" : posix14.dirname(repoPath);
+    const name = posix15.basename(repoPath);
+    const dir = posix15.dirname(repoPath) === "." ? "" : posix15.dirname(repoPath);
     const inside = prefix === "" || dir === prefix || dir.startsWith(`${prefix}/`);
     const aboveOrSelf = dir === "" || dir === prefix || prefix.startsWith(`${dir}/`);
     const ours = inside || ECOSYSTEM_FILES[ctx.config.language].has(name);
@@ -250971,24 +250984,24 @@ function createAnalysisRoleOf(ctx, graphNodes, backend) {
   };
 }
 function toRepoPath(ctx, absolute) {
-  return posix14.relative(toPosix(ctx.repoRoot), toPosix(absolute));
+  return posix15.relative(toPosix(ctx.repoRoot), toPosix(absolute));
 }
 function projectToRepoPath(ctx, projectPath) {
-  return posix14.normalize(posix14.join(ctx.projectPrefix, toPosix(projectPath)));
+  return posix15.normalize(posix15.join(ctx.projectPrefix, toPosix(projectPath)));
 }
 async function createFileSystem(ctx, ref) {
   const disk = createDiskFileSystem();
   if (ref === void 0) return { fs: disk };
   const treeFiles = await listFiles(ctx.repoRoot, ref);
-  const wanted = treeFiles.filter((f) => SOURCE_EXTENSIONS.has(posix14.extname(f)));
+  const wanted = treeFiles.filter((f) => SOURCE_EXTENSIONS.has(posix15.extname(f)));
   const contents = await readFiles(ctx.repoRoot, ref, wanted);
   return { fs: createTreeFileSystem({ repoRoot: ctx.repoRoot, files: treeFiles, contents, fallback: disk }), treeFiles };
 }
 function moduleResolver(ctx, resolver) {
   const repoRoot2 = toPosix(ctx.repoRoot);
   return (specifier, fromFile) => {
-    const r = resolveSpecifier(resolver, repoRoot2, posix14.join(repoRoot2, fromFile), specifier, void 0);
-    if (r.kind === "module" || r.kind === "asset") return { kind: "module", file: posix14.relative(repoRoot2, r.file) };
+    const r = resolveSpecifier(resolver, repoRoot2, posix15.join(repoRoot2, fromFile), specifier, void 0);
+    if (r.kind === "module" || r.kind === "asset") return { kind: "module", file: posix15.relative(repoRoot2, r.file) };
     if (r.kind === "external") return { kind: "external", specifier };
     return { kind: "unresolved" };
   };
@@ -251000,14 +251013,14 @@ function extractRoutes(ctx, resolver, routesFile, code2, files = []) {
     code: code2,
     files,
     resolve: moduleResolver(ctx, resolver),
-    read: (file2) => resolver.fs.readFile(posix14.join(repoRoot2, file2))
+    read: (file2) => resolver.fs.readFile(posix15.join(repoRoot2, file2))
   });
 }
 function routesFromDirectory(ctx) {
   return getRouteAdapter(ctx.config.routes.adapter).source === "directory";
 }
 function routesDirectory(ctx) {
-  const dir = posix14.normalize(posix14.join(ctx.projectPrefix, ctx.config.routes.dir ?? ""));
+  const dir = posix15.normalize(posix15.join(ctx.projectPrefix, ctx.config.routes.dir ?? ""));
   return dir === "." ? "" : dir;
 }
 function filesUnder(files, dir) {
@@ -251032,10 +251045,10 @@ async function loadWorkspace(ctx, ref, timings, now = () => performance.now()) {
   const projectDir = toPosix(ctx.projectDir);
   if (ctx.config.surface === "backend") return loadBackendWorkspace(ctx, fs2, treeFiles, lap);
   if (routesFromDirectory(ctx)) return loadDirectoryRoutesWorkspace(ctx, fs2, treeFiles, lap);
-  const routesAbs = posix14.join(projectDir, ctx.config.routes.file);
+  const routesAbs = posix15.join(projectDir, ctx.config.routes.file);
   const routesCode = fs2.readFile(routesAbs);
   if (routesCode === void 0) throw new RoutesFileMissingError(ctx.config.routes.file, ref);
-  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix14.join(projectDir, ctx.config.tsconfig), anchorFile: routesAbs });
+  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix15.join(projectDir, ctx.config.tsconfig), anchorFile: routesAbs });
   lap("program");
   const roleOf = createRepoRoleOf(ctx);
   const graph = buildImportGraph(project, {
@@ -251055,7 +251068,7 @@ function loadDirectoryRoutesWorkspace(ctx, fs2, treeFiles, lap) {
   const repoRoot2 = toPosix(ctx.repoRoot);
   const dir = routesDirectory(ctx);
   const files = filesUnder(treeFiles ?? diskFiles(projectDir, repoRoot2), dir);
-  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix14.join(projectDir, ctx.config.tsconfig) });
+  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix15.join(projectDir, ctx.config.tsconfig) });
   lap("program");
   const roleOf = createRepoRoleOf(ctx);
   const graph = buildImportGraph(project, {
@@ -251075,9 +251088,9 @@ function diskFiles(dir, repoRoot2) {
   const walk = (d) => {
     for (const entry of readdirSync3(d, { withFileTypes: true })) {
       if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
-      const full = posix14.join(d, entry.name);
+      const full = posix15.join(d, entry.name);
       if (entry.isDirectory()) walk(full);
-      else out.push(posix14.relative(repoRoot2, full));
+      else out.push(posix15.relative(repoRoot2, full));
     }
   };
   walk(dir);
@@ -251089,7 +251102,7 @@ function projectGlobs(ctx, context) {
 function loadBackendWorkspace(ctx, fs2, treeFiles, lap) {
   const projectDir = toPosix(ctx.projectDir);
   const repoRoot2 = toPosix(ctx.repoRoot);
-  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix14.join(projectDir, ctx.config.tsconfig) });
+  const project = createProjectProgram({ fs: fs2, projectDir, tsconfigPath: posix15.join(projectDir, ctx.config.tsconfig) });
   lap("program");
   const roleOf = createRepoRoleOf(ctx);
   const isOrigin = (path3) => {
@@ -251099,8 +251112,8 @@ function loadBackendWorkspace(ctx, fs2, treeFiles, lap) {
   const graph = buildImportGraph(project, { repoRoot: ctx.repoRoot, isOrigin: (path3) => isOrigin(path3) || roleOf(path3) === "outside" });
   lap("graph");
   const files = (treeFiles ?? diskFiles(projectDir, repoRoot2)).filter((f) => ctx.projectPrefix === "" || f.startsWith(`${ctx.projectPrefix}/`));
-  const backend = buildBackendTable({ project, repoRoot: repoRoot2, files, read: (f) => fs2.readFile(posix14.join(repoRoot2, f)), isOrigin, graphql: ctx.config.backend.graphql, rest: ctx.config.backend.rest, context: projectGlobs(ctx, ctx.config.backend.context) });
-  const rel = (fileName) => posix14.relative(repoRoot2, toPosix(fileName));
+  const backend = buildBackendTable({ project, repoRoot: repoRoot2, files, read: (f) => fs2.readFile(posix15.join(repoRoot2, f)), isOrigin, graphql: ctx.config.backend.graphql, rest: ctx.config.backend.rest, context: projectGlobs(ctx, ctx.config.backend.context) });
+  const rel = (fileName) => posix15.relative(repoRoot2, toPosix(fileName));
   const isProjectFile = (fileName) => isProjectPath(repoRoot2, fileName);
   const extra = globalUses(project, backend.globals, rel, isProjectFile);
   if (extra.length > 0) {
@@ -251391,7 +251404,7 @@ function diffGoMod(manifest, baseText, headText) {
 // src/project/decls.ts
 var import_typescript21 = __toESM(require_typescript(), 1);
 import { createHash as createHash2 } from "crypto";
-import { posix as posix15 } from "path";
+import { posix as posix16 } from "path";
 function tokenHash(sf, node2) {
   const text = sf.text.slice(node2.getStart(sf), node2.end);
   const scanner = import_typescript21.default.createScanner(import_typescript21.default.ScriptTarget.Latest, true, sf.languageVariant, text);
@@ -251456,7 +251469,7 @@ function baseDecls(file2, code2) {
 }
 function tsDeclGraph(input2) {
   const root = input2.repoRoot.replaceAll("\\", "/");
-  const rel = (f) => posix15.relative(root, f.replaceAll("\\", "/"));
+  const rel = (f) => posix16.relative(root, f.replaceAll("\\", "/"));
   const isProject = (f) => isProjectPath(root, f) && input2.isOrigin(rel(f));
   const checker = input2.project.program.getTypeChecker();
   const decls = [];
@@ -251580,7 +251593,7 @@ async function baseRouteTable(ctx, ws, mergeBaseSha, basePath) {
   const files = await listFiles(ctx.repoRoot, mergeBaseSha);
   const routeFiles = ws.routesFromDirectory ? filesUnder(files, basePath) : [];
   if (ws.routesFromDirectory ? routeFiles.length === 0 : !files.includes(basePath)) return { routes: [], dynamic: [], sources: [] };
-  const contents = await readFiles(ctx.repoRoot, mergeBaseSha, files.filter((f) => SOURCE_EXTENSIONS.has(posix16.extname(f)) || f === basePath));
+  const contents = await readFiles(ctx.repoRoot, mergeBaseSha, files.filter((f) => SOURCE_EXTENSIONS.has(posix17.extname(f)) || f === basePath));
   const code2 = ws.routesFromDirectory ? "" : contents.get(basePath);
   if (code2 === void 0) throw new Error(`internal: base content of ${basePath} was not read`);
   const fs2 = createTreeFileSystem({ repoRoot: ctx.repoRoot, files, contents, fallback: createDiskFileSystem() });
@@ -251595,7 +251608,7 @@ async function manifestDiffs(ctx, files, select, baseSha, headSha) {
     try {
       const before = f.status === "added" ? null : base.get(f.oldPath ?? f.path) ?? null;
       const after = f.status === "deleted" ? null : head.get(f.path) ?? null;
-      const name = posix16.basename(f.path);
+      const name = posix17.basename(f.path);
       if (name === "pyproject.toml") return diffPyproject(f.path, before === null ? null : await parseToml(before), after === null ? null : await parseToml(after));
       if (name === "requirements.txt") return diffRequirementsTxt(f.path, before, after);
       return (name === "go.mod" ? diffGoMod : diffManifest)(f.path, before, after);
@@ -251608,7 +251621,7 @@ async function manifestDiffs(ctx, files, select, baseSha, headSha) {
 async function projectAndOtherManifests(ctx, files, roleOf, baseSha, headSha) {
   const ecosystem = ECOSYSTEM_FILES[ctx.config.language];
   const isOther = (path3) => {
-    const name = posix16.basename(path3);
+    const name = posix17.basename(path3);
     return roleOf(path3) === "outside" && MANIFESTS.has(name) && ecosystem.has(name);
   };
   const [manifests, otherManifests] = await Promise.all([manifestDiffs(ctx, files, (p) => roleOf(p) === "manifest", baseSha, headSha), manifestDiffs(ctx, files, isOther, baseSha, headSha)]);
@@ -251695,8 +251708,8 @@ async function runAnalyze(ctx, options, deps) {
       Object.assign(timings, wsTimings);
       t = deps.clock();
       roleOf = createAnalysisRoleOf(ctx, ws.graph.nodes, ws.backend);
-      readHead = (path3) => ws.fs.readFile(posix16.join(toPosix(ctx.repoRoot), path3));
-      headExists = (path3) => ws.fs.fileExists(posix16.join(toPosix(ctx.repoRoot), path3));
+      readHead = (path3) => ws.fs.readFile(posix17.join(toPosix(ctx.repoRoot), path3));
+      headExists = (path3) => ws.fs.fileExists(posix17.join(toPosix(ctx.repoRoot), path3));
       const compared = comparedFiles(files, roleOf);
       const baseText = await readFiles(ctx.repoRoot, mb, compared);
       const headText = await readFiles(ctx.repoRoot, meta3.head.sha, compared);
@@ -251725,7 +251738,7 @@ async function runAnalyze(ctx, options, deps) {
       const existing = new Set((baseRoutes ?? ws.routes).routes.map((r) => r.key));
       const declImpactMap = declImpacts(baseOut, head, declChanged, () => true, { existing, erasedTypes: true });
       lap("base");
-      result = classify({ files, roleOf, isGenerated: createIgnoreOf(ctx, [], ctx.config.generated), manifests, otherManifests, typeOnlyFiles, declImpacts: declImpactMap, ...backend ? { backend: { impacts: backend.impacts } } : {}, graph: ws.graph, routesFile: ws.routesFile, ...ws.routesFromDirectory ? { routesFromDirectory: true } : {}, headRoutes: ws.routes, baseRoutes, baseText, headText });
+      result = classify({ files, roleOf, isGenerated: createGeneratedMatcher(ctx.config.generated, ctx.projectPrefix, ctx.config.generated.length === 0 ? [] : await listFiles(ctx.repoRoot, meta3.head.sha)), manifests, otherManifests, typeOnlyFiles, declImpacts: declImpactMap, ...backend ? { backend: { impacts: backend.impacts } } : {}, graph: ws.graph, routesFile: ws.routesFile, ...ws.routesFromDirectory ? { routesFromDirectory: true } : {}, headRoutes: ws.routes, baseRoutes, baseText, headText });
     }
     for (const f of result.files) if (f.status === "added" && (f.role === "source" || f.role === "barrel") && isScriptFile(f.path) && isDeclarationsOnlyModule(f.path, readHead(f.path) ?? "x(")) f.declarationsOnly = true;
     lap("classify");
@@ -251893,7 +251906,7 @@ function scoreGroups(items) {
 }
 
 // src/report/verdict.ts
-import { posix as posix17 } from "path";
+import { posix as posix18 } from "path";
 var QUICK_SCORE = 25;
 var CAREFUL_SCORE = 60;
 var START_HERE_MAX = 7;
@@ -251914,7 +251927,7 @@ function computeVerdict(o) {
   for (const r of o.routes.affected) if (!r.hasChildren) for (const v of r.via) addEntry(v.file, r.path);
   for (const r of o.routes.added) if (r.entry !== null && !r.hasChildren) addEntry(r.entry, r.path);
   const count2 = (list2, path3) => list2.filter((x) => x.path === path3).length;
-  const isCode2 = (path3) => CODE2.has(posix17.extname(path3));
+  const isCode2 = (path3) => CODE2.has(posix18.extname(path3));
   const files = [];
   const other = [];
   const infra = [];
@@ -251964,7 +251977,7 @@ function computeVerdict(o) {
   const vulnerable = o.signals.vulnerabilities.related.filter((v) => v.severity === "critical" || v.severity === "high").length;
   if (vulnerable > 0) careful.push(`${vulnerable} serious vulnerabilit${vulnerable === 1 ? "y" : "ies"} in added or changed dependencies`);
   const untestedCentral = files.filter((f) => f.level === "high" && f.coverage?.ratio !== void 0 && f.coverage.ratio !== null && f.coverage.ratio < 0.5);
-  if (untestedCentral.length > 0) careful.push(`${untestedCentral.length} central file(s) with little or no diff coverage: ${untestedCentral.slice(0, 3).map((f) => posix17.basename(f.path)).join(", ")}`);
+  if (untestedCentral.length > 0) careful.push(`${untestedCentral.length} central file(s) with little or no diff coverage: ${untestedCentral.slice(0, 3).map((f) => posix18.basename(f.path)).join(", ")}`);
   const contracts = o.contracts?.entries ?? [];
   const breaking = contracts.filter((e) => e.level === "breaking");
   const dangerous = contracts.filter((e) => e.level === "dangerous");
@@ -252676,7 +252689,7 @@ function contractsSection2(o) {
 }
 
 // src/report/test-plan.ts
-import { posix as posix18 } from "path";
+import { posix as posix19 } from "path";
 function moduleOf(o, path3) {
   if (o.surface === "backend") {
     const parts = path3.split(" ");
@@ -252704,7 +252717,7 @@ function testPlan(o) {
   return [...groups.entries()].map(([label2, list2]) => ({ label: label2, items: list2.sort((a, b) => b.priority - a.priority || compareStrings(a.path, b.path)) })).sort((a, b) => Math.max(...b.items.map((i) => i.priority)) - Math.max(...a.items.map((i) => i.priority)) || compareStrings(a.label, b.label));
 }
 function shortFile(path3) {
-  return path3 === null ? "" : posix18.basename(path3);
+  return path3 === null ? "" : posix19.basename(path3);
 }
 
 // src/report/markdown.ts
@@ -254838,7 +254851,7 @@ async function usageCommand(ctx, options, env = process.env, now = /* @__PURE__ 
 }
 
 // src/cli/reviewers-run.ts
-import { posix as posix19, resolve as resolve9 } from "path";
+import { posix as posix20, resolve as resolve9 } from "path";
 
 // src/git/authors.ts
 function parseBlameAuthors(output2) {
@@ -254946,7 +254959,7 @@ async function runReviewers(ctx, options) {
   const files = await mapLimit(code2, BLAME_CONCURRENCY, async (f) => {
     const weight = Math.max(1, points.get(f.path) ?? 0);
     if (f.status === "added") {
-      const dir = posix19.dirname(f.path);
+      const dir = posix20.dirname(f.path);
       return { path: f.path, weight, whole: dir === "." ? /* @__PURE__ */ new Map() : await addedLinesByAuthor(ctx.repoRoot, base, dir, "12 months ago"), touched: null };
     }
     const basePath = f.oldPath ?? f.path;

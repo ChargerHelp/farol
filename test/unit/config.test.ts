@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseConfig, UsageError } from '../../src/config/load.js'
-import { createInfraMatcher, createRoleMatcher } from '../../src/classify/roles.js'
+import { createGeneratedMatcher, createInfraMatcher, createRoleMatcher } from '../../src/classify/roles.js'
 import { DEFAULT_INFRA, DEFAULT_ROLES, GO_DEFAULT_ROLES, PYTHON_DEFAULT_ROLES } from '../../src/config/schema.js'
 
 const EXAMPLE = readFileSync(join(import.meta.dirname, '..', '..', 'examples', 'farol.config.json'), 'utf8')
@@ -86,6 +86,35 @@ describe('roles', () => {
     for (const p of ['src/deploy/release.ts', 'infra/scripts/seed.py', 'src/pages/Home.tsx', 'README.md', 'package.json']) {
       expect(infra(p), p).toBe(false)
     }
+  })
+})
+
+describe('generated import targets', () => {
+  const head = ['apps/api/src/lib/format.ts', 'apps/api/src/generated/.gitkeep', 'src/lib/a.ts']
+
+  it('matches a missing target in a folder with no committed file, by its project-relative path', () => {
+    const isGenerated = createGeneratedMatcher(['src/generated/**'], 'apps/api', head)
+    expect(isGenerated('apps/api/src/generated/prisma/client.js')).toBe(true)
+    expect(isGenerated('apps/api/src/generated/proto/kafka')).toBe(true)
+  })
+
+  it('does not match a target next to committed files (a typo in an import of real code)', () => {
+    const isGenerated = createGeneratedMatcher(['src/**'], 'apps/api', head)
+    expect(isGenerated('apps/api/src/lib/formt.ts')).toBe(false)
+  })
+
+  it('does not match a target outside the project, even with a glob that matches everything', () => {
+    const isGenerated = createGeneratedMatcher(['**'], 'apps/api', head)
+    expect(isGenerated('apps/web/src/missing.ts')).toBe(false)
+    expect(isGenerated('src/lib/missing.ts')).toBe(false)
+  })
+
+  it('matches nothing without globs', () => {
+    expect(createGeneratedMatcher([], '', head)('src/generated/x.js')).toBe(false)
+  })
+
+  it('is rejected in Go and Python projects, which do not read it', () => {
+    expect(() => parseConfig('{"language":"go","surface":"backend","generated":["gen/**"]}', 'c')).toThrow(/generated: only TypeScript projects read generated import targets/)
   })
 })
 

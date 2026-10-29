@@ -1,3 +1,4 @@
+import { posix } from 'node:path'
 import picomatch from 'picomatch'
 import type { Config } from '../config/schema.js'
 
@@ -60,6 +61,22 @@ export function normalizeProjectPath(path: string): string {
     else parts.push(part)
   }
   return parts.join('/')
+}
+
+/**
+ * Whether an import target (repo-relative, as written) is generated code that git ignores: inside the project, matched
+ * by a `generated` glob on its project-relative path, and in a folder without a file of the head commit. A missing
+ * target next to committed files (a typo in an import of real code) stays an unresolved import.
+ */
+export function createGeneratedMatcher(globs: readonly string[], projectPrefix: string, headFiles: readonly string[]): (repoPath: string) => boolean {
+  if (globs.length === 0) return () => false
+  const match = matcher(globs)
+  const committedFolders = new Set(headFiles.map((f) => posix.dirname(f)))
+  return (repoPath) => {
+    if (projectPrefix !== '' && !repoPath.startsWith(`${projectPrefix}/`)) return false
+    const projectPath = projectPrefix === '' ? repoPath : repoPath.slice(projectPrefix.length + 1)
+    return match(projectPath) && !committedFolders.has(posix.dirname(repoPath))
+  }
 }
 
 /** Matcher for "ignore" globs: a file is ignored when its project-relative or repo-relative path matches. */

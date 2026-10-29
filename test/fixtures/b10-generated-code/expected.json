@@ -30,8 +30,8 @@
       "path": "src/rest/stripe.ts",
       "status": "modified",
       "role": "source",
-      "linesAdded": 3,
-      "linesRemoved": 1
+      "linesAdded": 7,
+      "linesRemoved": 0
     }
   ],
   "ignoredFiles": [],
