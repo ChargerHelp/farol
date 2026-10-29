@@ -3,7 +3,7 @@ import type { AnalysisRole } from '../classify/roles.js'
 import type { ChangedFile } from '../git/types.js'
 import { compareStrings } from '../output/order.js'
 import type { CoverageSignal } from '../output/schema.js'
-import { isCodeFile, reportPathToRepo, toRanges } from './paths.js'
+import { firstPathFromOtherCheckout, isCodeFile, reportPathToRepo, toRanges } from './paths.js'
 
 const Position = z.object({ line: z.number().int() }).loose()
 const IstanbulFile = z
@@ -28,19 +28,10 @@ export function parseJson(text: string, label: string): unknown {
   }
 }
 
-/**
- * Throws when a report names files but none of them is in the repository: it was written in another checkout (a
- * container, another runner folder), so nothing in it would match a changed file. Reports with only some paths
- * outside the repository (installed packages) read as before.
- */
-export function assertSameCheckout(paths: readonly string[], label: string, repoRoot: string, projectPrefix: string, canonical?: (path: string) => string): void {
-  const inRepo = (raw: string): boolean => {
-    const path = reportPathToRepo(raw, repoRoot, projectPrefix, canonical)
-    return path !== undefined && path !== '..' && !path.startsWith('../')
-  }
-  const first = paths[0]
-  if (first === undefined || paths.some(inRepo)) return
-  throw new ReportError(`the ${label} report names no file in the repository ${repoRoot} (first path: ${first}): write the report in the same checkout as farol`)
+/** Throws when every path of the report is from another checkout (see `firstPathFromOtherCheckout`). */
+export function assertSameCheckout(label: string, paths: readonly string[], repoRoot: string, projectPrefix: string, canonical?: (path: string) => string): void {
+  const other = firstPathFromOtherCheckout(paths, repoRoot, projectPrefix, canonical)
+  if (other !== undefined) throw new ReportError(`the ${label} report names no file in the repository ${repoRoot} (first path: ${other}): write the report in the same checkout as farol`)
 }
 
 /** Parses an Istanbul `coverage-final.json` into statements per repo-relative path. */
@@ -48,7 +39,7 @@ export function parseCoverageReport(text: string, repoRoot: string, projectPrefi
   const raw = parseJson(text, 'coverage')
   const parsed = IstanbulReport.safeParse(raw)
   if (!parsed.success) throw new ReportError('the coverage report is not in the Istanbul coverage-final.json format (use the Vitest "json" reporter)')
-  assertSameCheckout(Object.entries(parsed.data).map(([key, entry]) => entry.path ?? key), 'coverage', repoRoot, projectPrefix, canonical)
+  assertSameCheckout('coverage', Object.entries(parsed.data).map(([key, entry]) => entry.path ?? key), repoRoot, projectPrefix, canonical)
   const result = new Map<string, Statements>()
   for (const [key, entry] of Object.entries(parsed.data)) {
     const path = reportPathToRepo(entry.path ?? key, repoRoot, projectPrefix, canonical)

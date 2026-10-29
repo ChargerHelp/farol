@@ -42,7 +42,7 @@ export function parseBiomeReport(text: string, repoRoot: string, projectPrefix: 
     throw new ReportError(`the lint report is not Biome GitLab output (biome lint --reporter=gitlab): ${where}: ${issue?.message ?? ''}`)
   }
   const paths = parsed.data.map((f) => f.location.path)
-  assertSameCheckout(paths, 'Biome', repoRoot, projectPrefix, canonical)
+  assertSameCheckout('Biome', paths, repoRoot, projectPrefix, canonical)
   const wrong = firstPathFromOtherFolder(paths, repoRoot, projectPrefix, head, canonical)
   if (wrong !== undefined) throw new ReportError(`the Biome report path ${wrong} is not relative to the project directory: run biome in ${projectPrefix === '' ? 'the repository root' : projectPrefix}`)
   return parsed.data.map((f) => ({

@@ -23,7 +23,7 @@ export function isCoveragePyReport(text: string): boolean {
 export function parseCoveragePyReport(text: string, repoRoot: string, projectPrefix: string, canonical?: (path: string) => string): Map<string, Statements> {
   const parsed = CoveragePy.safeParse(parseJson(text, 'coverage'))
   if (!parsed.success) throw new ReportError('the coverage report is not coverage.py JSON (coverage json)')
-  assertSameCheckout(Object.keys(parsed.data.files), 'coverage', repoRoot, projectPrefix, canonical)
+  assertSameCheckout('coverage', Object.keys(parsed.data.files), repoRoot, projectPrefix, canonical)
   const result = new Map<string, Statements>()
   for (const [file, entry] of Object.entries(parsed.data.files)) {
     const path = reportPathToRepo(file, repoRoot, projectPrefix, canonical)
@@ -47,7 +47,7 @@ const RUFF_HIGH = new Set(['S105', 'S106', 'S107', 'S301', 'S307', 'S501', 'S602
 export function parseRuffReport(text: string, repoRoot: string, projectPrefix: string, canonical?: (path: string) => string): { messages: LintMessage[]; sast: Omit<SecurityFinding, 'text'>[] } {
   const parsed = Ruff.safeParse(parseJson(text, 'ruff'))
   if (!parsed.success) throw new ReportError('the lint report is not ruff JSON output (ruff check --output-format json)')
-  assertSameCheckout(parsed.data.map((f) => f.filename), 'ruff', repoRoot, projectPrefix, canonical)
+  assertSameCheckout('ruff', parsed.data.map((f) => f.filename), repoRoot, projectPrefix, canonical)
   const messages: LintMessage[] = []
   const sast: Omit<SecurityFinding, 'text'>[] = []
   for (const f of parsed.data) {

@@ -102,11 +102,15 @@ describe('reports written in another checkout', () => {
     expect(() => parseEslintReport(eslint('C:\\other\\src\\a.ts'), '/repo', '')).toThrow('(first path: C:\\other\\src\\a.ts)')
   })
 
+  it('does not count an empty path as a path in the repository', () => {
+    expect(() => parseEslintReport(eslint('', '/src/a.ts'), '/repo', 'apps/web')).toThrow('the ESLint report names no file in the repository /repo (first path: /src/a.ts)')
+  })
+
   it('rejects relative paths that climb above the repository root', () => {
     expect(() => parseEslintReport(eslint('../../../other/a.ts'), '/repo', 'apps/web')).toThrow(/names no file in the repository/)
   })
 
-  it('reads a report with some paths in the repository as before', () => {
+  it('accepts a report when at least one path is in the repository', () => {
     expect(parseEslintReport(eslint('/elsewhere/x.ts', '/repo/apps/web/a.ts'), '/repo', 'apps/web').map((m) => m.path)).toEqual(['/elsewhere/x.ts', 'apps/web/a.ts'])
     expect(parseEslintReport('[]', '/repo', '')).toEqual([])
   })
@@ -116,7 +120,7 @@ describe('reports written in another checkout', () => {
     expect(parseEslintReport(eslint('/link/a.ts'), '/repo', '', canonical).map((m) => m.path)).toEqual(['a.ts'])
   })
 
-  it('checks the Istanbul entry path, not the key', () => {
+  it('rejects an Istanbul report whose entry paths are from another checkout', () => {
     expect(() => parseCoverageReport(istanbul('/src/a.ts'), '/repo', '')).toThrow('the coverage report names no file in the repository /repo (first path: /src/a.ts)')
   })
 })

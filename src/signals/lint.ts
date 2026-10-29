@@ -29,7 +29,7 @@ export function parseEslintReport(text: string, repoRoot: string, projectPrefix:
   const raw = parseJson(text, 'ESLint')
   const parsed = EslintReport.safeParse(raw)
   if (!parsed.success) throw new ReportError('the ESLint report is not in the "eslint -f json" format')
-  assertSameCheckout(parsed.data.map((entry) => entry.filePath), 'ESLint', repoRoot, projectPrefix, canonical)
+  assertSameCheckout('ESLint', parsed.data.map((entry) => entry.filePath), repoRoot, projectPrefix, canonical)
   const messages: LintMessage[] = []
   for (const entry of parsed.data) {
     const path = reportPathToRepo(entry.filePath, repoRoot, projectPrefix, canonical) ?? entry.filePath.replaceAll('\\', '/')

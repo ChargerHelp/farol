@@ -126,9 +126,12 @@ The `--eslint` flag takes whichever lint report fits the language: farol recogni
 TypeScript also gets built-in security rules (XSS sinks, `eval`, hard-coded secrets, `javascript:` URLs…) without
 any report.
 
-Write every report in the same checkout as farol. A report whose paths are all outside the repository (the tool ran
-in a container or another runner folder) gives that signal status `error`, naming the first path. A report with only
-some paths outside the repository (coverage.py listing installed packages) reads as before; those entries are left out.
+Write every report in the same checkout as farol. A lint or coverage report whose paths are all outside the repository
+(the tool ran in a container or another runner folder) gives that signal status `error`, naming the repository and the
+first path. A report with only some paths outside the repository (coverage.py listing installed packages) is read;
+those entries are left out. coverage.py run only on an installed copy (tox, nox) gives this error too: map the paths
+back to the checkout with its `[paths]` setting. A report path that cannot be resolved (a symlink loop, no permission)
+is also an error. The Go coverprofile uses module paths and is not checked (CHA-14900).
 
 Biome writes paths relative to the folder it runs in, so run it in the project directory
 (`(cd <project> && biome lint --reporter=gitlab .) > reports/biome.json`). Rules:

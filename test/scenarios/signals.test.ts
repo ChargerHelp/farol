@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -150,6 +150,18 @@ describe('signals', () => {
     expect(o.signals.vulnerabilities.related.map((r) => [r.package, r.severity, r.kind, r.relatedTo])).toEqual([['clsx', 'high', 'direct', ['clsx']]])
     expect(o.signals.vulnerabilities.total).toEqual({ critical: 0, high: 1, moderate: 1, low: 0, info: 0 })
     golden('security', 'expected.json', o)
+  })
+
+  it('a report path that cannot be resolved (a symlink loop) is an error naming the path', async () => {
+    const s = createScenarioRepo('signals-coverage-lint')
+    repos.push(s)
+    const loop = join(s.repo.dir, 'loop')
+    symlinkSync(loop, loop)
+    const eslint = join(tmp, 'loop-eslint.json')
+    writeFileSync(eslint, JSON.stringify([{ filePath: join(loop, 'a.ts'), messages: [] }]))
+    const o = (await analyzeRepo(s.repo, { eslint })).output
+    expect(o.signals.lint).toMatchObject({ status: 'error', changedLines: null })
+    expect(o.signals.lint.message).toMatch(/^cannot resolve the report path .+\/loop\/a\.ts: ELOOP$/)
   })
 
   it('a missing or unreadable report is reported, not approved', async () => {

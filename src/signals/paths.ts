@@ -45,6 +45,23 @@ export function firstPathFromOtherFolder(paths: readonly string[], repoRoot: str
   })
 }
 
+/** Normalized relative paths that leave the repository start with `..`. */
+const climbsOut = (path: string): boolean => path === '..' || path.startsWith('../')
+
+/**
+ * A path of a report written in another checkout (a container, another runner folder): the report names files but
+ * none of them is in the repository. Undefined when at least one path is in the repository (outside paths, such as
+ * installed packages, are then left out) or the report names no file.
+ */
+export function firstPathFromOtherCheckout(paths: readonly string[], repoRoot: string, projectPrefix: string, canonical?: (path: string) => string): string | undefined {
+  const named = paths.filter((raw) => raw.trim() !== '')
+  const inRepo = (raw: string): boolean => {
+    const path = reportPathToRepo(raw, repoRoot, projectPrefix, canonical)
+    return path !== undefined && !climbsOut(path)
+  }
+  return named.some(inRepo) ? undefined : named[0]
+}
+
 /** Groups sorted line numbers into contiguous ranges. */
 export function toRanges(lines: readonly number[]): { start: number; end: number }[] {
   const ranges: { start: number; end: number }[] = []

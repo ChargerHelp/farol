@@ -62,7 +62,7 @@ export function parseGolangciReport(text: string, repoRoot: string, projectPrefi
   const failed = parsed.data.Report?.Error
   if (failed !== undefined && failed !== '') throw new ReportError(`golangci-lint did not finish: ${failed}`)
   const paths = (parsed.data.Issues ?? []).map((i) => i.Pos.Filename)
-  assertSameCheckout(paths, 'golangci-lint', repoRoot, projectPrefix, canonical)
+  assertSameCheckout('golangci-lint', paths, repoRoot, projectPrefix, canonical)
   const wrong = firstPathFromOtherFolder(paths, repoRoot, projectPrefix, head, canonical)
   if (wrong !== undefined) throw new ReportError(`the golangci-lint report path ${wrong} is not relative to the project directory: run golangci-lint with --path-mode=abs`)
   const messages: LintMessage[] = []
