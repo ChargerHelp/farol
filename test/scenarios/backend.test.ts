@@ -39,6 +39,14 @@ const SCENARIOS: Record<string, { classification: Output['classification']; affe
   // is the module: renameBrand uses services/brands.ts, which loads legacy.js, so it is listed too (conservative).
   'b6-global-changed': { classification: 'touches-existing', affected: ['Mutation.renameBrand', 'Query.brands'] },
   'b7-rest': { classification: 'touches-existing', affected: ['POST /webhooks/stripe'] },
+  // A value import of git-ignored generated code (Prisma client) under "generated": reach as usual, not unknown.
+  'b10-generated-code': {
+    classification: 'touches-existing',
+    affected: ['POST /webhooks/stripe'],
+    check: (o) => {
+      expect(o.reasons.map((r) => r.code)).not.toContain('unresolved-import')
+    },
+  },
   // Contracts (graphql-js rules): a required argument on Query.brand, Post.title removed (every operation returning a
   // Brand reaches Post), an optional argument on Query.brands (dangerous for graphql-js).
   'b9-schema-breaking': {

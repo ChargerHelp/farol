@@ -128,6 +128,8 @@ export const ConfigSchema = z
       }))
       .optional(),
     exclude: globs.default([]),
+    /** Import targets the build generates and git ignores (Prisma client, protobuf types): not an unresolved import. Project-relative globs, matched against the import path as written. */
+    generated: globs.default([]),
     /** Where `farol usage` reads traffic from (optional). */
     datadog: DatadogSchema.optional(),
     /** Changed files left out of every analysis (classification, dependencies, signals). Project-relative or repo-relative globs. */

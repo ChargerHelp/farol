@@ -94,6 +94,7 @@ A complete example is in [examples/.farol.json](../examples/.farol.json).
 | `python.roots` | `["src", "."]` | Python import roots (`src` for a src layout). |
 | `exclude` | `[]` (Go: generated mocks) | Files left out of the analysis, still listed. |
 | `ignore` | `[]` | Changed files left out of **everything**: classification, dependencies, signals. |
+| `generated` | `[]` | TypeScript: import targets the build generates and git ignores, such as `["src/generated/**"]` for a Prisma client or protobuf types. A changed file that imports them is not an unresolved import (class `unknown`). |
 | `roles.global` | TS: app entry, configs, `package.json`… | Files whose change affects everything (class `global`). Globs may point above the project in a monorepo (`../../pnpm-lock.yaml`). |
 | `roles.test` / `roles.story` | per language | Tests and stories: reported, never treated as code. |
 | `roles.barrel` / `roles.i18n` | `**/index.ts` / `src/locales/**/*.json` | TypeScript re-export files and translation JSON: additive when they only add exports or keys. |
@@ -102,6 +103,12 @@ A complete example is in [examples/.farol.json](../examples/.farol.json).
 | `signals.usage` | — | Default usage report path (written by `farol usage`). |
 | `signals.coverageIgnore` | `[]` | Changed files left out of diff coverage only (constants, types…). |
 | `datadog` | — | Where `farol usage` reads traffic: see [Datadog](#traffic-and-errors-from-datadog). |
+
+`generated` globs match the import path as written (`src/generated/prisma/client.js`, or a folder), not the generated
+`.ts` file, so `src/generated/**` works and `src/generated/**/*.ts` matches nothing. Only imports that do not resolve
+are affected: committed files under the glob resolve as usual, and a PR that deletes one that is still imported stays
+`unknown`. A change to a generator input (such as `prisma/schema.prisma`) is `touches-existing`; add it to
+`roles.global` to make such PRs `global` instead (every schema PR then is).
 
 Each `roles` key left out takes the default of the project's language, key by key. A complete frontend example is in
 [examples/farol.config.json](../examples/farol.config.json); [examples/README.md](../examples/README.md) lists the defaults

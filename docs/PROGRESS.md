@@ -133,6 +133,7 @@ Milestones from `docs/SPEC.md`. Each one is done only when its acceptance criter
 ### Biome lint reports — done (CHA-14802)
 - `--eslint` also reads `biome lint --reporter=gitlab`; Biome security rules stay lint findings. See DECISIONS 2026-10-26.
 - `biome-ignore`, `biome-ignore-all` and `biome-ignore-start` comments are suppressions; file-wide and range ones make the key finding high (CHA-14847, DECISIONS 2026-10-27).
+- `generated` globs: imports of git-ignored generated code (Prisma client, protobuf types) no longer make a PR `unknown` (CHA-14807, DECISIONS 2026-10-29).
 - Every lint and coverage report except the Go coverprofile (CHA-14900) with no path in the repository (written in another checkout, such as a container) gives that signal status `error` (CHA-14882, DECISIONS 2026-10-29).
 
 ### Traffic from Datadog — done (first version, information only)

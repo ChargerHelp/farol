@@ -18,6 +18,8 @@ export interface ClassifyInput {
   files: readonly ChangedFile[]
   /** Role of a repo-relative path; `outside` for files outside the project directory. */
   roleOf: (repoPath: string) => AnalysisRole | 'outside'
+  /** Whether an import target (repo-relative, as written) is generated code that git ignores (`generated` globs). */
+  isGenerated: (repoPath: string) => boolean
   /** Modified files that only declare types in base and head (erased at compile time). */
   typeOnlyFiles?: ReadonlySet<string>
   /** Backend only: impact of each changed schema or resolver file (Go/Python: of every source file). */
@@ -138,7 +140,9 @@ export function classify(input: ClassifyInput): ClassifyResult {
   const removed = input.files.flatMap((f) => (f.status === 'deleted' ? [f.path] : f.status === 'renamed' && f.oldPath !== undefined ? [f.oldPath] : []))
   for (const e of graph.parseErrors) if (changed.has(e.file)) reasons.push(reason('parse-error', `line ${e.line}: ${e.message}`, e.file))
   for (const u of graph.unresolved) {
-    if (changed.has(u.file) || (u.target !== undefined && targetsRemoved(u.target, removed))) {
+    // A generated target is missing from git by design; a target this PR removed is still a broken import.
+    const generated = u.target !== undefined && input.isGenerated(u.target)
+    if ((changed.has(u.file) && !generated) || (u.target !== undefined && targetsRemoved(u.target, removed))) {
       const what = u.reason === 'non-literal' ? `import with a computed path ${u.specifier}` : `cannot resolve "${u.specifier}"`
       reasons.push(reason('unresolved-import', `line ${u.line}: ${what}`, u.file))
     }

@@ -236571,6 +236571,8 @@ var ConfigSchema = external_exports.object({
     ...routes.adapter === "react-router" ? {} : { dir: dir ?? (routes.adapter === "tanstack-router" ? "src/routes" : "") }
   })).optional(),
   exclude: globs.default([]),
+  /** Import targets the build generates and git ignores (Prisma client, protobuf types): not an unresolved import. Project-relative globs, matched against the import path as written. */
+  generated: globs.default([]),
   /** Where `farol usage` reads traffic from (optional). */
   datadog: DatadogSchema.optional(),
   /** Changed files left out of every analysis (classification, dependencies, signals). Project-relative or repo-relative globs. */
@@ -237763,7 +237765,8 @@ function classify(input2) {
   const removed = input2.files.flatMap((f) => f.status === "deleted" ? [f.path] : f.status === "renamed" && f.oldPath !== void 0 ? [f.oldPath] : []);
   for (const e of graph.parseErrors) if (changed.has(e.file)) reasons.push(reason("parse-error", `line ${e.line}: ${e.message}`, e.file));
   for (const u of graph.unresolved) {
-    if (changed.has(u.file) || u.target !== void 0 && targetsRemoved(u.target, removed)) {
+    const generated = u.target !== void 0 && input2.isGenerated(u.target);
+    if (changed.has(u.file) && !generated || u.target !== void 0 && targetsRemoved(u.target, removed)) {
       const what = u.reason === "non-literal" ? `import with a computed path ${u.specifier}` : `cannot resolve "${u.specifier}"`;
       reasons.push(reason("unresolved-import", `line ${u.line}: ${what}`, u.file));
     }
@@ -251685,7 +251688,7 @@ async function runAnalyze(ctx, options, deps) {
       const helperContracts = helperContractChanges(langWs.base, langWs.head);
       contracts = contractsSection(helperContracts.changes, helperContracts.readable);
       lap("base");
-      result = classify({ files, roleOf, manifests, otherManifests, backend: { impacts: langWs.impacts }, graph: langWs.graph, routesFile: "", headRoutes: langWs.headRoutes, baseRoutes: langWs.baseRoutes, baseText: /* @__PURE__ */ new Map(), headText: /* @__PURE__ */ new Map() });
+      result = classify({ files, roleOf, isGenerated: () => false, manifests, otherManifests, backend: { impacts: langWs.impacts }, graph: langWs.graph, routesFile: "", headRoutes: langWs.headRoutes, baseRoutes: langWs.baseRoutes, baseText: /* @__PURE__ */ new Map(), headText: /* @__PURE__ */ new Map() });
     } else {
       const ws = await loadWorkspace(ctx, meta3.head.sha, wsTimings, deps.clock);
       headRoutes = ws.routes;
@@ -251722,7 +251725,7 @@ async function runAnalyze(ctx, options, deps) {
       const existing = new Set((baseRoutes ?? ws.routes).routes.map((r) => r.key));
       const declImpactMap = declImpacts(baseOut, head, declChanged, () => true, { existing, erasedTypes: true });
       lap("base");
-      result = classify({ files, roleOf, manifests, otherManifests, typeOnlyFiles, declImpacts: declImpactMap, ...backend ? { backend: { impacts: backend.impacts } } : {}, graph: ws.graph, routesFile: ws.routesFile, ...ws.routesFromDirectory ? { routesFromDirectory: true } : {}, headRoutes: ws.routes, baseRoutes, baseText, headText });
+      result = classify({ files, roleOf, isGenerated: createIgnoreOf(ctx, [], ctx.config.generated), manifests, otherManifests, typeOnlyFiles, declImpacts: declImpactMap, ...backend ? { backend: { impacts: backend.impacts } } : {}, graph: ws.graph, routesFile: ws.routesFile, ...ws.routesFromDirectory ? { routesFromDirectory: true } : {}, headRoutes: ws.routes, baseRoutes, baseText, headText });
     }
     for (const f of result.files) if (f.status === "added" && (f.role === "source" || f.role === "barrel") && isScriptFile(f.path) && isDeclarationsOnlyModule(f.path, readHead(f.path) ?? "x(")) f.declarationsOnly = true;
     lap("classify");

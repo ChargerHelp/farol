@@ -18,6 +18,7 @@ describe('parseConfig', () => {
     const config = parseConfig('{"routes":{"file":"src/routes.tsx"}}', 'min')
     expect(config.tsconfig).toBe('tsconfig.json')
     expect(config.exclude).toEqual([])
+    expect(config.generated).toEqual([])
     expect(config.roles.barrel).toEqual(['**/index.ts'])
     expect(config.signals).toEqual({ coverageIgnore: [] })
   })
