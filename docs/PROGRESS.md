@@ -133,6 +133,7 @@ Milestones from `docs/SPEC.md`. Each one is done only when its acceptance criter
 ### Biome lint reports — done (CHA-14802)
 - `--eslint` also reads `biome lint --reporter=gitlab`; Biome security rules stay lint findings. See DECISIONS 2026-10-26.
 - `biome-ignore`, `biome-ignore-all` and `biome-ignore-start` comments are suppressions; file-wide and range ones make the key finding high (CHA-14847, DECISIONS 2026-10-27).
+- Every lint and coverage report except the Go coverprofile (CHA-14900) with no path in the repository (written in another checkout, such as a container) gives that signal status `error` (CHA-14882, DECISIONS 2026-10-29).
 
 ### Traffic from Datadog — done (first version, information only)
 - `farol usage` (RUM page views by `@view.url_path_group`, APM `trace.<op>.hits` by `resource_name`) writes `usage.json`; `analyze --usage` adds an optional `usage` section; comment line, HTML fact, per-route chips (busiest first) and per-file pills. Name formats checked against real Datadog data (RUM path groups, normalized metric tags). GraphQL operations are not matched.

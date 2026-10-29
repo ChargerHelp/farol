@@ -2,7 +2,7 @@ import { z } from 'zod'
 import type { ChangedFile } from '../git/types.js'
 import { compareStrings } from '../output/order.js'
 import type { LintFinding, LintSignal } from '../output/schema.js'
-import { parseJson, ReportError } from './coverage.js'
+import { assertSameCheckout, parseJson, ReportError } from './coverage.js'
 import { reportPathToRepo } from './paths.js'
 
 const MAX_FINDINGS = 50
@@ -29,6 +29,7 @@ export function parseEslintReport(text: string, repoRoot: string, projectPrefix:
   const raw = parseJson(text, 'ESLint')
   const parsed = EslintReport.safeParse(raw)
   if (!parsed.success) throw new ReportError('the ESLint report is not in the "eslint -f json" format')
+  assertSameCheckout('ESLint', parsed.data.map((entry) => entry.filePath), repoRoot, projectPrefix, canonical)
   const messages: LintMessage[] = []
   for (const entry of parsed.data) {
     const path = reportPathToRepo(entry.filePath, repoRoot, projectPrefix, canonical) ?? entry.filePath.replaceAll('\\', '/')

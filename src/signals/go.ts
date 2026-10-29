@@ -4,7 +4,7 @@ import type { ChangedFile } from '../git/types.js'
 import { compareStrings } from '../output/order.js'
 import type { SecurityFinding, SuppressionsSignal } from '../output/schema.js'
 import type { Advisory } from './audit.js'
-import { parseJson, ReportError } from './coverage.js'
+import { assertSameCheckout, parseJson, ReportError } from './coverage.js'
 import type { LintMessage } from './lint.js'
 import { firstPathFromOtherFolder, type ReportHead, reportPathToRepo } from './paths.js'
 
@@ -61,7 +61,9 @@ export function parseGolangciReport(text: string, repoRoot: string, projectPrefi
   // A run that cannot load the packages writes no issues and the reason in Report.Error.
   const failed = parsed.data.Report?.Error
   if (failed !== undefined && failed !== '') throw new ReportError(`golangci-lint did not finish: ${failed}`)
-  const wrong = firstPathFromOtherFolder((parsed.data.Issues ?? []).map((i) => i.Pos.Filename), repoRoot, projectPrefix, head, canonical)
+  const paths = (parsed.data.Issues ?? []).map((i) => i.Pos.Filename)
+  assertSameCheckout('golangci-lint', paths, repoRoot, projectPrefix, canonical)
+  const wrong = firstPathFromOtherFolder(paths, repoRoot, projectPrefix, head, canonical)
   if (wrong !== undefined) throw new ReportError(`the golangci-lint report path ${wrong} is not relative to the project directory: run golangci-lint with --path-mode=abs`)
   const messages: LintMessage[] = []
   const sast: Omit<SecurityFinding, 'text'>[] = []

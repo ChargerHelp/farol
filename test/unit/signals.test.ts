@@ -92,3 +92,35 @@ describe('tests modified', () => {
     ])
   })
 })
+
+describe('reports written in another checkout', () => {
+  const eslint = (...paths: string[]): string => JSON.stringify(paths.map((filePath) => ({ filePath, messages: [{ ruleId: 'r', severity: 2, message: 'm', line: 1 }] })))
+  const istanbul = (path: string): string => JSON.stringify({ key: { path, statementMap: { '0': { start: { line: 1 }, end: { line: 1 } } }, s: { '0': 1 } } })
+
+  it('rejects a report whose paths are all outside the repository, naming the first one', () => {
+    expect(() => parseEslintReport(eslint('/src/apps/web/a.ts', '/src/apps/web/b.ts'), '/repo', 'apps/web')).toThrow('the ESLint report names no file in the repository /repo (first path: /src/apps/web/a.ts): write the report in the same checkout as farol')
+    expect(() => parseEslintReport(eslint('C:\\other\\src\\a.ts'), '/repo', '')).toThrow('(first path: C:\\other\\src\\a.ts)')
+  })
+
+  it('does not count an empty path as a path in the repository', () => {
+    expect(() => parseEslintReport(eslint('', '/src/a.ts'), '/repo', 'apps/web')).toThrow('the ESLint report names no file in the repository /repo (first path: /src/a.ts)')
+  })
+
+  it('rejects relative paths that climb above the repository root', () => {
+    expect(() => parseEslintReport(eslint('../../../other/a.ts'), '/repo', 'apps/web')).toThrow(/names no file in the repository/)
+  })
+
+  it('accepts a report when at least one path is in the repository', () => {
+    expect(parseEslintReport(eslint('/elsewhere/x.ts', '/repo/apps/web/a.ts'), '/repo', 'apps/web').map((m) => m.path)).toEqual(['/elsewhere/x.ts', 'apps/web/a.ts'])
+    expect(parseEslintReport('[]', '/repo', '')).toEqual([])
+  })
+
+  it('reads an outside path that resolves into the repository (a symlink) as a repository path', () => {
+    const canonical = (p: string): string => p.replace('/link/', '/repo/')
+    expect(parseEslintReport(eslint('/link/a.ts'), '/repo', '', canonical).map((m) => m.path)).toEqual(['a.ts'])
+  })
+
+  it('rejects an Istanbul report whose entry paths are from another checkout', () => {
+    expect(() => parseCoverageReport(istanbul('/src/a.ts'), '/repo', '')).toThrow('the coverage report names no file in the repository /repo (first path: /src/a.ts)')
+  })
+})

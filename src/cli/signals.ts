@@ -50,13 +50,15 @@ function readReport(path: string | undefined, label: string, option: string): Re
   }
 }
 
-/** Real path of an absolute report path that exists on disk; anything else unchanged. */
+/** Real path of an absolute report path that exists on disk; a path that does not exist here stays unchanged. */
 function canonical(path: string): string {
   if (!isAbsolute(path)) return path
   try {
     return realpathSync(path)
-  } catch {
-    return path
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+    if (code === 'ENOENT' || code === 'ENOTDIR') return path
+    throw new ReportError(`cannot resolve the report path ${path}: ${code ?? String(error)}`)
   }
 }
 

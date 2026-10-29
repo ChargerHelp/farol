@@ -238756,6 +238756,15 @@ function firstPathFromOtherFolder(paths, repoRoot2, projectPrefix, head, canonic
     return namesChangedFile && !head.exists(mapped);
   });
 }
+var climbsOut = (path3) => path3 === ".." || path3.startsWith("../");
+function firstPathFromOtherCheckout(paths, repoRoot2, projectPrefix, canonical2) {
+  const named = paths.filter((raw) => raw.trim() !== "");
+  const inRepo = (raw) => {
+    const path3 = reportPathToRepo(raw, repoRoot2, projectPrefix, canonical2);
+    return path3 !== void 0 && !climbsOut(path3);
+  };
+  return named.some(inRepo) ? void 0 : named[0];
+}
 function toRanges(lines) {
   const ranges = [];
   for (const line3 of [...lines].sort((a, b) => a - b)) {
@@ -238783,10 +238792,15 @@ function parseJson2(text, label2) {
     throw new ReportError(`the ${label2} report is not valid JSON (${error62 instanceof Error ? error62.message : String(error62)})`);
   }
 }
+function assertSameCheckout(label2, paths, repoRoot2, projectPrefix, canonical2) {
+  const other = firstPathFromOtherCheckout(paths, repoRoot2, projectPrefix, canonical2);
+  if (other !== void 0) throw new ReportError(`the ${label2} report names no file in the repository ${repoRoot2} (first path: ${other}): write the report in the same checkout as farol`);
+}
 function parseCoverageReport(text, repoRoot2, projectPrefix, canonical2) {
   const raw = parseJson2(text, "coverage");
   const parsed = IstanbulReport.safeParse(raw);
   if (!parsed.success) throw new ReportError('the coverage report is not in the Istanbul coverage-final.json format (use the Vitest "json" reporter)');
+  assertSameCheckout("coverage", Object.entries(parsed.data).map(([key, entry]) => entry.path ?? key), repoRoot2, projectPrefix, canonical2);
   const result = /* @__PURE__ */ new Map();
   for (const [key, entry] of Object.entries(parsed.data)) {
     const path3 = reportPathToRepo(entry.path ?? key, repoRoot2, projectPrefix, canonical2);
@@ -238842,6 +238856,7 @@ function isCoveragePyReport(text) {
 function parseCoveragePyReport(text, repoRoot2, projectPrefix, canonical2) {
   const parsed = CoveragePy.safeParse(parseJson2(text, "coverage"));
   if (!parsed.success) throw new ReportError("the coverage report is not coverage.py JSON (coverage json)");
+  assertSameCheckout("coverage", Object.keys(parsed.data.files), repoRoot2, projectPrefix, canonical2);
   const result = /* @__PURE__ */ new Map();
   for (const [file2, entry] of Object.entries(parsed.data.files)) {
     const path3 = reportPathToRepo(file2, repoRoot2, projectPrefix, canonical2);
@@ -238858,6 +238873,7 @@ var RUFF_HIGH = /* @__PURE__ */ new Set(["S105", "S106", "S107", "S301", "S307",
 function parseRuffReport(text, repoRoot2, projectPrefix, canonical2) {
   const parsed = Ruff.safeParse(parseJson2(text, "ruff"));
   if (!parsed.success) throw new ReportError("the lint report is not ruff JSON output (ruff check --output-format json)");
+  assertSameCheckout("ruff", parsed.data.map((f) => f.filename), repoRoot2, projectPrefix, canonical2);
   const messages = [];
   const sast = [];
   for (const f of parsed.data) {
@@ -238945,7 +238961,9 @@ function parseBiomeReport(text, repoRoot2, projectPrefix, head, canonical2) {
     const where = issue2 === void 0 || issue2.path.length === 0 ? "(root)" : issue2.path.join(".");
     throw new ReportError(`the lint report is not Biome GitLab output (biome lint --reporter=gitlab): ${where}: ${issue2?.message ?? ""}`);
   }
-  const wrong = firstPathFromOtherFolder(parsed.data.map((f) => f.location.path), repoRoot2, projectPrefix, head, canonical2);
+  const paths = parsed.data.map((f) => f.location.path);
+  assertSameCheckout("Biome", paths, repoRoot2, projectPrefix, canonical2);
+  const wrong = firstPathFromOtherFolder(paths, repoRoot2, projectPrefix, head, canonical2);
   if (wrong !== void 0) throw new ReportError(`the Biome report path ${wrong} is not relative to the project directory: run biome in ${projectPrefix === "" ? "the repository root" : projectPrefix}`);
   return parsed.data.map((f) => ({
     path: reportPathToRepo(f.location.path, repoRoot2, projectPrefix, canonical2) ?? f.location.path.replaceAll("\\", "/"),
@@ -238991,7 +239009,9 @@ function parseGolangciReport(text, repoRoot2, projectPrefix, head, canonical2) {
   if (!parsed.success) throw new ReportError("the lint report is not golangci-lint JSON output");
   const failed = parsed.data.Report?.Error;
   if (failed !== void 0 && failed !== "") throw new ReportError(`golangci-lint did not finish: ${failed}`);
-  const wrong = firstPathFromOtherFolder((parsed.data.Issues ?? []).map((i) => i.Pos.Filename), repoRoot2, projectPrefix, head, canonical2);
+  const paths = (parsed.data.Issues ?? []).map((i) => i.Pos.Filename);
+  assertSameCheckout("golangci-lint", paths, repoRoot2, projectPrefix, canonical2);
+  const wrong = firstPathFromOtherFolder(paths, repoRoot2, projectPrefix, head, canonical2);
   if (wrong !== void 0) throw new ReportError(`the golangci-lint report path ${wrong} is not relative to the project directory: run golangci-lint with --path-mode=abs`);
   const messages = [];
   const sast = [];
@@ -239309,6 +239329,7 @@ function parseEslintReport(text, repoRoot2, projectPrefix, canonical2) {
   const raw = parseJson2(text, "ESLint");
   const parsed = EslintReport.safeParse(raw);
   if (!parsed.success) throw new ReportError('the ESLint report is not in the "eslint -f json" format');
+  assertSameCheckout("ESLint", parsed.data.map((entry) => entry.filePath), repoRoot2, projectPrefix, canonical2);
   const messages = [];
   for (const entry of parsed.data) {
     const path3 = reportPathToRepo(entry.filePath, repoRoot2, projectPrefix, canonical2) ?? entry.filePath.replaceAll("\\", "/");
@@ -239715,8 +239736,10 @@ function canonical(path3) {
   if (!isAbsolute3(path3)) return path3;
   try {
     return realpathSync2(path3);
-  } catch {
-    return path3;
+  } catch (error62) {
+    const code2 = error62.code;
+    if (code2 === "ENOENT" || code2 === "ENOTDIR") return path3;
+    throw new ReportError(`cannot resolve the report path ${path3}: ${code2 ?? String(error62)}`);
   }
 }
 function asError(error62) {

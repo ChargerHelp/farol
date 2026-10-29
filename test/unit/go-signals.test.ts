@@ -43,6 +43,11 @@ describe('Go reports', () => {
     expect(parseGolangciReport(golangci('/repo/services/api/internal/a.go'), '/repo', 'services/api', api).messages.map((m) => m.path)).toEqual(['services/api/internal/a.go'])
   })
 
+  it('rejects a golangci-lint report written in another checkout, so gosec findings are not lost silently', () => {
+    const text = JSON.stringify({ Issues: [{ FromLinter: 'gosec', Text: 'G101: Potential hardcoded credentials', Pos: { Filename: '/src/services/api/internal/a.go', Line: 9 } }] })
+    expect(() => parseGolangciReport(text, '/repo', 'services/api', head(['services/api/internal/a.go']))).toThrow('the golangci-lint report names no file in the repository /repo (first path: /src/services/api/internal/a.go)')
+  })
+
   it('rejects a golangci-lint report of a run that failed, naming its error', () => {
     // What golangci-lint v2.13.2 writes when it cannot load the packages (here a pattern naming no folder).
     const text = JSON.stringify({ Issues: [], Report: { Error: 'typechecking error: pattern ./nope/...: lstat ./nope/: no such file or directory' } })
