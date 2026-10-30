@@ -1,8 +1,8 @@
 import ts from 'typescript'
 import { sortedUnique } from '../output/order.js'
-import { isStaticValue, unwrap } from '../project/parse.js'
+import { unwrap } from '../project/parse.js'
 import type { DynamicRoute } from '../routes/types.js'
-import { literal, METHODS } from './rest.js'
+import { literal, METHODS, plainChain, plainTarget } from './rest.js'
 
 /** App methods that return the app itself: a chained call stays on the same app. */
 const SAME_APP = new Set([...METHODS, 'route', 'use', 'on', 'onError', 'notFound'])
@@ -26,8 +26,13 @@ export interface HonoApps {
   mountFiles: Set<string>
   /** Full paths a mount (`MountNode` id) serves: its sub-app's routes and middleware run under them. Empty: unknown. */
   mountBases: (id: string) => string[]
-  /** Whether the sub-app of a mount, or an app mounted or passed under it, registers middleware (`use`). */
+  /**
+   * Whether the sub-app of a mount, or an app mounted or passed under it, registers middleware: `use()`, a handler that
+   * takes `next`, or `on()` (whose paths farol does not read).
+   */
   mountMiddleware: (id: string) => boolean
+  /** Base paths of a handler's receiver that go through a mount (`MountNode` id). */
+  basesThrough: (receiver: ts.Expression, id: string) => string[]
   dynamic: DynamicRoute[]
 }
 
@@ -44,14 +49,34 @@ export function prefixKey(key: string, base: string): string {
   return `${key.slice(0, space)} ${mergePath(base, key.slice(space + 1))}`
 }
 
-/** Whether one request can reach both an endpoint path and a mount's full path: `:param` and `*` segments match any. */
+/** Path segments; a `{…}` pattern stays in one segment even when it contains `/`. */
+function segments(path: string): string[] {
+  const out: string[] = []
+  let current = ''
+  let depth = 0
+  for (const ch of path) {
+    if (ch === '{') depth++
+    if (ch === '}') depth--
+    if (ch === '/' && depth === 0) {
+      if (current !== '') out.push(current)
+      current = ''
+    } else current += ch
+  }
+  if (current !== '') out.push(current)
+  return out
+}
+
+/**
+ * Whether one request can reach both an endpoint path and a mount's full path: `:param` and `*` segments match any
+ * segment, and a regular-expression parameter (`:path{.+}`) or a final `*` matches the rest of the path.
+ */
 export function overlaps(path: string, base: string): boolean {
-  const own = path.split('/').filter((s) => s !== '')
+  const own = segments(path)
   const any = (s: string): boolean => s.includes(':') || s.includes('*')
-  for (const [i, seg] of base.split('/').filter((s) => s !== '').entries()) {
+  for (const [i, seg] of segments(base).entries()) {
     const o = own[i]
     if (o === undefined) return false
-    if (o === '*' && i === own.length - 1) return true
+    if (o.includes('{') || seg.includes('{') || (o === '*' && i === own.length - 1)) return true
     if (o !== seg && !any(o) && !any(seg)) return false
   }
   return true
@@ -67,21 +92,6 @@ export function importsHono(sf: ts.SourceFile): boolean {
 type MountCall = ts.CallExpression & { expression: ts.PropertyAccessExpression }
 
 const isRouteCall = (n: ts.Node): n is MountCall => ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'route'
-
-/** A mount target that runs no code: a name, or a call of a named function with static arguments (no calls). */
-function plainTarget(e: ts.Expression): boolean {
-  const x = unwrap(e)
-  if (ts.isIdentifier(x) || ts.isPropertyAccessExpression(x)) return isStaticValue(x)
-  return ts.isCallExpression(x) && ts.isIdentifier(x.expression) && x.arguments.every((a) => !ts.isSpreadElement(a) && isStaticValue(a, 0, false))
-}
-
-/** A mount receiver that runs no code: a name, or a chain of plain mounts. */
-function plainReceiver(e: ts.Expression): boolean {
-  const x = unwrap(e)
-  if (ts.isIdentifier(x) || ts.isPropertyAccessExpression(x)) return isStaticValue(x)
-  const [, target] = isRouteCall(x) ? x.arguments : []
-  return isRouteCall(x) && x.arguments.length === 2 && target !== undefined && plainReceiver(x.expression.expression) && plainTarget(target)
-}
 
 /** A Hono mount (`app.route('/prefix', sub)`, two arguments, none spread). */
 export interface MountNode {
@@ -107,7 +117,7 @@ export function mountNodes(sf: ts.SourceFile, file: string): MountNode[] {
       const text = `${file} ${node.getText(sf).replace(/\s+/g, ' ').trim()}`
       const n = (seen.get(text) ?? 0) + 1
       seen.set(text, n)
-      const plain = plainReceiver(node.expression.expression) && plainTarget(target)
+      const plain = plainChain(node.expression.expression) && plainTarget(target)
       out.push({ node: ts.isExpressionStatement(node.parent) ? node.parent : node, call: node, id: n === 1 ? text : `${text} #${n}`, prefixArg, target, prefix: prefixArg.getText(sf), plain })
     }
     ts.forEachChild(node, visit)
@@ -261,16 +271,25 @@ function collectEdges(files: readonly ts.SourceFile[], honoFiles: ReadonlySet<ts
     })
   }
   // Middleware runs for every route under its app's paths, so the apps that register some are recorded.
-  const useCall = (call: MountCall): void => {
+  const takesNext = (a: ts.Expression): boolean => {
+    const x = unwrap(a)
+    return (ts.isArrowFunction(x) || ts.isFunctionExpression(x)) && x.parameters.length >= 2
+  }
+  const middlewareCall = (call: MountCall): void => {
+    const name = call.expression.name.text
+    // Hono's `on(method, path, ...handlers)` has three arguments or more (`process.on(event, fn)` has two).
+    const on = name === 'on' && call.arguments.length >= 3
+    if (!(name === 'use' || on || (METHODS.has(name) && call.arguments.some(takesNext)))) return
     const app = r.appOf(call.expression.expression)
     if (app) middleware.add(app)
-    else if (honoFiles.has(call.getSourceFile())) at(call, 'Hono use() is on an app farol cannot follow: its middleware cannot be placed')
+    // A handler on an app farol cannot follow is already a dynamic route (`buildBackendTable`).
+    else if ((name === 'use' || on) && honoFiles.has(call.getSourceFile())) at(call, `Hono ${name}() is on an app farol cannot follow: its middleware cannot be placed`)
   }
   for (const sf of files) {
     for (const m of mountNodes(sf, rel(sf.fileName))) mount(m)
     const visit = (node: ts.Node): void => {
       if (ts.isCallExpression(node)) argumentEdges(node)
-      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === 'use') useCall(node as MountCall)
+      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) middlewareCall(node as MountCall)
       if (isRouteCall(node) && node.arguments.some(ts.isSpreadElement) && honoFiles.has(sf)) at(node, 'Hono route() arguments are spread')
       ts.forEachChild(node, visit)
     }
@@ -303,6 +322,15 @@ export function honoApps(files: readonly ts.SourceFile[], checker: ts.TypeChecke
     const kept = edges.filter((e) => !(e.mount && without?.has(e.mount.id)) && !path.includes(e.from))
     return sortedUnique(kept.flatMap((e) => bases(e.from, without, path).map((b) => (e.mount ? mergePath(b, e.mount.prefix) : b))))
   }
+  // Base paths of `app` whose path from a root goes through the mount `id`.
+  const through = (app: App, id: string, stack: readonly App[]): string[] => {
+    const path = [...stack, app]
+    return sortedUnique(
+      (incoming.get(app) ?? [])
+        .filter((e) => !path.includes(e.from))
+        .flatMap((e) => (e.mount?.id === id ? bases(e.from, undefined, path) : through(e.from, id, path)).map((b) => (e.mount ? mergePath(b, e.mount.prefix) : b))),
+    )
+  }
   return {
     basesOf: (receiver, without) => {
       const app = r.appOf(receiver)
@@ -319,6 +347,10 @@ export function honoApps(files: readonly ts.SourceFile[], checker: ts.TypeChecke
         }),
       ),
     mountMiddleware: (id) => edges.some((e) => e.mount?.id === id && hasMiddleware(e.to, new Set())),
+    basesThrough: (receiver, id) => {
+      const app = r.appOf(receiver)
+      return app ? through(app, id, []) : []
+    },
     dynamic,
   }
 }

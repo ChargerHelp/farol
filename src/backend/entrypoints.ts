@@ -45,6 +45,8 @@ export interface BackendTable {
   mountBases: (id: string) => string[]
   /** Whether a Hono mount's sub-app registers middleware (it then runs for existing endpoints under its paths). */
   mountMiddleware: (id: string) => boolean
+  /** Full endpoint keys a Hono mount (`MountNode` id) serves. */
+  mountKeys: (id: string) => string[]
   /** Files that use Hono: their mounts are compared even without a hono import. */
   honoFiles: Set<string>
 }
@@ -194,6 +196,7 @@ export function buildBackendTable(input: BackendInput): BackendTable {
     restKeysWithout: (mounts, without) => new Set(restKeys(mounts, without).keys()),
     mountBases: (id) => hono?.mountBases(id) ?? [],
     mountMiddleware: (id) => hono?.mountMiddleware(id) ?? false,
+    mountKeys: (id) => sortedUnique(handlers.flatMap((h) => (hono?.basesThrough(h.receiver, id) ?? []).map((b) => prefixKey(h.key, b)))),
     honoFiles: hono?.honoFiles ?? new Set(),
   }
 }

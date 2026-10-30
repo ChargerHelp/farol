@@ -118,6 +118,10 @@ export function register(app: H<{ Bindings: {} }>) {
     expect(dynamic(files)).toEqual([`src/main.ts:4 ${UNRESOLVED_APP}`])
   })
 
+  it('an event listener in a Hono file is not middleware', () => {
+    expect(dynamic({ 'src/main.ts': "import { serve } from '@hono/node-server'\nprocess.on('SIGTERM', () => process.exit(0))\n" })).toEqual([])
+  })
+
   it('a mount path covers an endpoint when one request can reach both (parameters and wildcards match any segment)', () => {
     expect([
       overlaps('/admin/api/x', '/admin/api'),

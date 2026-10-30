@@ -113,11 +113,13 @@ const pathOf = (key: string): string => key.slice(key.indexOf(' ') + 1)
 export interface MountTable {
   mountBases: (id: string) => string[]
   mountMiddleware: (id: string) => boolean
+  mountKeys: (id: string) => string[]
 }
 
 /**
  * Impacts with the PR's new Hono mounts. A mount whose sub-app registers middleware runs it for every request under
- * its full paths, so existing endpoints there are touched; without middleware it only adds routes, like a new handler.
+ * its full paths, so existing endpoints there are touched; without middleware it only adds routes, like a new handler
+ * (a route that shadows an existing pattern is additive), except a route with the full key of an existing endpoint.
  * A new mount that runs other code, or whose paths farol cannot compute, is not additive either. `baseRest`: the REST
  * endpoints that existed before the PR.
  */
@@ -125,7 +127,8 @@ export function mountImpacts(table: MountTable, mounts: readonly AddedMount[], b
   const out = new Map(impacts)
   for (const m of mounts) {
     const bases = table.mountBases(m.id)
-    const covered = table.mountMiddleware(m.id) ? sortedUnique([...baseRest].filter((k) => bases.some((b) => overlaps(pathOf(k), b)))) : []
+    const reached = table.mountMiddleware(m.id) ? [...baseRest].filter((k) => bases.some((b) => overlaps(pathOf(k), b))) : []
+    const covered = sortedUnique([...reached, ...table.mountKeys(m.id).filter((k) => baseRest.has(k))])
     const problems = [
       ...(m.plain ? [] : [`mount ${m.prefix} was added with a call in its arguments: that code is not compared`]),
       ...(bases.length === 0 ? [`mount ${m.prefix} was added: farol cannot compute its full paths`] : []),

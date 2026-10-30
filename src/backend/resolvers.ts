@@ -1,8 +1,8 @@
 import ts from 'typescript'
 import { compareStrings, sortedUnique } from '../output/order.js'
-import { parseIsolated, unwrap } from '../project/parse.js'
+import { isStaticValue, parseIsolated, unwrap } from '../project/parse.js'
 import { importsHono, mountNodes } from './hono.js'
-import { restNodes, type RestNode } from './rest.js'
+import { plainChain, restNodes, type RestNode } from './rest.js'
 
 /** One resolver of a resolver map: `Type.field` and the code that implements it. */
 export interface ResolverEntry {
@@ -66,6 +66,34 @@ export function entryNodes(sf: ts.SourceFile, typeFields: ReadonlyMap<string, Re
   return [...resolverNodes(sf, typeFields), ...(rest ? restNodes(sf) : [])]
 }
 
+/** A value whose evaluation runs no code of its own: static values, functions, `require('x')`, gql templates, `new Hono()`, and objects or arrays of them. */
+function inertValue(e: ts.Expression, honoNames: ReadonlySet<string>): boolean {
+  const x = unwrap(e)
+  const value = (v: ts.Expression): boolean => inertValue(v, honoNames)
+  if (ts.isArrowFunction(x) || ts.isFunctionExpression(x) || ts.isClassExpression(x)) return true
+  if (ts.isObjectLiteralExpression(x)) return x.properties.every((p) => inertProperty(p, honoNames))
+  if (ts.isArrayLiteralExpression(x)) return x.elements.every((el) => !ts.isSpreadElement(el) && value(el))
+  if (ts.isCallExpression(x) && ts.isIdentifier(x.expression) && x.expression.text === 'require') return x.arguments.length === 1 && x.arguments[0] !== undefined && ts.isStringLiteral(x.arguments[0])
+  if (ts.isTaggedTemplateExpression(x)) return ts.isIdentifier(x.tag) && (x.tag.text === 'gql' || x.tag.text === 'graphql') && (ts.isNoSubstitutionTemplateLiteral(x.template) || x.template.templateSpans.every((t) => ts.isIdentifier(t.expression)))
+  if (ts.isNewExpression(x) && ts.isIdentifier(x.expression) && honoNames.has(x.expression.text)) return (x.arguments ?? []).every((a) => isStaticValue(a, 0, false))
+  return isStaticValue(x, 0, false)
+}
+
+function inertProperty(p: ts.ObjectLiteralElementLike, honoNames: ReadonlySet<string>): boolean {
+  return ts.isMethodDeclaration(p) || ts.isAccessor(p) || ts.isShorthandPropertyAssignment(p) || (ts.isPropertyAssignment(p) && !ts.isComputedPropertyName(p.name) && inertValue(p.initializer, honoNames))
+}
+
+/** A top-level statement that runs no code when the file loads: declarations and constants with inert values. */
+function inertStatement(s: ts.Statement, honoNames: ReadonlySet<string>): boolean {
+  if (ts.isFunctionDeclaration(s) || ts.isInterfaceDeclaration(s) || ts.isTypeAliasDeclaration(s) || ts.isEnumDeclaration(s) || ts.isEmptyStatement(s) || ts.isExportDeclaration(s) || ts.isImportEqualsDeclaration(s)) return true
+  if (ts.isModuleDeclaration(s)) return s.modifiers?.some((m) => m.kind === ts.SyntaxKind.DeclareKeyword) ?? false
+  if (ts.isClassDeclaration(s)) return (ts.getDecorators(s) ?? []).length === 0 && s.members.every((m) => !ts.isClassStaticBlockDeclaration(m) && !(ts.isPropertyDeclaration(m) && m.initializer && ts.getCombinedModifierFlags(m) & ts.ModifierFlags.Static && !inertValue(m.initializer, honoNames)))
+  if (ts.isVariableStatement(s)) return s.declarationList.declarations.every((d) => !d.initializer || inertValue(d.initializer, honoNames))
+  if (ts.isExportAssignment(s)) return inertValue(s.expression, honoNames)
+  const e = ts.isExpressionStatement(s) ? s.expression : undefined
+  return e !== undefined && ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.EqualsToken && inertValue(e.right, honoNames)
+}
+
 /** A Hono mount of a file version: its prefix as written and whether adding it runs no other code. */
 export interface MountEntry {
   id: string
@@ -77,13 +105,21 @@ export interface MountEntry {
  * Resolver entries of a file, parsed on its own (used for the base and the head of changed files). Mounts are read when
  * the file imports hono or `hono` says the program uses Hono there.
  */
-export function resolverEntries(file: string, code: string, typeFields: ReadonlyMap<string, ReadonlySet<string>>, withRest = true, hono = false): { entries: ResolverEntry[]; rest: string[]; loadCode: string[]; imports: Set<string>; mounts: Map<string, MountEntry> } {
+export function resolverEntries(
+  file: string,
+  code: string,
+  typeFields: ReadonlyMap<string, ReadonlySet<string>>,
+  withRest = true,
+  hono = false,
+): { entries: ResolverEntry[]; rest: string[]; loadCode: string[]; imports: Set<string>; mounts: Map<string, MountEntry>; impure: Set<string> } {
   const { sourceFile: sf } = parseIsolated(file, code)
   const nodes = entryNodes(sf, typeFields, withRest)
   const entries = nodes.map(({ key, node }) => ({ key, file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, text: normalized(node, sf) }))
   // Everything outside the resolver members (helpers, module-level code), for "did anything else change". Imports are
   // compared as bindings: adding one is not a change to what existed.
   const imports = new Set<string>()
+  // `new Hono()` builds an app and runs nothing else.
+  const honoNames = new Set<string>()
   // Hono mounts are compared on their own (`mountId` → prefix as written), like the handlers.
   const mounts = withRest && (hono || importsHono(sf)) ? mountNodes(sf, file) : []
   const removed: [number, number][] = [...nodes, ...mounts].map(({ node }) => [node.getStart(sf), node.end])
@@ -96,6 +132,7 @@ export function resolverEntries(file: string, code: string, typeFields: Readonly
       const named = clause?.namedBindings
       if (named && ts.isNamespaceImport(named)) imports.add(`${spec}|* as ${named.name.text}`)
       if (named && ts.isNamedImports(named)) for (const el of named.elements) imports.add(`${spec}|${(el.propertyName ?? el.name).text} as ${el.name.text}`)
+      if (named && ts.isNamedImports(named)) for (const el of named.elements) if ((el.propertyName ?? el.name).text === 'Hono') honoNames.add(el.name.text)
       removed.push([statement.getStart(sf), statement.end])
     }
   }
@@ -110,7 +147,8 @@ export function resolverEntries(file: string, code: string, typeFields: Readonly
     return stripComments(text).replace(/\s+/g, ' ').replace(/,(\s*,)+/g, ',').replace(/\{\s*,/g, '{').replace(/,\s*\}/g, '}').trim()
   }
   const items: string[] = []
-  // Top-level calls other than handlers and mounts run when the file loads (`app.use(mw)`): adding one is a change.
+  // Top-level code that is not a declaration, an inert value, a handler or a mount runs when the file loads
+  // (`app.use(mw)`, `const db = connect()`): adding some is a change.
   const loadCode: string[] = []
   for (const statement of sf.statements) {
     if (ts.isImportDeclaration(statement)) continue
@@ -118,13 +156,18 @@ export function resolverEntries(file: string, code: string, typeFields: Readonly
     if (!object) {
       const text = blank(statement)
       items.push(text)
-      if (ts.isExpressionStatement(statement) && ts.isCallExpression(unwrap(statement.expression)) && text.replace(/;$/, '') !== '') loadCode.push(text)
+      if (!inertStatement(statement, honoNames) && text.replace(/;$/, '') !== '') loadCode.push(text)
       continue
     }
-    for (const prop of object.properties) items.push(blank(prop))
+    for (const prop of object.properties) {
+      items.push(blank(prop))
+      if (!inertProperty(prop, honoNames)) loadCode.push(blank(prop))
+    }
     items.push(blank(statement).replace(blank(object), '{}'))
   }
-  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, loadCode, imports, mounts: new Map(mounts.map((m) => [m.id, { id: m.id, prefix: m.prefix, plain: m.plain }])) }
+  // Handlers registered on a chain that runs other code (`app.use(mw).get(…)`): the chain is blanked with the handler.
+  const impure = new Set(nodes.flatMap((n) => ('receiver' in n && !plainChain(n.receiver) ? [n.key] : [])))
+  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, loadCode, imports, mounts: new Map(mounts.map((m) => [m.id, { id: m.id, prefix: m.prefix, plain: m.plain }])), impure }
 }
 
 /** Code without comments (they never change behavior), tokenized with the TypeScript scanner so strings stay intact. */
@@ -156,7 +199,7 @@ export interface ResolverChanges {
   restChanged: boolean
   /** Hono mounts the head adds (a changed mount is removed and added). */
   addedMounts: MountEntry[]
-  /** What is not additive besides entries: removed or changed mounts, new code that runs when the file loads. */
+  /** What is not additive besides entries: removed or changed mounts, new code that runs when the file loads or on a handler's chain. */
   problems: string[]
 }
 
@@ -173,6 +216,8 @@ export function diffResolvers(base: ReturnType<typeof resolverEntries>, head: Re
     problems: sortedUnique([
       ...[...base.mounts.values()].filter((m) => !head.mounts.has(m.id)).map((m) => `mount ${m.prefix} was removed`),
       ...head.loadCode.filter((c) => !base.rest.includes(c)).map((c) => `code that runs when the file loads was added: ${c.length > 80 ? `${c.slice(0, 77)}...` : c}`),
+      ...[...head.imports].filter((i) => i.endsWith('|') && !base.imports.has(i)).map((i) => `side-effect import ${i.slice(0, -1)} was added: it runs that module when the file loads`),
+      ...[...head.impure].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added on a chain that runs other code`),
     ]),
   }
 }
