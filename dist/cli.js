@@ -237904,6 +237904,7 @@ function classify(input2) {
         if (problems.length > 0) reasons.push(n > 0 ? reason("existing-file-modified", `${what}: reached by ${n} existing ${entryWord}(s): ${[...declImpact.affected.keys()].slice(0, 3).join("; ")}${n > 3 ? `; and ${n - 3} more` : ""}`, file2.path) : reason("existing-file-unreachable", `${what}; no ${entryWord} reaches it`, file2.path));
       }
       addImpact(file2.path);
+      if (!declImpact.additive && declImpact.keepsReach) reachTargets.push({ path: file2.path, reportModified: false });
       continue;
     }
     if ((role === "schema" || role === "resolvers") && input2.backend) {
@@ -248634,8 +248635,44 @@ function diff(oldArray, newArray) {
   };
 }
 
-// src/backend/hono.ts
-var import_typescript8 = __toESM(require_typescript(), 1);
+// src/backend/hono-paths.ts
+function mergePath(base, sub) {
+  return `${base.startsWith("/") ? "" : "/"}${base}${sub === "/" ? "" : `${base.endsWith("/") ? "" : "/"}${sub.startsWith("/") ? sub.slice(1) : sub}`}`;
+}
+function prefixKey(key, base) {
+  const space = key.indexOf(" ");
+  return `${key.slice(0, space)} ${mergePath(base, key.slice(space + 1))}`;
+}
+var keyPath = (key) => key.slice(key.indexOf(" ") + 1);
+function segments(path3) {
+  const out = [];
+  let current = "";
+  let depth = 0;
+  for (const ch of path3) {
+    if (ch === "{") depth++;
+    if (ch === "}") depth--;
+    if (ch === "/" && depth === 0) {
+      if (current !== "") out.push(current);
+      current = "";
+    } else current += ch;
+  }
+  if (current !== "") out.push(current);
+  return out;
+}
+function overlaps(path3, base) {
+  const own2 = segments(path3);
+  const any2 = (s) => s.includes(":") || s.includes("*");
+  for (const [i, seg] of segments(base).entries()) {
+    const o = own2[i];
+    if (o === void 0) return false;
+    if (o.includes("{") || seg.includes("{") || o === "*" && i === own2.length - 1) return true;
+    if (o !== seg && !any2(o) && !any2(seg)) return false;
+  }
+  return true;
+}
+function underPath(path3, full) {
+  return overlaps(path3, full.endsWith("/*") ? full.slice(0, -2) : full);
+}
 
 // src/backend/rest.ts
 var import_typescript7 = __toESM(require_typescript(), 1);
@@ -248671,17 +248708,17 @@ function restNodes(sf) {
       const last = args[args.length - 1];
       if (METHODS2.has(method) && args.length >= 2 && isHandler(last, node2)) {
         const path3 = literal2(args[0]);
-        if (path3 !== void 0 && (path3.startsWith("/") || path3 === "*")) out.push({ key: `${method === "del" ? "DELETE" : method.toUpperCase()} ${path3}`, node: node2, value: last, receiver: node2.expression.expression });
+        if (path3 !== void 0 && (path3.startsWith("/") || path3 === "*")) out.push({ key: `${method === "del" ? "DELETE" : method.toUpperCase()} ${path3}`, node: node2, value: last, receiver: node2.expression.expression, guards: args.slice(1, -1) });
         const target = node2.expression.expression;
         if (path3 === void 0 && import_typescript7.default.isCallExpression(target) && import_typescript7.default.isPropertyAccessExpression(target.expression) && target.expression.name.text === "route") {
           const routePath = literal2(target.arguments[0]);
-          if (routePath !== void 0) out.push({ key: `${method.toUpperCase()} ${routePath}`, node: node2, value: last, receiver: node2.expression.expression });
+          if (routePath !== void 0) out.push({ key: `${method.toUpperCase()} ${routePath}`, node: node2, value: last, receiver: node2.expression.expression, guards: args.slice(0, -1) });
         }
       } else if (METHODS2.has(method) && args.length === 1 && isHandler(args[0], node2)) {
         const target = node2.expression.expression;
         if (import_typescript7.default.isCallExpression(target) && import_typescript7.default.isPropertyAccessExpression(target.expression) && target.expression.name.text === "route") {
           const routePath = literal2(target.arguments[0]);
-          if (routePath !== void 0) out.push({ key: `${method.toUpperCase()} ${routePath}`, node: node2, value: args[0], receiver: node2.expression.expression });
+          if (routePath !== void 0) out.push({ key: `${method.toUpperCase()} ${routePath}`, node: node2, value: args[0], receiver: node2.expression.expression, guards: [] });
         }
       } else if (method === "route" && args.length === 1 && args[0] && import_typescript7.default.isObjectLiteralExpression(args[0])) {
         const methods = objectProp(args[0], "method");
@@ -248689,7 +248726,7 @@ function restNodes(sf) {
         const handler = objectProp(args[0], "handler");
         const names = methods && import_typescript7.default.isArrayLiteralExpression(methods) ? methods.elements.map((e) => literal2(e)) : [literal2(methods)];
         if (url2 !== void 0 && handler) {
-          for (const m of names) if (m !== void 0) out.push({ key: `${m.toUpperCase()} ${url2}`, node: node2, value: handler, receiver: node2.expression.expression });
+          for (const m of names) if (m !== void 0) out.push({ key: `${m.toUpperCase()} ${url2}`, node: node2, value: handler, receiver: node2.expression.expression, guards: [] });
         }
       }
     }
@@ -248723,45 +248760,120 @@ function restAnchor(file2, key) {
   return `${file2} ${key}`;
 }
 
-// src/backend/hono.ts
-var SAME_APP = /* @__PURE__ */ new Set([...METHODS2, "route", "use", "on", "onError", "notFound"]);
-var UNRESOLVED_APP = "Hono app is not one farol can follow (basePath, alias or property)";
-function mergePath(base, sub) {
-  return `${base.startsWith("/") ? "" : "/"}${base}${sub === "/" ? "" : `${base.endsWith("/") ? "" : "/"}${sub.startsWith("/") ? sub.slice(1) : sub}`}`;
+// src/backend/impact.ts
+function typeOf(member) {
+  const cut = [member.indexOf("."), member.indexOf("|"), member.indexOf("&")].filter((i) => i >= 0);
+  return cut.length === 0 ? member : member.slice(0, Math.min(...cut));
 }
-function prefixKey(key, base) {
-  const space = key.indexOf(" ");
-  return `${key.slice(0, space)} ${mergePath(base, key.slice(space + 1))}`;
+function operationsUsingMember(member, table3) {
+  const type = typeOf(member);
+  return [...table3.operationTypes.entries()].filter(([op, types]) => op === member || types.has(type)).map(([op]) => op);
 }
-function segments(path3) {
-  const out = [];
-  let current = "";
-  let depth = 0;
-  for (const ch of path3) {
-    if (ch === "{") depth++;
-    if (ch === "}") depth--;
-    if (ch === "/" && depth === 0) {
-      if (current !== "") out.push(current);
-      current = "";
-    } else current += ch;
+function operationsUsingResolver(key, table3) {
+  return [...table3.resolverKeys.entries()].filter(([, keys]) => keys.has(key)).map(([op]) => op).sort(compareStrings);
+}
+function backendFileImpact(table3, file2, schema, resolvers) {
+  const using = (k) => operationsUsingResolver(k.includes(" ") ? restAnchor(file2, k) : k, table3);
+  const label2 = (k) => {
+    const ops = k.includes(" ") ? using(k) : [];
+    return ops.length === 0 ? k : ops.join(", ");
+  };
+  const affected = /* @__PURE__ */ new Map();
+  const problems = [];
+  const addedOperations = [];
+  const added = [];
+  const hit = (ops, cause) => {
+    for (const op of ops) if (!affected.has(op)) affected.set(op, cause);
+  };
+  if (schema) {
+    for (const m of schema.removed) {
+      problems.push(`schema member ${m} was removed`);
+      hit(operationsUsingMember(m, table3), m);
+    }
+    for (const m of schema.changed) {
+      problems.push(`schema member ${m} changed (type, arguments or directives)`);
+      hit(operationsUsingMember(m, table3), m);
+    }
+    for (const m of schema.added) (table3.rootTypes.has(typeOf(m)) && m.includes(".") ? addedOperations : added).push(m);
   }
-  if (current !== "") out.push(current);
+  if (resolvers) {
+    for (const k of resolvers.removed) {
+      problems.push(`${k.includes(" ") ? "endpoint" : "resolver"} ${label2(k)} was removed`);
+      hit(using(k), k);
+    }
+    for (const k of resolvers.changed) {
+      problems.push(`${k.includes(" ") ? "endpoint" : "resolver"} ${label2(k)} changed`);
+      hit(using(k), k);
+    }
+    problems.push(...resolvers.problems);
+    if (resolvers.restChanged) {
+      problems.push("code outside the resolvers changed (imports, helpers or module-level code): every resolver of the file may behave differently");
+      for (const k of resolvers.keys) hit(using(k), `module code of ${k}`);
+    }
+    if (resolvers.wide) hit([...resolvers.appKeys ?? []], `module code of ${file2}`);
+    for (const k of resolvers.added) {
+      const ops = k.includes(" ") ? using(k) : [];
+      if (k.includes(" ")) addedOperations.push(...ops.length > 0 ? ops : [k]);
+      else added.push(k);
+    }
+  }
+  return {
+    additive: problems.length === 0,
+    problems,
+    affected: new Map([...affected.entries()].sort(([a], [b]) => compareStrings(a, b))),
+    addedOperations: sortedUnique(addedOperations),
+    added: sortedUnique(added)
+  };
+}
+function mountImpacts(table3, mounts, baseRest, impacts) {
+  const out = new Map(impacts);
+  for (const m of mounts) {
+    const bases = table3.mountBases(m.id);
+    const reached = table3.mountMiddleware(m.id) ? [...baseRest].filter((k) => bases.some((b) => overlaps(keyPath(k), b))) : [];
+    const keys = table3.mountKeys(m.id);
+    const collides = (k) => keys.some((n) => n === k || keyPath(n) === keyPath(k) && (n.startsWith("ALL ") || k.startsWith("ALL ")));
+    const covered = sortedUnique([...reached, ...[...baseRest].filter(collides)]);
+    const problems = [
+      ...m.plain ? [] : [`mount ${m.prefix} was added with a call in its arguments: that code is not compared`],
+      ...bases.length === 0 ? [`mount ${m.prefix} was added: farol cannot compute its full paths`] : [],
+      ...covered.length > 0 ? [`mount ${m.prefix} covers existing endpoints: its middleware runs for them`] : []
+    ];
+    if (problems.length === 0) continue;
+    const prev = out.get(m.file) ?? { additive: true, problems: [], affected: /* @__PURE__ */ new Map(), addedOperations: [], added: [] };
+    const affected = new Map(prev.affected);
+    for (const k of covered) if (!affected.has(k)) affected.set(k, `mount ${m.prefix}`);
+    out.set(m.file, { ...prev, additive: false, problems: [...prev.problems, ...problems], affected: new Map([...affected].sort(([a], [b]) => compareStrings(a, b))) });
+  }
   return out;
 }
-function overlaps(path3, base) {
-  const own2 = segments(path3);
-  const any2 = (s) => s.includes(":") || s.includes("*");
-  for (const [i, seg] of segments(base).entries()) {
-    const o = own2[i];
-    if (o === void 0) return false;
-    if (o.includes("{") || seg.includes("{") || o === "*" && i === own2.length - 1) return true;
-    if (o !== seg && !any2(o) && !any2(seg)) return false;
-  }
-  return true;
-}
+
+// src/backend/hono.ts
+var import_typescript8 = __toESM(require_typescript(), 1);
+var SAME_APP = /* @__PURE__ */ new Set([...METHODS2, "route", "use", "on", "onError", "notFound"]);
+var UNRESOLVED_APP = "Hono app is not one farol can follow (basePath, alias or property)";
 var isHonoModule = (spec) => spec === "hono" || spec.startsWith("hono/") || spec.startsWith("@hono/");
 function importsHono(sf) {
   return sf.statements.some((s) => (import_typescript8.default.isImportDeclaration(s) || import_typescript8.default.isExportDeclaration(s)) && s.moduleSpecifier !== void 0 && import_typescript8.default.isStringLiteral(s.moduleSpecifier) && isHonoModule(s.moduleSpecifier.text));
+}
+function holdsApp(sf) {
+  const names = /* @__PURE__ */ new Set();
+  for (const s of sf.statements) {
+    const named = import_typescript8.default.isImportDeclaration(s) ? s.importClause?.namedBindings : void 0;
+    if (named && import_typescript8.default.isNamedImports(named)) {
+      for (const el of named.elements) if ((el.propertyName ?? el.name).text === "Hono") names.add(el.name.text);
+    }
+  }
+  const isHono = (e) => e !== void 0 && import_typescript8.default.isIdentifier(e) && names.has(e.text);
+  const found = (node2) => {
+    if (import_typescript8.default.isNewExpression(node2) && isHono(node2.expression)) return true;
+    if (import_typescript8.default.isParameter(node2) && node2.type && import_typescript8.default.isTypeReferenceNode(node2.type) && isHono(node2.type.typeName)) return true;
+    if (import_typescript8.default.isCallExpression(node2) && import_typescript8.default.isPropertyAccessExpression(node2.expression)) {
+      const name = node2.expression.name.text;
+      if (name === "use" || name === "onError" || name === "on" && node2.arguments.length >= 3) return true;
+    }
+    return import_typescript8.default.forEachChild(node2, (child) => found(child) ? true : void 0) ?? false;
+  };
+  return found(sf);
 }
 var isRouteCall = (n) => import_typescript8.default.isCallExpression(n) && import_typescript8.default.isPropertyAccessExpression(n.expression) && n.expression.name.text === "route";
 function mountNodes(sf, file2) {
@@ -248852,6 +248964,12 @@ function collectEdges(files, honoFiles, r, rel) {
   const incoming = /* @__PURE__ */ new Map();
   const mountFiles = /* @__PURE__ */ new Set();
   const middleware = /* @__PURE__ */ new Set();
+  const registered = [];
+  const fileApps = /* @__PURE__ */ new Map();
+  const holds = (node2, app) => {
+    const file2 = rel(node2.getSourceFile().fileName);
+    fileApps.set(file2, (fileApps.get(file2) ?? /* @__PURE__ */ new Set()).add(app));
+  };
   const dynamic = [];
   const at = (node2, detail) => {
     const sf = node2.getSourceFile();
@@ -248877,6 +248995,7 @@ function collectEdges(files, honoFiles, r, rel) {
       return;
     }
     mountFiles.add(rel(sf.fileName));
+    holds(m.call, parent);
     const prefix = literal2(m.prefixArg);
     if (prefix === void 0) {
       at(m.prefixArg, "Hono route() prefix is not a string literal");
@@ -248919,17 +249038,44 @@ function collectEdges(files, honoFiles, r, rel) {
     const fn = last && !takesNext2(last) ? r.functionOf(last) : void 0;
     return last !== void 0 && wide && !import_typescript8.default.isArrowFunction(unwrap(last)) && !import_typescript8.default.isFunctionExpression(unwrap(last)) && (fn ? fn.parameters.length >= 2 : true);
   };
+  const registrationOf = (call) => {
+    const name = call.expression.name.text;
+    const [first, second] = call.arguments;
+    if (name === "onError") return call.arguments.length === 1 ? { path: "*", args: [...call.arguments] } : void 0;
+    if (name === "on") return call.arguments.length >= 3 ? { path: literal2(second) ?? "*", args: call.arguments.slice(2) } : void 0;
+    if (name !== "use" && !(METHODS2.has(name) && (call.arguments.some(takesNext2) || namedNext(call)))) return void 0;
+    const path3 = literal2(first);
+    return { path: path3 ?? "*", args: path3 === void 0 ? [...call.arguments] : call.arguments.slice(1) };
+  };
+  const isParameterName = (a) => {
+    const x = unwrap(a);
+    const decl = import_typescript8.default.isIdentifier(x) ? r.declOf(x) : void 0;
+    return decl !== void 0 && import_typescript8.default.isParameter(decl);
+  };
   const middlewareCall = (call) => {
     const name = call.expression.name.text;
-    const on = name === "on" && call.arguments.length >= 3;
-    if (!(name === "use" || on || METHODS2.has(name) && (call.arguments.some(takesNext2) || namedNext(call)))) return;
+    const registration = registrationOf(call);
+    const guards = METHODS2.has(name) ? call.arguments.slice(1, -1) : [];
+    if (!registration && guards.length === 0) return;
     const app = r.appOf(call.expression.expression);
-    if (app) middleware.add(app);
-    else if ((name === "use" || on) && honoFiles.has(call.getSourceFile())) at(call, `Hono ${name}() is on an app farol cannot follow: its middleware cannot be placed`);
+    if (!app) {
+      if (registration && !METHODS2.has(name) && honoFiles.has(call.getSourceFile())) at(call, `Hono ${name}() is on an app farol cannot follow: its middleware cannot be placed`);
+      return;
+    }
+    for (const a of /* @__PURE__ */ new Set([...registration?.args ?? [], ...guards])) if (isParameterName(a)) at(a, "Hono middleware is a parameter: its code comes from the callers");
+    if (!registration) return;
+    if (name !== "onError") middleware.add(app);
+    holds(call, app);
+    registered.push({ app, ...registration });
   };
   for (const sf of files) {
     for (const m of mountNodes(sf, rel(sf.fileName))) mount(m);
     const visit3 = (node2) => {
+      if (honoFiles.has(sf) && import_typescript8.default.isNewExpression(node2)) {
+        const app = r.appOf(node2);
+        if (app) holds(node2, app);
+      }
+      if (honoFiles.has(sf) && import_typescript8.default.isParameter(node2) && r.isHonoParam(node2)) holds(node2, node2);
       if (import_typescript8.default.isCallExpression(node2)) argumentEdges(node2);
       if (import_typescript8.default.isCallExpression(node2) && import_typescript8.default.isPropertyAccessExpression(node2.expression)) middlewareCall(node2);
       if (isRouteCall(node2) && node2.arguments.some(import_typescript8.default.isSpreadElement) && honoFiles.has(sf)) at(node2, "Hono route() arguments are spread");
@@ -248937,12 +249083,12 @@ function collectEdges(files, honoFiles, r, rel) {
     };
     visit3(sf);
   }
-  return { incoming, mountFiles, middleware, dynamic };
+  return { incoming, mountFiles, middleware, registered, fileApps, dynamic };
 }
 function honoApps(files, checker, rel) {
   const r = appResolver(checker);
   const honoFiles = new Set(files.filter(r.usesHono));
-  const { incoming, mountFiles, middleware, dynamic } = collectEdges(files, honoFiles, r, rel);
+  const { incoming, mountFiles, middleware, registered, fileApps, dynamic } = collectEdges(files, honoFiles, r, rel);
   const edges = [...incoming.values()].flat();
   const outgoing = /* @__PURE__ */ new Map();
   for (const e of edges) outgoing.set(e.from, [...outgoing.get(e.from) ?? [], e]);
@@ -248983,95 +249129,10 @@ function honoApps(files, checker, rel) {
       const app = r.appOf(receiver);
       return app ? through(app, id, []) : [];
     },
+    registrations: registered.map((x) => ({ paths: bases(x.app, void 0, []).map((b) => mergePath(b, x.path)), args: x.args })),
+    fileBases: (file2) => sortedUnique([...fileApps.get(file2) ?? []].flatMap((app) => bases(app, void 0, []))),
     dynamic
   };
-}
-
-// src/backend/impact.ts
-function typeOf(member) {
-  const cut = [member.indexOf("."), member.indexOf("|"), member.indexOf("&")].filter((i) => i >= 0);
-  return cut.length === 0 ? member : member.slice(0, Math.min(...cut));
-}
-function operationsUsingMember(member, table3) {
-  const type = typeOf(member);
-  return [...table3.operationTypes.entries()].filter(([op, types]) => op === member || types.has(type)).map(([op]) => op);
-}
-function operationsUsingResolver(key, table3) {
-  return [...table3.resolverKeys.entries()].filter(([, keys]) => keys.has(key)).map(([op]) => op).sort(compareStrings);
-}
-function backendFileImpact(table3, file2, schema, resolvers) {
-  const using = (k) => operationsUsingResolver(k.includes(" ") ? restAnchor(file2, k) : k, table3);
-  const label2 = (k) => {
-    const ops = k.includes(" ") ? using(k) : [];
-    return ops.length === 0 ? k : ops.join(", ");
-  };
-  const affected = /* @__PURE__ */ new Map();
-  const problems = [];
-  const addedOperations = [];
-  const added = [];
-  const hit = (ops, cause) => {
-    for (const op of ops) if (!affected.has(op)) affected.set(op, cause);
-  };
-  if (schema) {
-    for (const m of schema.removed) {
-      problems.push(`schema member ${m} was removed`);
-      hit(operationsUsingMember(m, table3), m);
-    }
-    for (const m of schema.changed) {
-      problems.push(`schema member ${m} changed (type, arguments or directives)`);
-      hit(operationsUsingMember(m, table3), m);
-    }
-    for (const m of schema.added) (table3.rootTypes.has(typeOf(m)) && m.includes(".") ? addedOperations : added).push(m);
-  }
-  if (resolvers) {
-    for (const k of resolvers.removed) {
-      problems.push(`${k.includes(" ") ? "endpoint" : "resolver"} ${label2(k)} was removed`);
-      hit(using(k), k);
-    }
-    for (const k of resolvers.changed) {
-      problems.push(`${k.includes(" ") ? "endpoint" : "resolver"} ${label2(k)} changed`);
-      hit(using(k), k);
-    }
-    problems.push(...resolvers.problems);
-    if (resolvers.restChanged) {
-      problems.push("code outside the resolvers changed (imports, helpers or module-level code): every resolver of the file may behave differently");
-      for (const k of resolvers.keys) hit(using(k), `module code of ${k}`);
-    }
-    for (const k of resolvers.added) {
-      const ops = k.includes(" ") ? using(k) : [];
-      if (k.includes(" ")) addedOperations.push(...ops.length > 0 ? ops : [k]);
-      else added.push(k);
-    }
-  }
-  return {
-    additive: problems.length === 0,
-    problems,
-    affected: new Map([...affected.entries()].sort(([a], [b]) => compareStrings(a, b))),
-    addedOperations: sortedUnique(addedOperations),
-    added: sortedUnique(added)
-  };
-}
-var pathOf = (key) => key.slice(key.indexOf(" ") + 1);
-function mountImpacts(table3, mounts, baseRest, impacts) {
-  const out = new Map(impacts);
-  for (const m of mounts) {
-    const bases = table3.mountBases(m.id);
-    const reached = table3.mountMiddleware(m.id) ? [...baseRest].filter((k) => bases.some((b) => overlaps(pathOf(k), b))) : [];
-    const keys = table3.mountKeys(m.id);
-    const collides = (k) => keys.some((n) => n === k || pathOf(n) === pathOf(k) && (n.startsWith("ALL ") || k.startsWith("ALL ")));
-    const covered = sortedUnique([...reached, ...[...baseRest].filter(collides)]);
-    const problems = [
-      ...m.plain ? [] : [`mount ${m.prefix} was added with a call in its arguments: that code is not compared`],
-      ...bases.length === 0 ? [`mount ${m.prefix} was added: farol cannot compute its full paths`] : [],
-      ...covered.length > 0 ? [`mount ${m.prefix} covers existing endpoints: its middleware runs for them`] : []
-    ];
-    if (problems.length === 0) continue;
-    const prev = out.get(m.file) ?? { additive: true, problems: [], affected: /* @__PURE__ */ new Map(), addedOperations: [], added: [] };
-    const affected = new Map(prev.affected);
-    for (const k of covered) if (!affected.has(k)) affected.set(k, `mount ${m.prefix}`);
-    out.set(m.file, { ...prev, additive: false, problems: [...prev.problems, ...problems], affected: new Map([...affected].sort(([a], [b]) => compareStrings(a, b))) });
-  }
-  return out;
 }
 
 // src/backend/resolvers.ts
@@ -249193,7 +249254,7 @@ function resolverEntries(file2, code2, typeFields, withRest = true, hono = false
     items.push(blank(statement).replace(blank(object2), "{}"));
   }
   const rest = nodes.filter((n) => "receiver" in n);
-  const impure = new Set(rest.filter((n) => !plainChain(n.receiver) || import_typescript9.default.isCallExpression(n.node) && n.node.arguments.some((a) => runsCode(a, honoNames))).map((n) => n.key));
+  const impure = new Map(rest.filter((n) => !plainChain(n.receiver) || import_typescript9.default.isCallExpression(n.node) && n.node.arguments.some((a) => runsCode(a, honoNames))).map((n) => [n.key, normalized(n.node, sf).replace(normalized(n.value, sf), "")]));
   const middleware = new Set(rest.filter(middlewareLike).map((n) => n.key));
   return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, loadCode, imports, mounts: new Map(mounts.map((m) => [m.id, { id: m.id, prefix: m.prefix, plain: m.plain }])), impure, middleware };
 }
@@ -249217,17 +249278,25 @@ function topLevelObject(statement) {
 function diffResolvers(base, head) {
   const before = new Map(base.entries.map((e) => [e.key, e.text]));
   const after = new Map(head.entries.map((e) => [e.key, e.text]));
+  const added = [...after.keys()].filter((k) => !before.has(k)).sort(compareStrings);
+  const removed = [...before.keys()].filter((k) => !after.has(k)).sort(compareStrings);
+  const changed = [...before.keys()].filter((k) => after.has(k) && after.get(k) !== before.get(k)).sort(compareStrings);
+  const restChanged = base.rest.some((item) => !head.rest.includes(item)) || [...base.imports].some((i) => !head.imports.has(i));
+  const newLoadCode = head.loadCode.filter((c) => !base.rest.includes(c));
+  const newSideEffects = [...head.imports].filter((i) => i.endsWith("|") && !base.imports.has(i));
+  const runsForOthers = (k) => base.impure.get(k) !== head.impure.get(k) || base.middleware.has(k) || head.middleware.has(k);
   return {
-    added: [...after.keys()].filter((k) => !before.has(k)).sort(compareStrings),
-    removed: [...before.keys()].filter((k) => !after.has(k)).sort(compareStrings),
-    changed: [...before.keys()].filter((k) => after.has(k) && after.get(k) !== before.get(k)).sort(compareStrings),
-    restChanged: base.rest.some((item) => !head.rest.includes(item)) || [...base.imports].some((i) => !head.imports.has(i)),
+    added,
+    removed,
+    changed,
+    restChanged,
+    wide: restChanged || newLoadCode.length > 0 || newSideEffects.length > 0 || [...added, ...removed, ...changed].some(runsForOthers),
     addedMounts: [...head.mounts.values()].filter((m) => !base.mounts.has(m.id)).sort((a, b) => compareStrings(a.id, b.id)),
     problems: sortedUnique([
       ...[...base.mounts.values()].filter((m) => !head.mounts.has(m.id)).map((m) => `mount ${m.prefix} was removed`),
-      ...head.loadCode.filter((c) => !base.rest.includes(c)).map((c) => `code that runs when the file loads was added: ${c.length > 80 ? `${c.slice(0, 77)}...` : c}`),
-      ...[...head.imports].filter((i) => i.endsWith("|") && !base.imports.has(i)).map((i) => `side-effect import ${i.slice(0, -1)} was added: it runs that module when the file loads`),
-      ...[...head.impure].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added with code that runs when it is registered (a call in its chain or arguments)`),
+      ...newLoadCode.map((c) => `code that runs when the file loads was added: ${c.length > 80 ? `${c.slice(0, 77)}...` : c}`),
+      ...newSideEffects.map((i) => `side-effect import ${i.slice(0, -1)} was added: it runs that module when the file loads`),
+      ...[...head.impure.keys()].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added with code that runs when it is registered (a call in its chain or arguments)`),
       ...[...head.middleware].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added as middleware (it can call next): it runs for other endpoints`)
     ])
   };
@@ -249476,10 +249545,19 @@ function fileSchema(file2, code2) {
   return { kind: Kind.DOCUMENT, definitions: docs.flatMap((d) => d.definitions) };
 }
 async function backendImpacts(ctx, table3, files, roleOf, baseSha, headSha) {
-  const targets = files.filter((f) => f.status === "modified" && (roleOf(f.path) === "schema" || roleOf(f.path) === "resolvers"));
-  const paths = targets.map((f) => f.path);
+  const codeFile = (p) => /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts)$/.test(p);
+  const compared = (f) => roleOf(f.path) === "schema" || roleOf(f.path) === "resolvers";
+  const candidates = files.filter((f) => f.status === "modified" && (compared(f) || roleOf(f.path) === "source" && ctx.config.backend.rest && codeFile(f.path)));
+  const paths = candidates.map((f) => f.path);
   const base = await readFiles(ctx.repoRoot, baseSha, paths);
   const head = await readFiles(ctx.repoRoot, headSha, paths);
+  const holdsHonoApp = (path3) => ctx.config.backend.rest && codeFile(path3) && [base.get(path3), head.get(path3)].some((code2) => {
+    if (code2 === void 0) return false;
+    const { sourceFile } = parseIsolated(path3, code2);
+    return (table3.honoFiles.has(path3) || importsHono(sourceFile)) && holdsApp(sourceFile);
+  });
+  const appFiles = new Set(paths.filter(holdsHonoApp));
+  const targets = candidates.filter((f) => compared(f) || appFiles.has(f.path));
   const impacts = /* @__PURE__ */ new Map();
   const addedOperations = /* @__PURE__ */ new Set();
   const addedAnchors = /* @__PURE__ */ new Set();
@@ -249491,15 +249569,15 @@ async function backendImpacts(ctx, table3, files, roleOf, baseSha, headSha) {
     const schema = diffSdl(fileSchema(f.path, before), fileSchema(f.path, after));
     let resolvers;
     if (isCode2 && before !== void 0 && after !== void 0) {
-      const hono = table3.honoFiles.has(f.path);
+      const hono = table3.honoFiles.has(f.path) || appFiles.has(f.path);
       const b = resolverEntries(f.path, before, table3.typeFields, ctx.config.backend.rest, hono);
       const h = resolverEntries(f.path, after, table3.typeFields, ctx.config.backend.rest, hono);
-      if (roleOf(f.path) === "resolvers" || b.entries.length + h.entries.length + b.mounts.size + h.mounts.size > 0) resolvers = { ...diffResolvers(b, h), keys: [...new Set([...b.entries, ...h.entries].map((e) => e.key))] };
+      if (roleOf(f.path) === "resolvers" || appFiles.has(f.path) || b.entries.length + h.entries.length + b.mounts.size + h.mounts.size > 0) resolvers = { ...diffResolvers(b, h), keys: [...new Set([...b.entries, ...h.entries].map((e) => e.key))], appKeys: appFiles.has(f.path) ? table3.fileAppKeys(f.path) : [] };
     }
     for (const k of resolvers?.added ?? []) if (k.includes(" ")) addedAnchors.add(restAnchor(f.path, k));
     for (const m of resolvers?.addedMounts ?? []) addedMounts.push({ ...m, file: f.path });
     const impact = backendFileImpact(table3, f.path, schema.added.length + schema.removed.length + schema.changed.length > 0 ? schema : void 0, resolvers);
-    impacts.set(f.path, impact);
+    impacts.set(f.path, roleOf(f.path) === "source" ? { ...impact, keepsReach: true } : impact);
     for (const op of impact.addedOperations) addedOperations.add(op);
   }
   for (const f of files) {
@@ -250160,6 +250238,25 @@ function buildBackendTable(input2) {
     return [];
   };
   const checker = input2.project.program.getTypeChecker();
+  const anchorsOf = (node2) => resolverAnchors(node2, checker, isProjectFile, rel, globals, contextOf);
+  const argumentModules = (arg) => {
+    const own2 = arg.getSourceFile();
+    const followed = /* @__PURE__ */ new Set([arg]);
+    const visit3 = (node2) => {
+      if (import_typescript13.default.isIdentifier(node2)) {
+        let decl = checker.getSymbolAtLocation(node2)?.valueDeclaration;
+        while (decl && import_typescript13.default.isBindingElement(decl)) decl = decl.parent.parent;
+        const code2 = decl && import_typescript13.default.isVariableDeclaration(decl) ? decl.initializer : decl && import_typescript13.default.isFunctionDeclaration(decl) ? decl : void 0;
+        if (code2 && code2.getSourceFile() === own2 && !followed.has(code2)) {
+          followed.add(code2);
+          visit3(code2);
+        }
+      }
+      import_typescript13.default.forEachChild(node2, visit3);
+    };
+    visit3(arg);
+    return [...followed].flatMap(anchorsOf);
+  };
   const anchors = /* @__PURE__ */ new Map();
   const handlers = [];
   const resolverFiles = /* @__PURE__ */ new Set();
@@ -250170,7 +250267,8 @@ function buildBackendTable(input2) {
       const id = "receiver" in entry ? restAnchor(file2, entry.key) : entry.key;
       if ("receiver" in entry) handlers.push({ anchor: id, key: entry.key, receiver: entry.receiver, node: entry.node });
       const anchor2 = anchors.get(id) ?? { file: file2, modules: /* @__PURE__ */ new Set() };
-      for (const m of resolverAnchors(entry.value, checker, isProjectFile, rel, globals, contextOf)) if (m !== file2) anchor2.modules.add(m);
+      for (const m of anchorsOf(entry.value)) if (m !== file2) anchor2.modules.add(m);
+      for (const guard of "receiver" in entry ? entry.guards : []) for (const m of argumentModules(guard)) if (m !== file2) anchor2.modules.add(m);
       anchors.set(id, anchor2);
     }
   }
@@ -250186,6 +250284,8 @@ function buildBackendTable(input2) {
     }
     return out;
   };
+  const honoKeys = new Set(handlers.flatMap((h) => (hono?.basesOf(h.receiver) ?? []).map((b) => prefixKey(h.key, b))));
+  const registrations = (hono?.registrations ?? []).map((reg) => ({ paths: reg.paths, modules: reg.args.flatMap(argumentModules) }));
   const dynamic = [...hono?.dynamic ?? []];
   for (const h of handlers) {
     const bases = hono?.basesOf(h.receiver);
@@ -250210,7 +250310,8 @@ function buildBackendTable(input2) {
   }
   for (const [key, ids] of restKeys()) {
     resolverKeys.set(key, ids);
-    entries.push({ key, path: key, index: false, entry: null, modules: sortedUnique([...ids].flatMap((id) => [...anchors.get(id)?.modules ?? []])), layouts: [] });
+    const installed = honoKeys.has(key) ? registrations.filter((reg) => reg.paths.some((p) => underPath(keyPath(key), p))).flatMap((reg) => reg.modules) : [];
+    entries.push({ key, path: key, index: false, entry: null, modules: sortedUnique([...[...ids].flatMap((id) => [...anchors.get(id)?.modules ?? []]), ...installed]), layouts: [] });
   }
   entries.sort((a, b) => compareStrings(a.key, b.key));
   return {
@@ -250230,7 +250331,12 @@ function buildBackendTable(input2) {
     mountBases: (id) => hono?.mountBases(id) ?? [],
     mountMiddleware: (id) => hono?.mountMiddleware(id) ?? false,
     mountKeys: (id) => sortedUnique(handlers.flatMap((h) => (hono?.basesThrough(h.receiver, id) ?? []).map((b) => prefixKey(h.key, b)))),
-    honoFiles: hono?.honoFiles ?? /* @__PURE__ */ new Set()
+    honoFiles: hono?.honoFiles ?? /* @__PURE__ */ new Set(),
+    fileAppKeys: (file2) => {
+      const bases = hono?.fileBases(file2) ?? [];
+      const under = [...honoKeys].filter((k) => bases.length === 0 || bases.some((b) => underPath(keyPath(k), b)));
+      return sortedUnique([...under, ...entries.filter((e) => e.modules.includes(file2)).map((e) => e.key)]);
+    }
   };
 }
 function globalUses(project, globals, rel, isProjectFile) {
@@ -253056,13 +253162,13 @@ function usageHits(o) {
   const linkByKey = /* @__PURE__ */ new Map();
   if (o.usage?.status !== "ok") return { byKey, byPath, errorsByKey, linkByKey };
   const track = o.usage.kind === "pages" ? "rum" : "trace";
-  const pathOf2 = new Map(o.routes.affected.map((r) => [r.key, r.path]));
+  const pathOf = new Map(o.routes.affected.map((r) => [r.key, r.path]));
   for (const e of o.usage.entries) {
     byKey.set(e.key, e.hits);
     errorsByKey.set(e.key, e.issues);
     const url2 = datadogErrorsUrl(o, e.issueIds, track);
     if (url2 !== null) linkByKey.set(e.key, url2);
-    const path3 = pathOf2.get(e.key) ?? e.key;
+    const path3 = pathOf.get(e.key) ?? e.key;
     byPath.set(path3, (byPath.get(path3) ?? 0) + e.hits);
   }
   return { byKey, byPath, errorsByKey, linkByKey };
@@ -253214,12 +253320,12 @@ function signalsSection(o, limit, l) {
   const usage = usageSummary(o);
   if (usage !== null) {
     lines.push(`- **${USAGE_TEXT.label}:** ${esc3(USAGE_TEXT.summary(usage.share, compactNumber(usage.affectedHits), compactNumber(usage.total), usage.kind, usage.source, usage.days))}${usage.issues === 0 ? "" : esc3(USAGE_TEXT.issuesOn(usage.issues))}`);
-    const pathOf2 = new Map(o.routes.affected.map((r) => [r.key, r.path]));
+    const pathOf = new Map(o.routes.affected.map((r) => [r.key, r.path]));
     const track = usage.kind === "pages" ? "rum" : "trace";
     lines.push(
       ...limited(o.usage?.entries ?? [], Math.min(limit, 5), (e) => {
         const errors = e.issues === 0 ? "" : `, ${link(USAGE_TEXT.distinct(e.issues), datadogErrorsUrl(o, e.issueIds, track))}`;
-        return `${code(pathOf2.get(e.key) ?? e.key)} ${USAGE_TEXT.hits(compactNumber(e.hits), usage.kind)}${errors}`;
+        return `${code(pathOf.get(e.key) ?? e.key)} ${USAGE_TEXT.hits(compactNumber(e.hits), usage.kind)}${errors}`;
       }, "  ")
     );
     const errorFiles2 = o.usage?.files ?? [];

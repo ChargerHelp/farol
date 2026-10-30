@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildBackendTable } from '../../src/backend/entrypoints.js'
-import { mergePath, mountNodes, overlaps, UNRESOLVED_APP } from '../../src/backend/hono.js'
+import { mountNodes, UNRESOLVED_APP } from '../../src/backend/hono.js'
+import { mergePath, overlaps } from '../../src/backend/hono-paths.js'
 import { diffResolvers, resolverEntries } from '../../src/backend/resolvers.js'
 import { parseIsolated } from '../../src/project/parse.js'
 import { memoryProject, ROOT } from '../helpers/memory.js'
@@ -22,6 +23,36 @@ export function createItems() {
   return routes
 }
 `
+
+describe('Hono middleware placement', () => {
+  const app = (body: string) => `import { Hono } from 'hono'\nimport { deps } from './deps'\nimport { mw } from './mw'\nexport const app = new Hono()\n${body}\n`
+  const base = { 'src/deps.ts': "import type { Hono } from 'hono'\nexport const deps = {} as { app: Hono }\n", 'src/mw.ts': 'export const mw = async (_c: unknown, next: () => Promise<void>) => { await next() }\n' }
+
+  it('an onError on an app farol cannot follow is a dynamic route', () => {
+    expect(dynamic({ ...base, 'src/main.ts': app('deps.app.onError(mw)') })).toEqual(['src/main.ts:5 Hono onError() is on an app farol cannot follow: its middleware cannot be placed'])
+  })
+
+  it('a parameter as middleware is a dynamic route: its code comes from the callers', () => {
+    expect(dynamic({ ...base, 'src/main.ts': app("export function install(handler: never) {\n  app.use('*', handler)\n}") })).toEqual(['src/main.ts:6 Hono middleware is a parameter: its code comes from the callers'])
+  })
+
+  it('a parameter as a guard before the handler is a dynamic route', () => {
+    expect(dynamic({ ...base, 'src/main.ts': app("export function install(guard: never) {\n  app.post('/x', guard, (c) => c.text('ok'))\n}") })).toEqual(['src/main.ts:6 Hono middleware is a parameter: its code comes from the callers'])
+  })
+
+  it('an onError in a file without Hono is not a Hono construct', () => {
+    expect(dynamic({ 'src/main.ts': "import { consumer } from './consumer'\nconsumer.onError(() => undefined)\n", 'src/consumer.ts': 'export const consumer = { onError: (_f: () => void) => undefined }\n' })).toEqual([])
+  })
+
+  it('a guard of an Express route is one of its modules; use() stays unplaced', () => {
+    const t = table({
+      'src/main.ts': "import express from 'express'\nimport { guard } from './guard'\nimport { logger } from './logger'\nconst app = express()\napp.use(logger)\napp.post('/a', guard, (req, res) => res.send('a'))\napp.get('/b', (req, res) => res.send('b'))\n",
+      'src/guard.ts': 'export const guard = () => undefined\n',
+      'src/logger.ts': 'export const logger = () => undefined\n',
+    })
+    expect(t.operations.map((o) => [o.key, o.modules])).toEqual([['GET /b', []], ['POST /a', ['src/guard.ts']]])
+  })
+})
 
 describe('Hono mounts', () => {
   it('joins prefixes like Hono does', () => {

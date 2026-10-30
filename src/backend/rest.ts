@@ -37,6 +37,8 @@ export interface RestNode {
   node: ts.Node
   value: ts.Node
   receiver: ts.Expression
+  /** Middleware arguments before the handler: they run for this route only. */
+  guards: ts.Expression[]
 }
 
 /**
@@ -53,25 +55,25 @@ export function restNodes(sf: ts.SourceFile): RestNode[] {
       const last = args[args.length - 1]
       if (METHODS.has(method) && args.length >= 2 && isHandler(last, node)) {
         const path = literal(args[0])
-        if (path !== undefined && (path.startsWith('/') || path === '*')) out.push({ key: `${method === 'del' ? 'DELETE' : method.toUpperCase()} ${path}`, node, value: last, receiver: node.expression.expression })
+        if (path !== undefined && (path.startsWith('/') || path === '*')) out.push({ key: `${method === 'del' ? 'DELETE' : method.toUpperCase()} ${path}`, node, value: last, receiver: node.expression.expression, guards: args.slice(1, -1) })
         // router.route('/path').get(handler)
         const target = node.expression.expression
         if (path === undefined && ts.isCallExpression(target) && ts.isPropertyAccessExpression(target.expression) && target.expression.name.text === 'route') {
           const routePath = literal(target.arguments[0])
-          if (routePath !== undefined) out.push({ key: `${method.toUpperCase()} ${routePath}`, node, value: last, receiver: node.expression.expression })
+          if (routePath !== undefined) out.push({ key: `${method.toUpperCase()} ${routePath}`, node, value: last, receiver: node.expression.expression, guards: args.slice(0, -1) })
         }
       } else if (METHODS.has(method) && args.length === 1 && isHandler(args[0], node)) {
         const target = node.expression.expression
         if (ts.isCallExpression(target) && ts.isPropertyAccessExpression(target.expression) && target.expression.name.text === 'route') {
           const routePath = literal(target.arguments[0])
-          if (routePath !== undefined) out.push({ key: `${method.toUpperCase()} ${routePath}`, node, value: args[0], receiver: node.expression.expression })
+          if (routePath !== undefined) out.push({ key: `${method.toUpperCase()} ${routePath}`, node, value: args[0], receiver: node.expression.expression, guards: [] })
         }
       } else if (method === 'route' && args.length === 1 && args[0] && ts.isObjectLiteralExpression(args[0])) {
         const methods = objectProp(args[0], 'method')
         const url = literal(objectProp(args[0], 'url')) ?? literal(objectProp(args[0], 'path'))
         const handler = objectProp(args[0], 'handler')
         const names = methods && ts.isArrayLiteralExpression(methods) ? methods.elements.map((e) => literal(e)) : [literal(methods)]
-        if (url !== undefined && handler) for (const m of names) if (m !== undefined) out.push({ key: `${m.toUpperCase()} ${url}`, node, value: handler, receiver: node.expression.expression })
+        if (url !== undefined && handler) for (const m of names) if (m !== undefined) out.push({ key: `${m.toUpperCase()} ${url}`, node, value: handler, receiver: node.expression.expression, guards: [] })
       }
     }
     ts.forEachChild(node, visit)

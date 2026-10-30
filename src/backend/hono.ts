@@ -2,6 +2,7 @@ import ts from 'typescript'
 import { sortedUnique } from '../output/order.js'
 import { unwrap } from '../project/parse.js'
 import type { DynamicRoute } from '../routes/types.js'
+import { mergePath } from './hono-paths.js'
 import { literal, METHODS, plainChain, plainTarget } from './rest.js'
 
 /** App methods that return the app itself: a chained call stays on the same app. */
@@ -12,6 +13,13 @@ type App = ts.NewExpression | ts.ParameterDeclaration
 
 /** `to` is mounted in `from` (`mount`: its prefix and `MountNode` id), or `to` is a parameter that receives `from`. */
 type Edge = { from: App; to: App } & ({ mount: { prefix: string; id: string } } | { mount?: undefined })
+
+/** Code a call installs on an app: `use()`, `on()`, `onError()` or a handler that can call `next`. */
+export interface Registration {
+  /** The full paths it runs under: its path (`*` when farol cannot read it) under every base path of its app. */
+  paths: string[]
+  args: ts.Expression[]
+}
 
 export interface HonoApps {
   /**
@@ -33,60 +41,39 @@ export interface HonoApps {
   mountMiddleware: (id: string) => boolean
   /** Base paths of a handler's receiver that go through a mount (`MountNode` id). */
   basesThrough: (receiver: ts.Expression, id: string) => string[]
+  registrations: Registration[]
+  /** Base paths of the apps a file creates, receives or registers on; empty when it has none. */
+  fileBases: (file: string) => string[]
   dynamic: DynamicRoute[]
 }
 
 export const UNRESOLVED_APP = 'Hono app is not one farol can follow (basePath, alias or property)'
-
-/** `mergePath` of hono 4.13.13 (`dist/utils/url.js`) for two paths. */
-export function mergePath(base: string, sub: string): string {
-  return `${base.startsWith('/') ? '' : '/'}${base}${sub === '/' ? '' : `${base.endsWith('/') ? '' : '/'}${sub.startsWith('/') ? sub.slice(1) : sub}`}`
-}
-
-/** `METHOD path` under a base path. */
-export function prefixKey(key: string, base: string): string {
-  const space = key.indexOf(' ')
-  return `${key.slice(0, space)} ${mergePath(base, key.slice(space + 1))}`
-}
-
-/** Path segments; a `{…}` pattern stays in one segment even when it contains `/`. */
-function segments(path: string): string[] {
-  const out: string[] = []
-  let current = ''
-  let depth = 0
-  for (const ch of path) {
-    if (ch === '{') depth++
-    if (ch === '}') depth--
-    if (ch === '/' && depth === 0) {
-      if (current !== '') out.push(current)
-      current = ''
-    } else current += ch
-  }
-  if (current !== '') out.push(current)
-  return out
-}
-
-/**
- * Whether one request can reach both an endpoint path and a mount's full path: `:param` and `*` segments match any
- * segment, and a regular-expression parameter (`:path{.+}`) or a final `*` matches the rest of the path.
- */
-export function overlaps(path: string, base: string): boolean {
-  const own = segments(path)
-  const any = (s: string): boolean => s.includes(':') || s.includes('*')
-  for (const [i, seg] of segments(base).entries()) {
-    const o = own[i]
-    if (o === undefined) return false
-    if (o.includes('{') || seg.includes('{') || (o === '*' && i === own.length - 1)) return true
-    if (o !== seg && !any(o) && !any(seg)) return false
-  }
-  return true
-}
 
 export const isHonoModule = (spec: string): boolean => spec === 'hono' || spec.startsWith('hono/') || spec.startsWith('@hono/')
 
 /** Whether a file imports or re-exports from a hono package (syntax only). */
 export function importsHono(sf: ts.SourceFile): boolean {
   return sf.statements.some((s) => (ts.isImportDeclaration(s) || ts.isExportDeclaration(s)) && s.moduleSpecifier !== undefined && ts.isStringLiteral(s.moduleSpecifier) && isHonoModule(s.moduleSpecifier.text))
+}
+
+/** Whether a file version holds a Hono app: `new Hono()`, a parameter typed `Hono`, or a `use`, `onError` or `on` call (syntax only). */
+export function holdsApp(sf: ts.SourceFile): boolean {
+  const names = new Set<string>()
+  for (const s of sf.statements) {
+    const named = ts.isImportDeclaration(s) ? s.importClause?.namedBindings : undefined
+    if (named && ts.isNamedImports(named)) for (const el of named.elements) if ((el.propertyName ?? el.name).text === 'Hono') names.add(el.name.text)
+  }
+  const isHono = (e: ts.Node | undefined): boolean => e !== undefined && ts.isIdentifier(e) && names.has(e.text)
+  const found = (node: ts.Node): boolean => {
+    if (ts.isNewExpression(node) && isHono(node.expression)) return true
+    if (ts.isParameter(node) && node.type && ts.isTypeReferenceNode(node.type) && isHono(node.type.typeName)) return true
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
+      const name = node.expression.name.text
+      if (name === 'use' || name === 'onError' || (name === 'on' && node.arguments.length >= 3)) return true
+    }
+    return ts.forEachChild(node, (child) => (found(child) ? true : undefined)) ?? false
+  }
+  return found(sf)
 }
 
 type MountCall = ts.CallExpression & { expression: ts.PropertyAccessExpression }
@@ -209,6 +196,12 @@ function collectEdges(files: readonly ts.SourceFile[], honoFiles: ReadonlySet<ts
   const incoming = new Map<App, Edge[]>()
   const mountFiles = new Set<string>()
   const middleware = new Set<App>()
+  const registered: { app: App; path: string; args: ts.Expression[] }[] = []
+  const fileApps = new Map<string, Set<App>>()
+  const holds = (node: ts.Node, app: App): void => {
+    const file = rel(node.getSourceFile().fileName)
+    fileApps.set(file, (fileApps.get(file) ?? new Set<App>()).add(app))
+  }
   const dynamic: DynamicRoute[] = []
   const at = (node: ts.Node, detail: string): void => {
     const sf = node.getSourceFile()
@@ -238,6 +231,7 @@ function collectEdges(files: readonly ts.SourceFile[], honoFiles: ReadonlySet<ts
       return
     }
     mountFiles.add(rel(sf.fileName))
+    holds(m.call, parent)
     const prefix = literal(m.prefixArg)
     if (prefix === undefined) {
       at(m.prefixArg, 'Hono route() prefix is not a string literal')
@@ -282,19 +276,48 @@ function collectEdges(files: readonly ts.SourceFile[], honoFiles: ReadonlySet<ts
     const fn = last && !takesNext(last) ? r.functionOf(last) : undefined
     return last !== undefined && wide && !ts.isArrowFunction(unwrap(last)) && !ts.isFunctionExpression(unwrap(last)) && (fn ? fn.parameters.length >= 2 : true)
   }
+  // Path and code of a call that installs code on its app; a path farol cannot read covers the whole app.
+  const registrationOf = (call: MountCall): { path: string; args: ts.Expression[] } | undefined => {
+    const name = call.expression.name.text
+    const [first, second] = call.arguments
+    if (name === 'onError') return call.arguments.length === 1 ? { path: '*', args: [...call.arguments] } : undefined
+    // Hono's `on(method, path, ...handlers)` has three arguments or more (`process.on(event, fn)` has two).
+    if (name === 'on') return call.arguments.length >= 3 ? { path: literal(second) ?? '*', args: call.arguments.slice(2) } : undefined
+    if (name !== 'use' && !(METHODS.has(name) && (call.arguments.some(takesNext) || namedNext(call)))) return undefined
+    const path = literal(first)
+    return { path: path ?? '*', args: path === undefined ? [...call.arguments] : call.arguments.slice(1) }
+  }
+  const isParameterName = (a: ts.Expression): boolean => {
+    const x = unwrap(a)
+    const decl = ts.isIdentifier(x) ? r.declOf(x) : undefined
+    return decl !== undefined && ts.isParameter(decl)
+  }
   const middlewareCall = (call: MountCall): void => {
     const name = call.expression.name.text
-    // Hono's `on(method, path, ...handlers)` has three arguments or more (`process.on(event, fn)` has two).
-    const on = name === 'on' && call.arguments.length >= 3
-    if (!(name === 'use' || on || (METHODS.has(name) && (call.arguments.some(takesNext) || namedNext(call))))) return
+    const registration = registrationOf(call)
+    const guards = METHODS.has(name) ? call.arguments.slice(1, -1) : []
+    if (!registration && guards.length === 0) return
     const app = r.appOf(call.expression.expression)
-    if (app) middleware.add(app)
-    // A handler on an app farol cannot follow is already a dynamic route (`buildBackendTable`).
-    else if ((name === 'use' || on) && honoFiles.has(call.getSourceFile())) at(call, `Hono ${name}() is on an app farol cannot follow: its middleware cannot be placed`)
+    if (!app) {
+      // A handler on an app farol cannot follow is already a dynamic route (`buildBackendTable`).
+      if (registration && !METHODS.has(name) && honoFiles.has(call.getSourceFile())) at(call, `Hono ${name}() is on an app farol cannot follow: its middleware cannot be placed`)
+      return
+    }
+    for (const a of new Set([...(registration?.args ?? []), ...guards])) if (isParameterName(a)) at(a, 'Hono middleware is a parameter: its code comes from the callers')
+    if (!registration) return
+    // `onError` runs only when a handler throws: a new mount with one adds no code to other endpoints' requests.
+    if (name !== 'onError') middleware.add(app)
+    holds(call, app)
+    registered.push({ app, ...registration })
   }
   for (const sf of files) {
     for (const m of mountNodes(sf, rel(sf.fileName))) mount(m)
     const visit = (node: ts.Node): void => {
+      if (honoFiles.has(sf) && ts.isNewExpression(node)) {
+        const app = r.appOf(node)
+        if (app) holds(node, app)
+      }
+      if (honoFiles.has(sf) && ts.isParameter(node) && r.isHonoParam(node)) holds(node, node)
       if (ts.isCallExpression(node)) argumentEdges(node)
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) middlewareCall(node as MountCall)
       if (isRouteCall(node) && node.arguments.some(ts.isSpreadElement) && honoFiles.has(sf)) at(node, 'Hono route() arguments are spread')
@@ -302,7 +325,7 @@ function collectEdges(files: readonly ts.SourceFile[], honoFiles: ReadonlySet<ts
     }
     visit(sf)
   }
-  return { incoming, mountFiles, middleware, dynamic }
+  return { incoming, mountFiles, middleware, registered, fileApps, dynamic }
 }
 
 /**
@@ -312,7 +335,7 @@ function collectEdges(files: readonly ts.SourceFile[], honoFiles: ReadonlySet<ts
 export function honoApps(files: readonly ts.SourceFile[], checker: ts.TypeChecker, rel: (fileName: string) => string): HonoApps {
   const r = appResolver(checker)
   const honoFiles = new Set(files.filter(r.usesHono))
-  const { incoming, mountFiles, middleware, dynamic } = collectEdges(files, honoFiles, r, rel)
+  const { incoming, mountFiles, middleware, registered, fileApps, dynamic } = collectEdges(files, honoFiles, r, rel)
   const edges = [...incoming.values()].flat()
   const outgoing = new Map<App, Edge[]>()
   for (const e of edges) outgoing.set(e.from, [...(outgoing.get(e.from) ?? []), e])
@@ -358,6 +381,8 @@ export function honoApps(files: readonly ts.SourceFile[], checker: ts.TypeChecke
       const app = r.appOf(receiver)
       return app ? through(app, id, []) : []
     },
+    registrations: registered.map((x) => ({ paths: bases(x.app, undefined, []).map((b) => mergePath(b, x.path)), args: x.args })),
+    fileBases: (file) => sortedUnique([...(fileApps.get(file) ?? [])].flatMap((app) => bases(app, undefined, []))),
     dynamic,
   }
 }

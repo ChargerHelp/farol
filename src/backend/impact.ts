@@ -1,5 +1,5 @@
 import { compareStrings, sortedUnique } from '../output/order.js'
-import { overlaps } from './hono.js'
+import { keyPath, overlaps } from './hono-paths.js'
 import type { MountEntry, ResolverChanges } from './resolvers.js'
 import { restAnchor } from './rest.js'
 import type { SchemaDiff } from './schema.js'
@@ -21,6 +21,8 @@ export interface BackendFileImpact {
   erased?: string[]
   /** Added files only (Go): new entry points that reach the file's code; present when the impact covers new files. */
   newEntriesReaching?: string[]
+  /** A source file holding a Hono app: the endpoints that import it are reached too (declaration impacts replace reach). */
+  keepsReach?: boolean
 }
 
 export interface ImpactTable {
@@ -48,7 +50,7 @@ function operationsUsingResolver(key: string, table: ImpactTable): string[] {
  * Impact of one changed file from its SDL diff and its resolver/endpoint diff (either may be absent). Endpoint keys of
  * the diff are paths as written in `file`; they run the endpoints of their handler anchor (one per Hono mount).
  */
-export function backendFileImpact(table: ImpactTable, file: string, schema: SchemaDiff | undefined, resolvers: (ResolverChanges & { keys: string[] }) | undefined): BackendFileImpact {
+export function backendFileImpact(table: ImpactTable, file: string, schema: SchemaDiff | undefined, resolvers: (ResolverChanges & { keys: string[]; appKeys?: readonly string[] }) | undefined): BackendFileImpact {
   const using = (k: string): string[] => operationsUsingResolver(k.includes(' ') ? restAnchor(file, k) : k, table)
   /** The full endpoint keys of a handler when its mounts change them, else the key as written. */
   const label = (k: string): string => {
@@ -88,6 +90,7 @@ export function backendFileImpact(table: ImpactTable, file: string, schema: Sche
       problems.push('code outside the resolvers changed (imports, helpers or module-level code): every resolver of the file may behave differently')
       for (const k of resolvers.keys) hit(using(k), `module code of ${k}`)
     }
+    if (resolvers.wide) hit([...(resolvers.appKeys ?? [])], `module code of ${file}`)
     for (const k of resolvers.added) {
       const ops = k.includes(' ') ? using(k) : []
       if (k.includes(' ')) addedOperations.push(...(ops.length > 0 ? ops : [k]))
@@ -108,8 +111,6 @@ export interface AddedMount extends MountEntry {
   file: string
 }
 
-const pathOf = (key: string): string => key.slice(key.indexOf(' ') + 1)
-
 export interface MountTable {
   mountBases: (id: string) => string[]
   mountMiddleware: (id: string) => boolean
@@ -127,9 +128,9 @@ export function mountImpacts(table: MountTable, mounts: readonly AddedMount[], b
   const out = new Map(impacts)
   for (const m of mounts) {
     const bases = table.mountBases(m.id)
-    const reached = table.mountMiddleware(m.id) ? [...baseRest].filter((k) => bases.some((b) => overlaps(pathOf(k), b))) : []
+    const reached = table.mountMiddleware(m.id) ? [...baseRest].filter((k) => bases.some((b) => overlaps(keyPath(k), b))) : []
     const keys = table.mountKeys(m.id)
-    const collides = (k: string): boolean => keys.some((n) => n === k || (pathOf(n) === pathOf(k) && (n.startsWith('ALL ') || k.startsWith('ALL '))))
+    const collides = (k: string): boolean => keys.some((n) => n === k || (keyPath(n) === keyPath(k) && (n.startsWith('ALL ') || k.startsWith('ALL '))))
     const covered = sortedUnique([...reached, ...[...baseRest].filter(collides)])
     const problems = [
       ...(m.plain ? [] : [`mount ${m.prefix} was added with a call in its arguments: that code is not compared`]),

@@ -124,7 +124,7 @@ export function resolverEntries(
   typeFields: ReadonlyMap<string, ReadonlySet<string>>,
   withRest = true,
   hono = false,
-): { entries: ResolverEntry[]; rest: string[]; loadCode: string[]; imports: Set<string>; mounts: Map<string, MountEntry>; impure: Set<string>; middleware: Set<string> } {
+): { entries: ResolverEntry[]; rest: string[]; loadCode: string[]; imports: Set<string>; mounts: Map<string, MountEntry>; impure: Map<string, string>; middleware: Set<string> } {
   const { sourceFile: sf } = parseIsolated(file, code)
   const nodes = entryNodes(sf, typeFields, withRest)
   const entries = nodes.map(({ key, node }) => ({ key, file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, text: normalized(node, sf) }))
@@ -181,7 +181,7 @@ export function resolverEntries(
   // Handlers whose registration runs other code (`app.use(mw).get(…)`, `get('/x', rateLimit(), h)`): the chain and the
   // arguments are blanked with the handler. Handlers that can call `next` run for other endpoints.
   const rest = nodes.filter((n): n is RestNode => 'receiver' in n)
-  const impure = new Set(rest.filter((n) => !plainChain(n.receiver) || (ts.isCallExpression(n.node) && n.node.arguments.some((a) => runsCode(a, honoNames)))).map((n) => n.key))
+  const impure = new Map(rest.filter((n) => !plainChain(n.receiver) || (ts.isCallExpression(n.node) && n.node.arguments.some((a) => runsCode(a, honoNames)))).map((n) => [n.key, normalized(n.node, sf).replace(normalized(n.value, sf), '')]))
   const middleware = new Set(rest.filter(middlewareLike).map((n) => n.key))
   return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, loadCode, imports, mounts: new Map(mounts.map((m) => [m.id, { id: m.id, prefix: m.prefix, plain: m.plain }])), impure, middleware }
 }
@@ -213,6 +213,8 @@ export interface ResolverChanges {
   changed: string[]
   /** Code outside the resolver members changed (imports, helpers, module-level code): every resolver may be affected. */
   restChanged: boolean
+  /** A change that can reach every endpoint of the file's apps: module code, new load code, or a chain or handler that runs for others. */
+  wide: boolean
   /** Hono mounts the head adds (a changed mount is removed and added). */
   addedMounts: MountEntry[]
   /** What is not additive besides entries: removed or changed mounts, new code that runs when the file loads or on a handler's chain. */
@@ -223,17 +225,25 @@ export interface ResolverChanges {
 export function diffResolvers(base: ReturnType<typeof resolverEntries>, head: ReturnType<typeof resolverEntries>): ResolverChanges {
   const before = new Map(base.entries.map((e) => [e.key, e.text]))
   const after = new Map(head.entries.map((e) => [e.key, e.text]))
+  const added = [...after.keys()].filter((k) => !before.has(k)).sort(compareStrings)
+  const removed = [...before.keys()].filter((k) => !after.has(k)).sort(compareStrings)
+  const changed = [...before.keys()].filter((k) => after.has(k) && after.get(k) !== before.get(k)).sort(compareStrings)
+  const restChanged = base.rest.some((item) => !head.rest.includes(item)) || [...base.imports].some((i) => !head.imports.has(i))
+  const newLoadCode = head.loadCode.filter((c) => !base.rest.includes(c))
+  const newSideEffects = [...head.imports].filter((i) => i.endsWith('|') && !base.imports.has(i))
+  const runsForOthers = (k: string): boolean => base.impure.get(k) !== head.impure.get(k) || base.middleware.has(k) || head.middleware.has(k)
   return {
-    added: [...after.keys()].filter((k) => !before.has(k)).sort(compareStrings),
-    removed: [...before.keys()].filter((k) => !after.has(k)).sort(compareStrings),
-    changed: [...before.keys()].filter((k) => after.has(k) && after.get(k) !== before.get(k)).sort(compareStrings),
-    restChanged: base.rest.some((item) => !head.rest.includes(item)) || [...base.imports].some((i) => !head.imports.has(i)),
+    added,
+    removed,
+    changed,
+    restChanged,
+    wide: restChanged || newLoadCode.length > 0 || newSideEffects.length > 0 || [...added, ...removed, ...changed].some(runsForOthers),
     addedMounts: [...head.mounts.values()].filter((m) => !base.mounts.has(m.id)).sort((a, b) => compareStrings(a.id, b.id)),
     problems: sortedUnique([
       ...[...base.mounts.values()].filter((m) => !head.mounts.has(m.id)).map((m) => `mount ${m.prefix} was removed`),
-      ...head.loadCode.filter((c) => !base.rest.includes(c)).map((c) => `code that runs when the file loads was added: ${c.length > 80 ? `${c.slice(0, 77)}...` : c}`),
-      ...[...head.imports].filter((i) => i.endsWith('|') && !base.imports.has(i)).map((i) => `side-effect import ${i.slice(0, -1)} was added: it runs that module when the file loads`),
-      ...[...head.impure].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added with code that runs when it is registered (a call in its chain or arguments)`),
+      ...newLoadCode.map((c) => `code that runs when the file loads was added: ${c.length > 80 ? `${c.slice(0, 77)}...` : c}`),
+      ...newSideEffects.map((i) => `side-effect import ${i.slice(0, -1)} was added: it runs that module when the file loads`),
+      ...[...head.impure.keys()].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added with code that runs when it is registered (a call in its chain or arguments)`),
       ...[...head.middleware].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added as middleware (it can call next): it runs for other endpoints`),
     ]),
   }

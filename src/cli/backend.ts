@@ -1,6 +1,7 @@
 import { Kind, type DocumentNode } from 'graphql'
 import { backendFileImpact, mountImpacts, type AddedMount, type BackendFileImpact } from '../backend/impact.js'
 import type { BackendTable } from '../backend/entrypoints.js'
+import { holdsApp, importsHono } from '../backend/hono.js'
 import { diffResolvers, resolverEntries } from '../backend/resolvers.js'
 import { restAnchor } from '../backend/rest.js'
 import { diffSdl, parseSdl, sdlSources } from '../backend/schema.js'
@@ -8,6 +9,7 @@ import type { AnalysisRole } from '../classify/roles.js'
 import { readFiles } from '../git/index.js'
 import type { ChangedFile } from '../git/types.js'
 import type { RouteTable } from '../routes/types.js'
+import { parseIsolated } from '../project/parse.js'
 import type { Context } from './context.js'
 import { graphqlContractChanges, type EntryContractChange } from '../contracts/graphql.js'
 
@@ -31,10 +33,23 @@ export async function backendImpacts(
   baseSha: string,
   headSha: string,
 ): Promise<{ impacts: Map<string, BackendFileImpact>; baseRoutes: RouteTable; contracts: { changes: EntryContractChange[]; problem?: string } }> {
-  const targets = files.filter((f) => f.status === 'modified' && (roleOf(f.path) === 'schema' || roleOf(f.path) === 'resolvers'))
-  const paths = targets.map((f) => f.path)
+  const codeFile = (p: string): boolean => /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts)$/.test(p)
+  const compared = (f: ChangedFile): boolean => roleOf(f.path) === 'schema' || roleOf(f.path) === 'resolvers'
+  const candidates = files.filter((f) => f.status === 'modified' && (compared(f) || (roleOf(f.path) === 'source' && ctx.config.backend.rest && codeFile(f.path))))
+  const paths = candidates.map((f) => f.path)
   const base = await readFiles(ctx.repoRoot, baseSha, paths)
   const head = await readFiles(ctx.repoRoot, headSha, paths)
+  // A file that holds a Hono app in either version: its module code runs for that app's endpoints, also with no handler.
+  const holdsHonoApp = (path: string): boolean =>
+    ctx.config.backend.rest &&
+    codeFile(path) &&
+    [base.get(path), head.get(path)].some((code) => {
+      if (code === undefined) return false
+      const { sourceFile } = parseIsolated(path, code)
+      return (table.honoFiles.has(path) || importsHono(sourceFile)) && holdsApp(sourceFile)
+    })
+  const appFiles = new Set(paths.filter(holdsHonoApp))
+  const targets = candidates.filter((f) => compared(f) || appFiles.has(f.path))
   const impacts = new Map<string, BackendFileImpact>()
   const addedOperations = new Set<string>()
   // Handlers and mounts the PR adds: the endpoints the head has without them existed before.
@@ -47,16 +62,16 @@ export async function backendImpacts(
     const schema = diffSdl(fileSchema(f.path, before), fileSchema(f.path, after))
     let resolvers: Parameters<typeof backendFileImpact>[3]
     if (isCode && before !== undefined && after !== undefined) {
-      const hono = table.honoFiles.has(f.path)
+      const hono = table.honoFiles.has(f.path) || appFiles.has(f.path)
       const b = resolverEntries(f.path, before, table.typeFields, ctx.config.backend.rest, hono)
       const h = resolverEntries(f.path, after, table.typeFields, ctx.config.backend.rest, hono)
       // A resolver file is always compared: with no entries left, its module code is what changed.
-      if (roleOf(f.path) === 'resolvers' || b.entries.length + h.entries.length + b.mounts.size + h.mounts.size > 0) resolvers = { ...diffResolvers(b, h), keys: [...new Set([...b.entries, ...h.entries].map((e) => e.key))] }
+      if (roleOf(f.path) === 'resolvers' || appFiles.has(f.path) || b.entries.length + h.entries.length + b.mounts.size + h.mounts.size > 0) resolvers = { ...diffResolvers(b, h), keys: [...new Set([...b.entries, ...h.entries].map((e) => e.key))], appKeys: appFiles.has(f.path) ? table.fileAppKeys(f.path) : [] }
     }
     for (const k of resolvers?.added ?? []) if (k.includes(' ')) addedAnchors.add(restAnchor(f.path, k))
     for (const m of resolvers?.addedMounts ?? []) addedMounts.push({ ...m, file: f.path })
     const impact = backendFileImpact(table, f.path, schema.added.length + schema.removed.length + schema.changed.length > 0 ? schema : undefined, resolvers)
-    impacts.set(f.path, impact)
+    impacts.set(f.path, roleOf(f.path) === 'source' ? { ...impact, keepsReach: true } : impact)
     for (const op of impact.addedOperations) addedOperations.add(op)
   }
   // New root fields and endpoints are the backend's new routes: the base table is the head table without them.
