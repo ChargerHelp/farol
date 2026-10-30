@@ -51,7 +51,9 @@ export interface BackendTable {
   /** Files that use Hono: their mounts are compared even without a hono import. */
   honoFiles: Set<string>
   /** Endpoints a change to a file's module code can hit: those under its Hono apps (no app: every Hono endpoint), and those using the file. */
-  fileAppKeys: (file: string) => string[]
+  fileReachKeys: (file: string) => string[]
+  /** Whether a file of the head creates, receives, holds or registers on a Hono app. */
+  fileHoldsApp: (file: string) => boolean
 }
 
 export interface BackendInput {
@@ -128,7 +130,7 @@ export function buildBackendTable(input: BackendInput): BackendTable {
   // Resolvers and REST handlers, with the modules their code uses.
   const checker = input.project.program.getTypeChecker()
   const anchorsOf = (node: ts.Node): string[] => resolverAnchors(node, checker, isProjectFile, rel, globals, contextOf)
-  // Middleware arguments are often held in a variable of the same file (`const mw = create()`, `const { mw } = build()`).
+  // REST handlers and middleware are often held in a variable of the same file (`const mw = create()`, `const { mw } = build()`).
   const argumentModules = (arg: ts.Node): string[] => {
     const own = arg.getSourceFile()
     const followed = new Set<ts.Node>([arg])
@@ -157,7 +159,7 @@ export function buildBackendTable(input: BackendInput): BackendTable {
       const id = 'receiver' in entry ? restAnchor(file, entry.key) : entry.key
       if ('receiver' in entry) handlers.push({ anchor: id, key: entry.key, receiver: entry.receiver, node: entry.node })
       const anchor = anchors.get(id) ?? { file, modules: new Set<string>() }
-      for (const m of anchorsOf(entry.value)) if (m !== file) anchor.modules.add(m)
+      for (const m of 'receiver' in entry ? argumentModules(entry.value) : anchorsOf(entry.value)) if (m !== file) anchor.modules.add(m)
       for (const guard of 'receiver' in entry ? entry.guards : []) for (const m of argumentModules(guard)) if (m !== file) anchor.modules.add(m)
       anchors.set(id, anchor)
     }
@@ -226,7 +228,8 @@ export function buildBackendTable(input: BackendInput): BackendTable {
     mountMiddleware: (id) => hono?.mountMiddleware(id) ?? false,
     mountKeys: (id) => sortedUnique(handlers.flatMap((h) => (hono?.basesThrough(h.receiver, id) ?? []).map((b) => prefixKey(h.key, b)))),
     honoFiles: hono?.honoFiles ?? new Set(),
-    fileAppKeys: (file) => {
+    fileHoldsApp: (file) => (hono?.fileBases(file) ?? []).length > 0,
+    fileReachKeys: (file) => {
       const bases = hono?.fileBases(file) ?? []
       const under = [...honoKeys].filter((k) => bases.length === 0 || bases.some((b) => underPath(keyPath(k), b)))
       return sortedUnique([...under, ...entries.filter((e) => e.modules.includes(file)).map((e) => e.key)])

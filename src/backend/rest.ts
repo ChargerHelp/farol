@@ -19,6 +19,12 @@ function isHandler(node: ts.Node | undefined, call: ts.CallExpression): node is 
   return (ts.isIdentifier(node) || ts.isPropertyAccessExpression(node)) && SERVERS.has(receiverName(call) ?? '')
 }
 
+/** An inline function that takes `next`. */
+export function takesNext(a: ts.Expression): boolean {
+  const x = unwrap(a)
+  return (ts.isArrowFunction(x) || ts.isFunctionExpression(x)) && x.parameters.length >= 2
+}
+
 export function literal(node: ts.Node | undefined): string | undefined {
   return node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) ? node.text : undefined
 }
@@ -73,7 +79,7 @@ export function restNodes(sf: ts.SourceFile): RestNode[] {
         const url = literal(objectProp(args[0], 'url')) ?? literal(objectProp(args[0], 'path'))
         const handler = objectProp(args[0], 'handler')
         const names = methods && ts.isArrayLiteralExpression(methods) ? methods.elements.map((e) => literal(e)) : [literal(methods)]
-        if (url !== undefined && handler) for (const m of names) if (m !== undefined) out.push({ key: `${m.toUpperCase()} ${url}`, node, value: handler, receiver: node.expression.expression, guards: [] })
+        if (url !== undefined && handler) for (const m of names) if (m !== undefined) out.push({ key: `${m.toUpperCase()} ${url}`, node, value: handler, receiver: node.expression.expression, guards: [args[0]] })
       }
     }
     ts.forEachChild(node, visit)

@@ -1,8 +1,9 @@
 import ts from 'typescript'
 import { compareStrings, sortedUnique } from '../output/order.js'
 import { parseIsolated, unwrap } from '../project/parse.js'
-import { importsHono, isHonoModule, mountNodes } from './hono.js'
-import { plainChain, restNodes, type RestNode } from './rest.js'
+import { mountNodes } from './hono.js'
+import { importsHono, isHonoModule } from './hono-resolver.js'
+import { plainChain, restNodes, takesNext, type RestNode } from './rest.js'
 
 /** One resolver of a resolver map: `Type.field` and the code that implements it. */
 export interface ResolverEntry {
@@ -21,6 +22,9 @@ function propName(name: ts.PropertyName): string | undefined {
 function normalized(node: ts.Node, sf: ts.SourceFile): string {
   return node.getText(sf).replace(/\s+/g, ' ').trim()
 }
+
+/** The text of a handler's registration without the handler: its chain and its other arguments. */
+const registrationText = (n: RestNode, sf: ts.SourceFile): string => normalized(n.node, sf).replace(normalized(n.value, sf), '')
 
 /** Field name marking an enum in the type-fields map: its resolver maps internal values. */
 export const ENUM_MARKER = '__values'
@@ -97,14 +101,10 @@ export function runsCode(node: ts.Node, honoNames: ReadonlySet<string>): boolean
 function middlewareLike(n: RestNode): boolean {
   const call = n.node
   if (!ts.isCallExpression(call)) return false
+  if (call.arguments.some(takesNext)) return true
   const x = unwrap(n.value as ts.Expression)
-  if (ts.isArrowFunction(x) || ts.isFunctionExpression(x)) return x.parameters.length >= 2 || call.arguments.some((a) => takesNext(a))
+  if (ts.isArrowFunction(x) || ts.isFunctionExpression(x)) return false
   return n.key.startsWith('ALL ') || n.key.includes('*')
-}
-
-function takesNext(a: ts.Expression): boolean {
-  const x = unwrap(a)
-  return (ts.isArrowFunction(x) || ts.isFunctionExpression(x)) && x.parameters.length >= 2
 }
 
 /** A Hono mount of a file version: its prefix as written and whether adding it runs no other code. */
@@ -178,10 +178,11 @@ export function resolverEntries(
     }
     items.push(blank(statement).replace(blank(object), '{}'))
   }
-  // Handlers whose registration runs other code (`app.use(mw).get(…)`, `get('/x', rateLimit(), h)`): the chain and the
-  // arguments are blanked with the handler. Handlers that can call `next` run for other endpoints.
+  // Handlers whose registration runs other code (`app.use(mw).get(…)`, `get('/x', rateLimit(), h)`), with the text of the
+  // registration without the handler: the chain and the arguments are blanked with the handler. Handlers that can call
+  // `next` run for other endpoints.
   const rest = nodes.filter((n): n is RestNode => 'receiver' in n)
-  const impure = new Map(rest.filter((n) => !plainChain(n.receiver) || (ts.isCallExpression(n.node) && n.node.arguments.some((a) => runsCode(a, honoNames)))).map((n) => [n.key, normalized(n.node, sf).replace(normalized(n.value, sf), '')]))
+  const impure = new Map(rest.filter((n) => !plainChain(n.receiver) || (ts.isCallExpression(n.node) && n.node.arguments.some((a) => runsCode(a, honoNames)))).map((n) => [n.key, registrationText(n, sf)]))
   const middleware = new Set(rest.filter(middlewareLike).map((n) => n.key))
   return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, loadCode, imports, mounts: new Map(mounts.map((m) => [m.id, { id: m.id, prefix: m.prefix, plain: m.plain }])), impure, middleware }
 }
@@ -205,6 +206,14 @@ function topLevelObject(statement: ts.Statement): ts.ObjectLiteralExpression | u
   else if (ts.isExpressionStatement(statement) && ts.isBinaryExpression(statement.expression) && statement.expression.operatorToken.kind === ts.SyntaxKind.EqualsToken) value = statement.expression.right
   const inner = value ? unwrap(value) : undefined
   return inner && ts.isObjectLiteralExpression(inner) ? inner : undefined
+}
+
+const isBlank = (item: string): boolean => item.replace(/;$/, '') === ''
+
+/** Whether module code items that stayed changed order: `app.use(mw)` after the routes no longer runs for them. */
+export function itemsMoved(base: readonly string[], head: readonly string[]): boolean {
+  const kept = (items: readonly string[], other: readonly string[]): string[] => items.filter((i) => !isBlank(i) && other.includes(i))
+  return kept(base, head).join('\n') !== kept(head, base).join('\n')
 }
 
 export interface ResolverChanges {

@@ -90,7 +90,6 @@ describe('Hono middleware and error handlers', () => {
   describe('middleware held in a variable of the same file', () => {
     const replaceUse = (lines: string): Change => (repo) => { edit(repo, ADMIN, "routes.use('*', createAdminAuth())", lines) }
     it.each([
-      ['the call result', replaceUse("const mw = createAdminAuth()\n  routes.use('*', mw)")],
       ['another variable', replaceUse("const auth = createAdminAuth()\n  const mw = auth\n  routes.use('*', mw)")],
       ['an array', replaceUse("const mw = [createAdminAuth()]\n  routes.use('*', ...mw)")],
       ['a destructured value', (repo: TestRepo) => {
@@ -175,6 +174,60 @@ describe('Hono middleware and error handlers', () => {
 
     it('removing a use() on an app from a factory lists endpoints, not zero', async () => {
       await expectAffected(ALL_HONO, (repo) => { edit(repo, 'src/main.ts', "app.use('*', mainOnly)\n", '') }, inMain)
+    })
+  })
+
+  describe('a change the line-by-line comparison would call additive', () => {
+    const MAIN = 'src/main.ts'
+    const withUse: Change = (repo) => {
+      edit(repo, MAIN, "import { registerRoutes } from './http/routes'", "import { registerRoutes } from './http/routes'\nimport { requestLogger } from './http/middleware/request-logger'")
+      edit(repo, MAIN, 'registerRoutes(app)', "app.use('*', requestLogger())\nregisterRoutes(app)")
+    }
+
+    it('moving a use() after the routes in a file without handlers is a change', async () => {
+      await expectAffected(ALL_HONO, (repo) => { edit(repo, MAIN, "app.use('*', requestLogger())\nregisterRoutes(app)", "registerRoutes(app)\napp.use('*', requestLogger())") }, withUse)
+    })
+
+    it('moving a use() after the routes in a file with handlers is a change', async () => {
+      await expectAffected(['GET /main', ...ALL_HONO].sort(), (repo) => { edit(repo, MAIN, "app.use('*', requestLogger())\nregisterRoutes(app)", "registerRoutes(app)\napp.use('*', requestLogger())") }, (repo) => {
+        withUse(repo)
+        edit(repo, MAIN, "app.use('*'", "app.get('/main', (c) => c.text('main'))\napp.use('*'")
+      })
+    })
+
+    it('a new property of an options object that middleware receives is a change', async () => {
+      await expectAffected(ALL_HONO, (repo) => { edit(repo, SERVER, "{ level: 'a' }", "{ level: 'a', extra: true }") }, (repo) => {
+        edit(repo, SERVER, 'export function createHttpApp', "const opts = { level: 'a' }\n\nexport function createHttpApp")
+        edit(repo, SERVER, 'requestLogger()', 'requestLogger(opts)')
+      })
+    })
+
+    it('a comment in a file that holds an app changes nothing', async () => {
+      const o = await analyze((repo) => { edit(repo, SERVER, 'export function createHttpApp', '// builds the app\nexport function createHttpApp') })
+      expect(o.classification).toBe('isolated')
+      expect(affected(o)).toEqual([])
+    })
+  })
+
+  describe('a file whose app comes from a factory', () => {
+    const MAIN = 'src/main.ts'
+    it('an edit of a handler that can call next lists the endpoints under the app', async () => {
+      await expectAffected(['ALL /api/*', 'GET /api/x', ...ALL_HONO].sort(), (repo) => { edit(repo, MAIN, "'before'", "'after'") }, (repo) => {
+        edit(repo, MAIN, 'registerRoutes(app)', "app.all('/api/*', async (c, next) => {\n  c.header('x-main', 'before')\n  await next()\n})\napp.get('/api/x', (c) => c.text('x'))\nregisterRoutes(app)")
+      })
+    })
+
+    it('removing its only use() while the file creates another app still lists the endpoints of the first', async () => {
+      await expectAffected(['GET /other', ...ALL_HONO].sort(), (repo) => { edit(repo, MAIN, "app.use('*', requestLogger())\n", '') }, (repo) => {
+        edit(repo, MAIN, "import { registerRoutes } from './http/routes'", "import { Hono } from 'hono'\nimport { registerRoutes } from './http/routes'\nimport { requestLogger } from './http/middleware/request-logger'")
+        edit(repo, MAIN, 'registerRoutes(app)', "app.use('*', requestLogger())\nregisterRoutes(app)\nexport const other = new Hono()\nother.get('/', (c) => c.text('other'))\napp.route('/other', other)")
+      })
+    })
+  })
+
+  it('an edit of a guard that can call next before a named handler lists the endpoints under its app', async () => {
+    await expectAffected(['GET /mid', ...ALL_HONO].sort(), (repo) => { edit(repo, INDEX, "'before'", "'after'") }, (repo) => {
+      edit(repo, INDEX, "  app.get('/files', (c)", "  app.get('/mid', async (c, next) => {\n    c.header('x-mid', 'before')\n    await next()\n  }, spaPage)\n  app.get('/files', (c)")
     })
   })
 

@@ -33,11 +33,59 @@ describe('Hono middleware placement', () => {
   })
 
   it('a parameter as middleware is a dynamic route: its code comes from the callers', () => {
-    expect(dynamic({ ...base, 'src/main.ts': app("export function install(handler: never) {\n  app.use('*', handler)\n}") })).toEqual(['src/main.ts:6 Hono middleware is a parameter: its code comes from the callers'])
+    expect(dynamic({ ...base, 'src/main.ts': app("export function install(handler: never) {\n  app.use('*', handler)\n}") })).toEqual(['src/main.ts:6 Hono middleware comes from a parameter or a variable with no value: farol cannot find its code'])
   })
 
   it('a parameter as a guard before the handler is a dynamic route', () => {
-    expect(dynamic({ ...base, 'src/main.ts': app("export function install(guard: never) {\n  app.post('/x', guard, (c) => c.text('ok'))\n}") })).toEqual(['src/main.ts:6 Hono middleware is a parameter: its code comes from the callers'])
+    expect(dynamic({ ...base, 'src/main.ts': app("export function install(guard: never) {\n  app.post('/x', guard, (c) => c.text('ok'))\n}") })).toEqual(['src/main.ts:6 Hono middleware comes from a parameter or a variable with no value: farol cannot find its code'])
+  })
+
+  it.each([
+    ['a property of a parameter', 'deps: { auth: never }', "app.use('*', deps.auth)"],
+    ['a destructured parameter', '{ auth }: { auth: never }', "app.use('*', auth)"],
+    ['a spread parameter', 'mws: never[]', "app.use('*', ...mws)"],
+    ['a variable set from a parameter', 'auth: never', "const held = auth\n  app.use('*', held)"],
+    ['a call of a parameter', 'make: () => never', "app.use('*', make())"],
+    ['a variable with no initial value', '', "let held: never\n  app.use('*', held)"],
+  ])('%s as middleware is a dynamic route', (_name, params, body) => {
+    const details = table({ ...base, 'src/main.ts': app(`export function install(${params}) {\n  ${body}\n}`) }).dynamic.map((d) => d.detail)
+    expect(details).toEqual(['Hono middleware comes from a parameter or a variable with no value: farol cannot find its code'])
+  })
+
+  it('an imported function called on its module keeps the mount above the app it receives', () => {
+    const files = {
+      'src/main.ts': "import { Hono } from 'hono'\nimport * as routes from './routes'\nexport const app = new Hono()\nconst api = new Hono()\napp.route('/api', api)\nroutes.register(api)\n",
+      'src/routes.ts': "import type { Hono } from 'hono'\nexport function register(app: Hono) {\n  app.get('/users', (c) => c.text('u'))\n}\n",
+    }
+    expect(keys(files)).toEqual(['GET /api/users'])
+    expect(dynamic(files)).toEqual([])
+  })
+
+  it('an app passed to a project function whose parameter is not typed Hono is a dynamic route', () => {
+    expect(dynamic({
+      'src/main.ts': "import { Hono } from 'hono'\nimport { install } from './install'\nexport const app = new Hono()\ninstall(app)\n",
+      'src/install.ts': 'export function install(target: any) {\n  target.use(() => undefined)\n}\n',
+    })).toEqual(['src/main.ts:4 Hono app is passed to a parameter not typed Hono: farol cannot place what the function installs'])
+  })
+
+  it('an app passed to a library function is not a dynamic route', () => {
+    expect(dynamic({ 'src/main.ts': "import { Hono } from 'hono'\nimport { serve } from '@hono/node-server'\nexport const app = new Hono()\nserve(app)\n" })).toEqual([])
+  })
+
+  it('Fastify options in route({ … }) are modules of that route', () => {
+    const t = table({
+      'src/main.ts': "import { auth } from './auth'\nfastify.route({ method: 'POST', url: '/a', preHandler: auth, handler: async () => 'a' })\n",
+      'src/auth.ts': 'export const auth = () => undefined\n',
+    })
+    expect(t.operations.map((o) => [o.key, o.modules])).toEqual([['POST /a', ['src/auth.ts']]])
+  })
+
+  it('a handler held in a variable of the same file reaches what the variable uses', () => {
+    const t = table({
+      'src/main.ts': "import express from 'express'\nimport { create } from './create'\nconst app = express()\nconst handler = create()\napp.get('/a', handler)\n",
+      'src/create.ts': 'export const create = () => () => undefined\n',
+    })
+    expect(t.operations.map((o) => [o.key, o.modules])).toEqual([['GET /a', ['src/create.ts']]])
   })
 
   it('an onError in a file without Hono is not a Hono construct', () => {
