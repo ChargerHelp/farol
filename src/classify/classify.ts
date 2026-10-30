@@ -223,6 +223,12 @@ export function classify(input: ClassifyInput): ClassifyResult {
     }
     if (file.status === 'added') {
       newFiles.push(file.path)
+      // A new file whose Hono mount covers existing endpoints touches them (`backendImpacts`).
+      const mountImpact = input.backend?.impacts.get(file.path)
+      if (mountImpact) {
+        for (const p of mountImpact.problems) reasons.push(reason('resolvers-not-additive', p, file.path))
+        addImpact(file.path)
+      }
       continue
     }
     if (file.status === 'deleted') {

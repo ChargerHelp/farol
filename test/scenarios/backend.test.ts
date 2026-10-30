@@ -149,6 +149,27 @@ describe('Hono mounts', () => {
     expect(o.routes.affected).toEqual([])
   })
 
+  it('a new mount whose path covers existing endpoints touches them (its middleware runs for them)', async () => {
+    const o = await variant((repo) => {
+      repo.write('src/http/routes/admin/audit.routes.ts', "import { Hono } from 'hono'\n\nexport function createAuditRoutes(): Hono {\n  const routes = new Hono()\n  routes.use('*', async (_c, next) => {\n    await next()\n  })\n  routes.get('/audit', (c) => c.json([]))\n  return routes\n}\n")
+      repo.write(ADMIN, repo.read(ADMIN).replace("import { createReadResourceRoutes }", "import { createAuditRoutes } from './admin/audit.routes'\nimport { createReadResourceRoutes }").replace("\n\n  return routes", "\n  routes.route('/', createAuditRoutes())\n\n  return routes"))
+    })
+    expect(o.classification).toBe('touches-existing')
+    expect(o.routes.added.map((r) => r.key)).toEqual(['GET /admin/api/audit'])
+    expect(o.routes.affected.map((r) => r.key)).toContain('GET /admin/api/whoami')
+    expect(o.routes.affected.map((r) => r.key)).not.toContain('GET /healthz')
+    expect(o.reasons.find((r) => r.file === ADMIN)?.detail).toContain("mount '/' covers existing endpoints")
+  })
+
+  it('a new mount with a call in its arguments is a change (that code is not compared)', async () => {
+    const o = await variant((repo) => {
+      repo.write('src/http/routes/admin/status.routes.ts', "import { Hono } from 'hono'\n\nexport function createStatusRoutes(flags: string[]): Hono {\n  const routes = new Hono()\n  routes.get('/', (c) => c.json({ flags }))\n  return routes\n}\n")
+      repo.write(ADMIN, repo.read(ADMIN).replace("import { createReadResourceRoutes }", "import { createStatusRoutes } from './admin/status.routes'\nimport { createReadResourceRoutes }").replace("\n\n  return routes", "\n  routes.route('/status', createStatusRoutes(loadFlags()))\n\n  return routes").replace("export function createAdminRoutes", "function loadFlags(): string[] {\n  return []\n}\n\nexport function createAdminRoutes"))
+    })
+    expect(o.classification).toBe('touches-existing')
+    expect(o.reasons.find((r) => r.file === ADMIN)?.detail).toContain("mount '/status' was added with a call in its arguments")
+  })
+
   it('a renamed mount prefix is a change to existing endpoints', async () => {
     const o = await variant((repo) => { repo.write(ADMIN, repo.read(ADMIN).replace("routes.route('/signals'", "routes.route('/signal'")) })
     expect(o.classification).toBe('touches-existing')

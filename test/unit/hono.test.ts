@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildBackendTable } from '../../src/backend/entrypoints.js'
 import { mergePath } from '../../src/backend/hono.js'
+import { diffResolvers, resolverEntries } from '../../src/backend/resolvers.js'
 import { memoryProject, ROOT } from '../helpers/memory.js'
 
 function table(files: Record<string, string>) {
@@ -90,4 +91,13 @@ export function register(app: H<{ Bindings: {} }>) {
     const files = { 'src/items.ts': items, 'src/main.ts': `import { Hono } from 'hono'\nimport { createItems } from './items'\nconst app = new Hono()\n${code}\n` }
     expect(dynamic(files)).toEqual([expected])
   })
+
+  it('reads route(a, b) calls as mounts only in files that import hono', () => {
+    const base = "import { client } from './client'\nexport function setup() {\n  client.ping()\n}\n"
+    const head = "import { client } from './client'\nexport function setup() {\n  client.ping()\n  client.route('/a', 'b')\n}\n"
+    const changes = diffResolvers(resolverEntries('src/setup.ts', base, new Map()), resolverEntries('src/setup.ts', head, new Map()))
+    expect(changes.restChanged).toBe(true)
+    expect(changes.addedMounts).toEqual([])
+  })
 })
+

@@ -79,13 +79,26 @@ export function restNodes(sf: ts.SourceFile): RestNode[] {
   return out
 }
 
-/** Hono mounts of a file (`app.route('/prefix', sub)`, two arguments): the statement and its prefix as written. */
-export function mountNodes(sf: ts.SourceFile): { node: ts.Node; call: ts.CallExpression; prefix: string }[] {
-  const out: { node: ts.Node; call: ts.CallExpression; prefix: string }[] = []
+/** A value that runs no code when evaluated: names, property reads, literals, and objects or arrays of them. */
+function inert(e: ts.Expression): boolean {
+  if (ts.isIdentifier(e) || ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e) || ts.isNumericLiteral(e)) return true
+  if (e.kind === ts.SyntaxKind.TrueKeyword || e.kind === ts.SyntaxKind.FalseKeyword || e.kind === ts.SyntaxKind.NullKeyword) return true
+  if (ts.isPropertyAccessExpression(e)) return inert(e.expression)
+  if (ts.isArrayLiteralExpression(e)) return e.elements.every(inert)
+  return ts.isObjectLiteralExpression(e) && e.properties.every((p) => ts.isShorthandPropertyAssignment(p) || (ts.isPropertyAssignment(p) && inert(p.initializer)))
+}
+
+/**
+ * Hono mounts of a file (`app.route('/prefix', sub)`, two arguments): the statement and its prefix as written. `plain`:
+ * the target is a name or a factory call with inert arguments, so adding the mount runs no other code.
+ */
+export function mountNodes(sf: ts.SourceFile): { node: ts.Node; call: ts.CallExpression; prefix: string; plain: boolean }[] {
+  const out: { node: ts.Node; call: ts.CallExpression; prefix: string; plain: boolean }[] = []
   const visit = (node: ts.Node): void => {
     if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === 'route' && node.arguments.length === 2) {
-      const prefix = node.arguments[0]
-      out.push({ node: ts.isExpressionStatement(node.parent) ? node.parent : node, call: node, prefix: prefix ? prefix.getText(sf) : '' })
+      const [prefix, target] = node.arguments
+      const plain = target !== undefined && (inert(target) || (ts.isCallExpression(target) && inert(target.expression) && target.arguments.every(inert)))
+      out.push({ node: ts.isExpressionStatement(node.parent) ? node.parent : node, call: node, prefix: prefix ? prefix.getText(sf) : '', plain })
     }
     ts.forEachChild(node, visit)
   }

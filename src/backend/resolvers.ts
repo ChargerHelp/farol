@@ -1,6 +1,7 @@
 import ts from 'typescript'
 import { compareStrings, sortedUnique } from '../output/order.js'
 import { parseIsolated } from '../project/parse.js'
+import { importsHono } from './hono.js'
 import { mountId, mountNodes, restNodes, type RestNode } from './rest.js'
 
 /** One resolver of a resolver map: `Type.field` and the code that implements it. */
@@ -72,7 +73,7 @@ export function entryNodes(sf: ts.SourceFile, typeFields: ReadonlyMap<string, Re
 }
 
 /** Resolver entries of a file, parsed on its own (used for the base and the head of changed files). */
-export function resolverEntries(file: string, code: string, typeFields: ReadonlyMap<string, ReadonlySet<string>>, withRest = true): { entries: ResolverEntry[]; rest: string[]; imports: Set<string>; mounts: Map<string, string> } {
+export function resolverEntries(file: string, code: string, typeFields: ReadonlyMap<string, ReadonlySet<string>>, withRest = true): { entries: ResolverEntry[]; rest: string[]; imports: Set<string>; mounts: Map<string, { prefix: string; plain: boolean }> } {
   const { sourceFile: sf } = parseIsolated(file, code)
   const nodes = entryNodes(sf, typeFields, withRest)
   const entries = nodes.map(({ key, node }) => ({ key, file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, text: normalized(node, sf) }))
@@ -80,7 +81,7 @@ export function resolverEntries(file: string, code: string, typeFields: Readonly
   // compared as bindings: adding one is not a change to what existed.
   const imports = new Set<string>()
   // Hono mounts are compared on their own (`mountId` → prefix as written), like the handlers.
-  const mounts = withRest ? mountNodes(sf) : []
+  const mounts = withRest && importsHono(sf) ? mountNodes(sf) : []
   const removed: [number, number][] = [...nodes, ...mounts].map(({ node }) => [node.getStart(sf), node.end])
   for (const statement of sf.statements) {
     if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
@@ -115,7 +116,7 @@ export function resolverEntries(file: string, code: string, typeFields: Readonly
     for (const prop of object.properties) items.push(blank(prop))
     items.push(blank(statement).replace(blank(object), '{}'))
   }
-  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, imports, mounts: new Map(mounts.map((m) => [mountId(file, m.call), m.prefix])) }
+  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, imports, mounts: new Map(mounts.map((m) => [mountId(file, m.call), { prefix: m.prefix, plain: m.plain }])) }
 }
 
 /** Code without comments (they never change behavior), tokenized with the TypeScript scanner so strings stay intact. */
@@ -145,9 +146,9 @@ export interface ResolverChanges {
   changed: string[]
   /** Code outside the resolver members changed (imports, helpers, module-level code): every resolver may be affected. */
   restChanged: boolean
-  /** Hono mounts: added ones (`mountId`) and the prefixes, as written, of removed or changed ones. */
+  /** Hono mounts: added ones (`mountId`) and what is not additive (removed or changed mounts, code in a new mount). */
   addedMounts: string[]
-  removedMounts: string[]
+  mountProblems: string[]
 }
 
 /** Resolver-level comparison of a changed resolver file: only resolvers whose own code changed are affected. */
@@ -160,7 +161,10 @@ export function diffResolvers(base: ReturnType<typeof resolverEntries>, head: Re
     changed: [...before.keys()].filter((k) => after.has(k) && after.get(k) !== before.get(k)).sort(compareStrings),
     restChanged: base.rest.some((item) => !head.rest.includes(item)) || [...base.imports].some((i) => !head.imports.has(i)),
     addedMounts: [...head.mounts.keys()].filter((m) => !base.mounts.has(m)).sort(compareStrings),
-    removedMounts: sortedUnique([...base.mounts].filter(([m]) => !head.mounts.has(m)).map(([, prefix]) => prefix)),
+    mountProblems: sortedUnique([
+      ...[...base.mounts].filter(([m]) => !head.mounts.has(m)).map(([, m]) => `mount ${m.prefix} was removed`),
+      ...[...head.mounts].filter(([m, { plain }]) => !base.mounts.has(m) && !plain).map(([, m]) => `mount ${m.prefix} was added with a call in its arguments: that code is not compared`),
+    ]),
   }
 }
 

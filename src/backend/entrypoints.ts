@@ -41,6 +41,8 @@ export interface BackendTable {
   dynamic: DynamicRoute[]
   /** REST endpoint keys without the given mounts (`mountId`) and handler anchors: the endpoints that existed before them. */
   restKeysWithout: (mounts: ReadonlySet<string>, anchors: ReadonlySet<string>) => Set<string>
+  /** Full paths a Hono mount (`mountId`) serves. */
+  mountBases: (id: string) => string[]
 }
 
 export interface BackendInput {
@@ -187,6 +189,7 @@ export function buildBackendTable(input: BackendInput): BackendTable {
     problems: problems.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line),
     dynamic: dynamic.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.detail, b.detail)),
     restKeysWithout: (mounts, without) => new Set(restKeys(mounts, without).keys()),
+    mountBases: (id) => hono?.mountBases(id) ?? [],
   }
 }
 

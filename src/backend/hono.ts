@@ -27,6 +27,8 @@ export interface HonoApps {
   basesOf: (receiver: ts.Expression, without?: ReadonlySet<string>) => string[] | null | undefined
   /** Files with at least one mount: changing them can change endpoint paths. */
   mountFiles: Set<string>
+  /** Full paths a mount (`mountId`) serves: its sub-app's routes and middleware run under them. */
+  mountBases: (id: string) => string[]
   dynamic: DynamicRoute[]
 }
 
@@ -45,7 +47,7 @@ function unwrap(e: ts.Expression): ts.Expression {
 
 const isHonoModule = (spec: string): boolean => spec === 'hono' || spec.startsWith('hono/')
 
-function importsHono(sf: ts.SourceFile): boolean {
+export function importsHono(sf: ts.SourceFile): boolean {
   return sf.statements.some((s) => ts.isImportDeclaration(s) && ts.isStringLiteral(s.moduleSpecifier) && isHonoModule(s.moduleSpecifier.text))
 }
 
@@ -206,6 +208,7 @@ export function honoApps(files: readonly ts.SourceFile[], checker: ts.TypeChecke
       return honoFiles.has(receiver.getSourceFile()) ? null : undefined
     },
     mountFiles,
+    mountBases: (id) => sortedUnique([...incoming.values()].flat().filter((e) => e.id === id).flatMap((e) => bases(e.from, undefined, []).map((b) => mergePath(b, e.prefix ?? '/')))),
     dynamic: dynamic.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.detail, b.detail)),
   }
 }

@@ -82,7 +82,7 @@ export function backendFileImpact(table: ImpactTable, file: string, schema: Sche
       hit(using(k), k)
     }
     // The endpoints under a removed mount are gone from the head: they cannot be named, the change still counts.
-    for (const prefix of resolvers.removedMounts) problems.push(`mount ${prefix} was removed`)
+    problems.push(...resolvers.mountProblems)
     if (resolvers.restChanged) {
       problems.push('code outside the resolvers changed (imports, helpers or module-level code): every resolver of the file may behave differently')
       for (const k of resolvers.keys) hit(using(k), `module code of ${k}`)
