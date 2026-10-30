@@ -232,7 +232,7 @@ Reports and CI are the same as for [React Router](#react-frontend-react-router).
 
 ### TypeScript API (GraphQL or REST)
 
-GraphQL root operations (schema files and `gql` templates, per resolver) and Fastify/Express-style REST endpoints.
+GraphQL root operations (schema files and `gql` templates, per resolver) and Fastify/Express-style REST endpoints. Hono `route('/prefix', sub)` mounts are applied: one endpoint per mount, with its full path.
 
 ```json
 {
@@ -322,7 +322,7 @@ matching rules are in the [reference](docs/reference.md#traffic-and-errors-from-
 
 | | TypeScript / React frontends | TypeScript / JavaScript backends | Go | Python |
 |---|---|---|---|---|
-| **Entry points** | React Router route tables (object and JSX forms, lazy routes, split route modules); Next.js Pages and App Router (pages, API routes, layouts, middleware); TanStack Router file-based routes | GraphQL root operations (schema files and `gql` templates) and REST endpoints (Fastify/Express style) | chi, gin, echo and net/http routes; gRPC service methods; `main` binaries | FastAPI and Flask routes (routers, blueprints, prefixes); Django URLs; MCP tools, resources and prompts; Celery tasks; Temporal workflows and activities; Prefect flows; `__main__` scripts |
+| **Entry points** | React Router route tables (object and JSX forms, lazy routes, split route modules); Next.js Pages and App Router (pages, API routes, layouts, middleware); TanStack Router file-based routes | GraphQL root operations (schema files and `gql` templates) and REST endpoints (Fastify/Express style, Hono with mount prefixes) | chi, gin, echo and net/http routes; gRPC service methods; `main` binaries | FastAPI and Flask routes (routers, blueprints, prefixes); Django URLs; MCP tools, resources and prompts; Celery tasks; Temporal workflows and activities; Prefect flows; `__main__` scripts |
 | **Reach precision** | per declaration (TypeScript type checker) | per module, per resolver for GraphQL | per declaration (`go/types`, interface calls resolved to implementations) | per declaration (Python `ast` with local type inference) |
 | **Contract changes** | — | GraphQL schema (breaking / dangerous / safe) | Handler request and response types (net/http, chi, gin, echo); gRPC messages | FastAPI parameters, body, response and Pydantic models |
 | **Dependencies** | `package.json` + npm/pnpm/yarn/bun lockfiles | same | `go.mod` + `go.sum` | `pyproject.toml` (PEP 621, extras, groups, uv, Poetry), `requirements.txt` + `uv.lock`/`poetry.lock`/`Pipfile.lock` |

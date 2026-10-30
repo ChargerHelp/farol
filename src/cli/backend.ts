@@ -1,7 +1,8 @@
 import { Kind, type DocumentNode } from 'graphql'
-import { backendFileImpact, type BackendFileImpact } from '../backend/impact.js'
+import { backendFileImpact, mountImpacts, type AddedMount, type BackendFileImpact } from '../backend/impact.js'
 import type { BackendTable } from '../backend/entrypoints.js'
 import { diffResolvers, resolverEntries } from '../backend/resolvers.js'
+import { restAnchor } from '../backend/rest.js'
 import { diffSdl, parseSdl, sdlSources } from '../backend/schema.js'
 import type { AnalysisRole } from '../classify/roles.js'
 import { readFiles } from '../git/index.js'
@@ -36,18 +37,25 @@ export async function backendImpacts(
   const head = await readFiles(ctx.repoRoot, headSha, paths)
   const impacts = new Map<string, BackendFileImpact>()
   const addedOperations = new Set<string>()
+  // Handlers and mounts the PR adds: the endpoints the head has without them existed before.
+  const addedAnchors = new Set<string>()
+  const addedMounts: AddedMount[] = []
   for (const f of targets) {
     const before = base.get(f.path)
     const after = head.get(f.path)
     const isCode = !f.path.endsWith('.graphql') && !f.path.endsWith('.gql')
     const schema = diffSdl(fileSchema(f.path, before), fileSchema(f.path, after))
-    let resolvers: Parameters<typeof backendFileImpact>[2]
+    let resolvers: Parameters<typeof backendFileImpact>[3]
     if (isCode && before !== undefined && after !== undefined) {
-      const b = resolverEntries(f.path, before, table.typeFields, ctx.config.backend.rest)
-      const h = resolverEntries(f.path, after, table.typeFields, ctx.config.backend.rest)
-      if (b.entries.length + h.entries.length > 0) resolvers = { ...diffResolvers(b, h), keys: [...new Set([...b.entries, ...h.entries].map((e) => e.key))] }
+      const hono = table.honoFiles.has(f.path)
+      const b = resolverEntries(f.path, before, table.typeFields, ctx.config.backend.rest, hono)
+      const h = resolverEntries(f.path, after, table.typeFields, ctx.config.backend.rest, hono)
+      // A resolver file is always compared: with no entries left, its module code is what changed.
+      if (roleOf(f.path) === 'resolvers' || b.entries.length + h.entries.length + b.mounts.size + h.mounts.size > 0) resolvers = { ...diffResolvers(b, h), keys: [...new Set([...b.entries, ...h.entries].map((e) => e.key))] }
     }
-    const impact = backendFileImpact(table, schema.added.length + schema.removed.length + schema.changed.length > 0 ? schema : undefined, resolvers)
+    for (const k of resolvers?.added ?? []) if (k.includes(' ')) addedAnchors.add(restAnchor(f.path, k))
+    for (const m of resolvers?.addedMounts ?? []) addedMounts.push({ ...m, file: f.path })
+    const impact = backendFileImpact(table, f.path, schema.added.length + schema.removed.length + schema.changed.length > 0 ? schema : undefined, resolvers)
     impacts.set(f.path, impact)
     for (const op of impact.addedOperations) addedOperations.add(op)
   }
@@ -57,10 +65,16 @@ export async function backendImpacts(
       const after = (await readFiles(ctx.repoRoot, headSha, [f.path])).get(f.path)
       const schema = diffSdl(null, fileSchema(f.path, after))
       for (const m of schema.added) if (table.rootTypes.has(m.slice(0, m.indexOf('.'))) && m.includes('.')) addedOperations.add(m)
-      if (after !== undefined && !f.path.endsWith('.graphql')) for (const e of resolverEntries(f.path, after, table.typeFields, ctx.config.backend.rest).entries) if (e.key.includes(' ')) addedOperations.add(e.key)
+      if (after !== undefined && !f.path.endsWith('.graphql')) {
+        const added = resolverEntries(f.path, after, table.typeFields, ctx.config.backend.rest, table.honoFiles.has(f.path))
+        for (const e of added.entries) if (e.key.includes(' ')) addedAnchors.add(restAnchor(f.path, e.key))
+        for (const m of added.mounts.values()) addedMounts.push({ ...m, file: f.path })
+      }
     }
   }
-  return { impacts, baseRoutes: { routes: table.operations.filter((r) => !addedOperations.has(r.key)), dynamic: [], sources: [] }, contracts: await schemaContracts(ctx, table, files, baseSha) }
+  const baseRest = table.restKeysWithout(new Set(addedMounts.map((m) => m.id)), addedAnchors)
+  const baseRoutes = table.operations.filter((r) => (r.key.includes(' ') ? baseRest.has(r.key) : !addedOperations.has(r.key)))
+  return { impacts: mountImpacts(table, addedMounts, baseRest, impacts), baseRoutes: { routes: baseRoutes, dynamic: [], sources: [] }, contracts: await schemaContracts(ctx, table, files, baseSha) }
 }
 
 /**

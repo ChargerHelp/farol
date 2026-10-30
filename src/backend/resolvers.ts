@@ -1,7 +1,8 @@
 import ts from 'typescript'
 import { compareStrings, sortedUnique } from '../output/order.js'
-import { parseIsolated } from '../project/parse.js'
-import { restNodes } from './rest.js'
+import { parseIsolated, unwrap } from '../project/parse.js'
+import { importsHono, isHonoModule, mountNodes } from './hono.js'
+import { plainChain, restNodes, type RestNode } from './rest.js'
 
 /** One resolver of a resolver map: `Type.field` and the code that implements it. */
 export interface ResolverEntry {
@@ -19,12 +20,6 @@ function propName(name: ts.PropertyName): string | undefined {
 
 function normalized(node: ts.Node, sf: ts.SourceFile): string {
   return node.getText(sf).replace(/\s+/g, ' ').trim()
-}
-
-function unwrap(e: ts.Expression): ts.Expression {
-  let x = e
-  while (ts.isParenthesizedExpression(x) || ts.isAsExpression(x) || ts.isSatisfiesExpression(x)) x = x.expression
-  return x
 }
 
 /** Field name marking an enum in the type-fields map: its resolver maps internal values. */
@@ -67,19 +62,80 @@ export function resolverNodes(sf: ts.SourceFile, typeFields: ReadonlyMap<string,
 }
 
 /** Entry points defined in a file: GraphQL resolvers (`Type.field`) and REST handlers (`GET /path`). */
-export function entryNodes(sf: ts.SourceFile, typeFields: ReadonlyMap<string, ReadonlySet<string>>, rest: boolean): { key: string; node: ts.Node; value: ts.Node }[] {
+export function entryNodes(sf: ts.SourceFile, typeFields: ReadonlyMap<string, ReadonlySet<string>>, rest: boolean): ({ key: string; node: ts.Node; value: ts.Node } | RestNode)[] {
   return [...resolverNodes(sf, typeFields), ...(rest ? restNodes(sf) : [])]
 }
 
-/** Resolver entries of a file, parsed on its own (used for the base and the head of changed files). */
-export function resolverEntries(file: string, code: string, typeFields: ReadonlyMap<string, ReadonlySet<string>>, withRest = true): { entries: ResolverEntry[]; rest: string[]; imports: Set<string> } {
+/** `module.exports`, `module.exports.x`, `exports.x`: assigning there only exports. */
+function isExportTarget(e: ts.Expression): boolean {
+  const chain = ts.isPropertyAccessExpression(e) ? accessChain(e) : []
+  return chain[0] === 'exports' || (chain[0] === 'module' && chain[1] === 'exports')
+}
+
+/**
+ * Whether evaluating a node runs code when the file loads: a call, `new`, a tagged template, `await`, a decorator, an
+ * assignment or static class code, outside function bodies. `require('x')`, `gql` templates and `new Hono()` of a hono
+ * package do not count; nor do instance fields (they run when an object is built).
+ */
+export function runsCode(node: ts.Node, honoNames: ReadonlySet<string>): boolean {
+  const runs = (n: ts.Node | undefined): boolean => n !== undefined && runsCode(n, honoNames)
+  // `class A extends mixin()` evaluates its base class (an `ExpressionWithTypeArguments`, which is also a type node).
+  if (ts.isExpressionWithTypeArguments(node) && ts.isHeritageClause(node.parent) && node.parent.token === ts.SyntaxKind.ExtendsKeyword && ts.isClassLike(node.parent.parent)) return runs(node.expression)
+  if (ts.isTypeNode(node) || ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) return false
+  if (ts.isDecorator(node) || ts.isClassStaticBlockDeclaration(node) || ts.isAwaitExpression(node) || ts.isYieldExpression(node) || ts.isDeleteExpression(node)) return true
+  if (ts.isFunctionLike(node)) return (ts.canHaveDecorators(node) && (ts.getDecorators(node) ?? []).length > 0) || (node.name !== undefined && ts.isComputedPropertyName(node.name) && runs(node.name.expression))
+  if (ts.isPropertyDeclaration(node)) return (ts.getDecorators(node) ?? []).length > 0 || (ts.isComputedPropertyName(node.name) && runs(node.name.expression)) || (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Static ? runs(node.initializer) : false)
+  if (ts.isCallExpression(node)) return !(ts.isIdentifier(node.expression) && node.expression.text === 'require' && node.arguments.length === 1 && node.arguments[0] !== undefined && ts.isStringLiteral(node.arguments[0]))
+  if (ts.isNewExpression(node)) return !(ts.isIdentifier(node.expression) && honoNames.has(node.expression.text)) || (node.arguments ?? []).some(runs)
+  if (ts.isTaggedTemplateExpression(node)) return !(ts.isIdentifier(node.tag) && (node.tag.text === 'gql' || node.tag.text === 'graphql')) || runs(node.template)
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment) return !(node.operatorToken.kind === ts.SyntaxKind.EqualsToken && isExportTarget(node.left)) || runs(node.right)
+  if ((ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) && (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken)) return true
+  return ts.forEachChild(node, (child) => (runs(child) ? true : undefined)) ?? false
+}
+
+/** A REST handler that can pass a request on (`next`), so it runs for other endpoints: inline with two parameters, or not inline on `all` or a `*` path. */
+function middlewareLike(n: RestNode): boolean {
+  const call = n.node
+  if (!ts.isCallExpression(call)) return false
+  const x = unwrap(n.value as ts.Expression)
+  if (ts.isArrowFunction(x) || ts.isFunctionExpression(x)) return x.parameters.length >= 2 || call.arguments.some((a) => takesNext(a))
+  return n.key.startsWith('ALL ') || n.key.includes('*')
+}
+
+function takesNext(a: ts.Expression): boolean {
+  const x = unwrap(a)
+  return (ts.isArrowFunction(x) || ts.isFunctionExpression(x)) && x.parameters.length >= 2
+}
+
+/** A Hono mount of a file version: its prefix as written and whether adding it runs no other code. */
+export interface MountEntry {
+  id: string
+  prefix: string
+  plain: boolean
+}
+
+/**
+ * Resolver entries of a file, parsed on its own (used for the base and the head of changed files). Mounts are read when
+ * the file imports hono or `hono` says the program uses Hono there.
+ */
+export function resolverEntries(
+  file: string,
+  code: string,
+  typeFields: ReadonlyMap<string, ReadonlySet<string>>,
+  withRest = true,
+  hono = false,
+): { entries: ResolverEntry[]; rest: string[]; loadCode: string[]; imports: Set<string>; mounts: Map<string, MountEntry>; impure: Set<string>; middleware: Set<string> } {
   const { sourceFile: sf } = parseIsolated(file, code)
   const nodes = entryNodes(sf, typeFields, withRest)
   const entries = nodes.map(({ key, node }) => ({ key, file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, text: normalized(node, sf) }))
   // Everything outside the resolver members (helpers, module-level code), for "did anything else change". Imports are
   // compared as bindings: adding one is not a change to what existed.
   const imports = new Set<string>()
-  const removed: [number, number][] = nodes.map(({ node }) => [node.getStart(sf), node.end])
+  // `new Hono()` builds an app and runs nothing else.
+  const honoNames = new Set<string>()
+  // Hono mounts are compared on their own (`mountId` → prefix as written), like the handlers.
+  const mounts = withRest && (hono || importsHono(sf)) ? mountNodes(sf, file) : []
+  const removed: [number, number][] = [...nodes, ...mounts].map(({ node }) => [node.getStart(sf), node.end])
   for (const statement of sf.statements) {
     if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
       const clause = statement.importClause
@@ -89,6 +145,7 @@ export function resolverEntries(file: string, code: string, typeFields: Readonly
       const named = clause?.namedBindings
       if (named && ts.isNamespaceImport(named)) imports.add(`${spec}|* as ${named.name.text}`)
       if (named && ts.isNamedImports(named)) for (const el of named.elements) imports.add(`${spec}|${(el.propertyName ?? el.name).text} as ${el.name.text}`)
+      if (named && ts.isNamedImports(named) && isHonoModule(spec)) for (const el of named.elements) if ((el.propertyName ?? el.name).text === 'Hono') honoNames.add(el.name.text)
       removed.push([statement.getStart(sf), statement.end])
     }
   }
@@ -97,21 +154,36 @@ export function resolverEntries(file: string, code: string, typeFields: Readonly
   const blank = (node: ts.Node): string => {
     let text = code.slice(node.getStart(sf), node.end)
     const offset = node.getStart(sf)
-    for (const [start, end] of removed.filter(([a, b]) => a >= offset && b <= node.end).sort((a, b) => b[0] - a[0])) text = text.slice(0, start - offset) + text.slice(end - offset)
+    const inside = removed.filter(([a, b]) => a >= offset && b <= node.end)
+    const outer = inside.filter(([a, b]) => !inside.some(([c, d]) => c <= a && d >= b && (c !== a || d !== b)))
+    for (const [start, end] of outer.sort((a, b) => b[0] - a[0])) text = text.slice(0, start - offset) + text.slice(end - offset)
     return stripComments(text).replace(/\s+/g, ' ').replace(/,(\s*,)+/g, ',').replace(/\{\s*,/g, '{').replace(/,\s*\}/g, '}').trim()
   }
   const items: string[] = []
+  // Top-level code that is not a declaration, an inert value, a handler or a mount runs when the file loads
+  // (`app.use(mw)`, `const db = connect()`): adding some is a change.
+  const loadCode: string[] = []
   for (const statement of sf.statements) {
     if (ts.isImportDeclaration(statement)) continue
     const object = topLevelObject(statement)
     if (!object) {
-      items.push(blank(statement))
+      const text = blank(statement)
+      items.push(text)
+      if (runsCode(statement, honoNames) && text.replace(/;$/, '') !== '') loadCode.push(text)
       continue
     }
-    for (const prop of object.properties) items.push(blank(prop))
+    for (const prop of object.properties) {
+      items.push(blank(prop))
+      if (runsCode(prop, honoNames)) loadCode.push(blank(prop))
+    }
     items.push(blank(statement).replace(blank(object), '{}'))
   }
-  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, imports }
+  // Handlers whose registration runs other code (`app.use(mw).get(…)`, `get('/x', rateLimit(), h)`): the chain and the
+  // arguments are blanked with the handler. Handlers that can call `next` run for other endpoints.
+  const rest = nodes.filter((n): n is RestNode => 'receiver' in n)
+  const impure = new Set(rest.filter((n) => !plainChain(n.receiver) || (ts.isCallExpression(n.node) && n.node.arguments.some((a) => runsCode(a, honoNames)))).map((n) => n.key))
+  const middleware = new Set(rest.filter(middlewareLike).map((n) => n.key))
+  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, loadCode, imports, mounts: new Map(mounts.map((m) => [m.id, { id: m.id, prefix: m.prefix, plain: m.plain }])), impure, middleware }
 }
 
 /** Code without comments (they never change behavior), tokenized with the TypeScript scanner so strings stay intact. */
@@ -141,6 +213,10 @@ export interface ResolverChanges {
   changed: string[]
   /** Code outside the resolver members changed (imports, helpers, module-level code): every resolver may be affected. */
   restChanged: boolean
+  /** Hono mounts the head adds (a changed mount is removed and added). */
+  addedMounts: MountEntry[]
+  /** What is not additive besides entries: removed or changed mounts, new code that runs when the file loads or on a handler's chain. */
+  problems: string[]
 }
 
 /** Resolver-level comparison of a changed resolver file: only resolvers whose own code changed are affected. */
@@ -152,6 +228,14 @@ export function diffResolvers(base: ReturnType<typeof resolverEntries>, head: Re
     removed: [...before.keys()].filter((k) => !after.has(k)).sort(compareStrings),
     changed: [...before.keys()].filter((k) => after.has(k) && after.get(k) !== before.get(k)).sort(compareStrings),
     restChanged: base.rest.some((item) => !head.rest.includes(item)) || [...base.imports].some((i) => !head.imports.has(i)),
+    addedMounts: [...head.mounts.values()].filter((m) => !base.mounts.has(m.id)).sort((a, b) => compareStrings(a.id, b.id)),
+    problems: sortedUnique([
+      ...[...base.mounts.values()].filter((m) => !head.mounts.has(m.id)).map((m) => `mount ${m.prefix} was removed`),
+      ...head.loadCode.filter((c) => !base.rest.includes(c)).map((c) => `code that runs when the file loads was added: ${c.length > 80 ? `${c.slice(0, 77)}...` : c}`),
+      ...[...head.imports].filter((i) => i.endsWith('|') && !base.imports.has(i)).map((i) => `side-effect import ${i.slice(0, -1)} was added: it runs that module when the file loads`),
+      ...[...head.impure].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added with code that runs when it is registered (a call in its chain or arguments)`),
+      ...[...head.middleware].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added as middleware (it can call next): it runs for other endpoints`),
+    ]),
   }
 }
 

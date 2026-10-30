@@ -1,10 +1,13 @@
+import ts from 'typescript'
 import type { DocumentNode } from 'graphql'
 import { posix } from 'node:path'
 import { compareStrings, sortedUnique } from '../output/order.js'
 import { isProjectPath } from '../project/fs.js'
 import type { ProjectProgram } from '../project/program.js'
-import type { RouteEntry } from '../routes/types.js'
+import type { DynamicRoute, RouteEntry } from '../routes/types.js'
 import { definedGlobals, usesGlobal } from './globals.js'
+import { honoApps, prefixKey, UNRESOLVED_APP } from './hono.js'
+import { restAnchor } from './rest.js'
 import { ENUM_MARKER, entryNodes, resolverAnchors } from './resolvers.js'
 import picomatch from 'picomatch'
 import { buildSchemaGraph, operationsOf, parseSdl, sdlSources, type SdlProblem } from './schema.js'
@@ -13,7 +16,10 @@ import { buildSchemaGraph, operationsOf, parseSdl, sdlSources, type SdlProblem }
 export interface BackendTable {
   /** GraphQL root operations and REST endpoints; `modules` are the modules their resolvers use. */
   operations: RouteEntry[]
-  /** For each operation, the resolver keys it can run (its own and those of every type it can return). */
+  /**
+   * For each operation, the resolver keys it can run (its own and those of every type it can return). REST endpoints
+   * run handler anchors (`restAnchor`: file and path as written); a factory mounted N times gives N endpoints.
+   */
   resolverKeys: Map<string, Set<string>>
   /** For each GraphQL operation, the types it can return. */
   operationTypes: Map<string, Set<string>>
@@ -31,6 +37,18 @@ export interface BackendTable {
   /** `global.X = …` assignments: global name → module. */
   globals: Map<string, string>
   problems: SdlProblem[]
+  /** Hono constructs farol cannot follow: they make every PR `unknown`. */
+  dynamic: DynamicRoute[]
+  /** REST endpoint keys without the given mounts (`MountNode` ids) and handler anchors: the endpoints that existed before them. */
+  restKeysWithout: (mounts: ReadonlySet<string>, anchors: ReadonlySet<string>) => Set<string>
+  /** Full paths a Hono mount (`MountNode` id) serves; empty when farol cannot compute them. */
+  mountBases: (id: string) => string[]
+  /** Whether a Hono mount's sub-app registers middleware (it then runs for existing endpoints under its paths). */
+  mountMiddleware: (id: string) => boolean
+  /** Full endpoint keys a Hono mount (`MountNode` id) serves. */
+  mountKeys: (id: string) => string[]
+  /** Files that use Hono: their mounts are compared even without a hono import. */
+  honoFiles: Set<string>
 }
 
 export interface BackendInput {
@@ -107,14 +125,38 @@ export function buildBackendTable(input: BackendInput): BackendTable {
   // Resolvers and REST handlers, with the modules their code uses.
   const checker = input.project.program.getTypeChecker()
   const anchors = new Map<string, { file: string; modules: Set<string> }>()
+  const handlers: { anchor: string; key: string; receiver: ts.Expression; node: ts.Node }[] = []
   const resolverFiles = new Set<string>()
   for (const sf of programFiles) {
-    for (const { key, value } of entryNodes(sf, typeFields, input.rest)) {
+    for (const entry of entryNodes(sf, typeFields, input.rest)) {
       const file = rel(sf.fileName)
       resolverFiles.add(file)
-      const entry = anchors.get(key) ?? { file, modules: new Set<string>() }
-      for (const m of resolverAnchors(value, checker, isProjectFile, rel, globals, contextOf)) if (m !== file) entry.modules.add(m)
-      anchors.set(key, entry)
+      const id = 'receiver' in entry ? restAnchor(file, entry.key) : entry.key
+      if ('receiver' in entry) handlers.push({ anchor: id, key: entry.key, receiver: entry.receiver, node: entry.node })
+      const anchor = anchors.get(id) ?? { file, modules: new Set<string>() }
+      for (const m of resolverAnchors(entry.value, checker, isProjectFile, rel, globals, contextOf)) if (m !== file) anchor.modules.add(m)
+      anchors.set(id, anchor)
+    }
+  }
+  // REST endpoints: the handler's path under every base path of its Hono app, or as written for other servers.
+  const hono = input.rest ? honoApps(programFiles, checker, rel) : undefined
+  for (const f of hono?.mountFiles ?? []) resolverFiles.add(f)
+  const restKeys = (mounts?: ReadonlySet<string>, without?: ReadonlySet<string>): Map<string, Set<string>> => {
+    const out = new Map<string, Set<string>>()
+    for (const h of handlers) {
+      if (without?.has(h.anchor)) continue
+      const bases = hono?.basesOf(h.receiver, mounts)
+      const keys = bases === undefined || bases === null ? [h.key] : bases.map((b) => prefixKey(h.key, b))
+      for (const k of keys) out.set(k, (out.get(k) ?? new Set<string>()).add(h.anchor))
+    }
+    return out
+  }
+  const dynamic = [...(hono?.dynamic ?? [])]
+  for (const h of handlers) {
+    const bases = hono?.basesOf(h.receiver)
+    if (bases === null || bases?.length === 0) {
+      const sf = h.node.getSourceFile()
+      dynamic.push({ file: rel(sf.fileName), line: sf.getLineAndCharacterOfPosition(h.node.getStart(sf)).line + 1, detail: bases === null ? UNRESOLVED_APP : 'Hono app is mounted only through a cycle' })
     }
   }
 
@@ -133,13 +175,30 @@ export function buildBackendTable(input: BackendInput): BackendTable {
     // The resolver file is not an anchor: only the code the resolvers run is (a resolver file often serves many operations).
     entries.push({ key: op.key, path: op.key, index: false, entry: null, modules, layouts: [] })
   }
-  for (const [key, value] of anchors) {
-    if (!key.includes(' ')) continue
-    resolverKeys.set(key, new Set([key]))
-    entries.push({ key, path: key, index: false, entry: null, modules: sortedUnique(value.modules), layouts: [] })
+  for (const [key, ids] of restKeys()) {
+    resolverKeys.set(key, ids)
+    entries.push({ key, path: key, index: false, entry: null, modules: sortedUnique([...ids].flatMap((id) => [...(anchors.get(id)?.modules ?? [])])), layouts: [] })
   }
   entries.sort((a, b) => compareStrings(a.key, b.key))
-  return { operations: entries, resolverKeys, operationTypes, rootTypes: new Set(Object.values(schema.roots)), typeNames, typeFields, resolverFiles, schemaFiles, schemaDocs: docs, globals, problems: problems.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line) }
+  return {
+    operations: entries,
+    resolverKeys,
+    operationTypes,
+    rootTypes: new Set(Object.values(schema.roots)),
+    typeNames,
+    typeFields,
+    resolverFiles,
+    schemaFiles,
+    schemaDocs: docs,
+    globals,
+    problems: problems.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line),
+    dynamic: dynamic.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.detail, b.detail)),
+    restKeysWithout: (mounts, without) => new Set(restKeys(mounts, without).keys()),
+    mountBases: (id) => hono?.mountBases(id) ?? [],
+    mountMiddleware: (id) => hono?.mountMiddleware(id) ?? false,
+    mountKeys: (id) => sortedUnique(handlers.flatMap((h) => (hono?.basesThrough(h.receiver, id) ?? []).map((b) => prefixKey(h.key, b)))),
+    honoFiles: hono?.honoFiles ?? new Set(),
+  }
 }
 
 /** Global edges for the import graph: every program file that reads a global points at the module defining it. */

@@ -1,14 +1,10 @@
 import ts from 'typescript'
 import { compareStrings } from '../../output/order.js'
-import { isTypeOnlyImport, parseIsolated } from '../../project/parse.js'
+import { isTypeOnlyImport, parseIsolated, unwrap } from '../../project/parse.js'
+
+export { unwrap }
 import type { DynamicRoute, RouteAdapterInput } from '../types.js'
 import { lazyImports } from './lazy.js'
-
-export function unwrap(expr: ts.Expression): ts.Expression {
-  let e = expr
-  while (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e) || ts.isNonNullExpression(e) || ts.isTypeAssertionExpression(e)) e = e.expression
-  return e
-}
 
 export type FunctionLike = ts.ArrowFunction | ts.FunctionExpression | ts.MethodDeclaration | ts.FunctionDeclaration
 
