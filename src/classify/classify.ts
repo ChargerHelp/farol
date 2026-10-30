@@ -265,6 +265,7 @@ export function classify(input: ClassifyInput): ClassifyResult {
         if (problems.length > 0) reasons.push(n > 0 ? reason('existing-file-modified', `${what}: reached by ${n} existing ${entryWord}(s): ${[...declImpact.affected.keys()].slice(0, 3).join('; ')}${n > 3 ? `; and ${n - 3} more` : ''}`, file.path) : reason('existing-file-unreachable', `${what}; no ${entryWord} reaches it`, file.path))
       }
       addImpact(file.path)
+      if (!declImpact.additive && declImpact.keepsReach) reachTargets.push({ path: file.path, reportModified: false })
       continue
     }
     if ((role === 'schema' || role === 'resolvers') && input.backend) {
