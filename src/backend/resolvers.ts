@@ -1,8 +1,8 @@
 import ts from 'typescript'
 import { compareStrings, sortedUnique } from '../output/order.js'
-import { parseIsolated } from '../project/parse.js'
-import { importsHono } from './hono.js'
-import { mountId, mountNodes, restNodes, type RestNode } from './rest.js'
+import { parseIsolated, unwrap } from '../project/parse.js'
+import { importsHono, mountNodes } from './hono.js'
+import { restNodes, type RestNode } from './rest.js'
 
 /** One resolver of a resolver map: `Type.field` and the code that implements it. */
 export interface ResolverEntry {
@@ -20,12 +20,6 @@ function propName(name: ts.PropertyName): string | undefined {
 
 function normalized(node: ts.Node, sf: ts.SourceFile): string {
   return node.getText(sf).replace(/\s+/g, ' ').trim()
-}
-
-function unwrap(e: ts.Expression): ts.Expression {
-  let x = e
-  while (ts.isParenthesizedExpression(x) || ts.isAsExpression(x) || ts.isSatisfiesExpression(x)) x = x.expression
-  return x
 }
 
 /** Field name marking an enum in the type-fields map: its resolver maps internal values. */
@@ -72,8 +66,18 @@ export function entryNodes(sf: ts.SourceFile, typeFields: ReadonlyMap<string, Re
   return [...resolverNodes(sf, typeFields), ...(rest ? restNodes(sf) : [])]
 }
 
-/** Resolver entries of a file, parsed on its own (used for the base and the head of changed files). */
-export function resolverEntries(file: string, code: string, typeFields: ReadonlyMap<string, ReadonlySet<string>>, withRest = true): { entries: ResolverEntry[]; rest: string[]; imports: Set<string>; mounts: Map<string, { prefix: string; plain: boolean }> } {
+/** A Hono mount of a file version: its prefix as written and whether adding it runs no other code. */
+export interface MountEntry {
+  id: string
+  prefix: string
+  plain: boolean
+}
+
+/**
+ * Resolver entries of a file, parsed on its own (used for the base and the head of changed files). Mounts are read when
+ * the file imports hono or `hono` says the program uses Hono there.
+ */
+export function resolverEntries(file: string, code: string, typeFields: ReadonlyMap<string, ReadonlySet<string>>, withRest = true, hono = false): { entries: ResolverEntry[]; rest: string[]; loadCode: string[]; imports: Set<string>; mounts: Map<string, MountEntry> } {
   const { sourceFile: sf } = parseIsolated(file, code)
   const nodes = entryNodes(sf, typeFields, withRest)
   const entries = nodes.map(({ key, node }) => ({ key, file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, text: normalized(node, sf) }))
@@ -81,7 +85,7 @@ export function resolverEntries(file: string, code: string, typeFields: Readonly
   // compared as bindings: adding one is not a change to what existed.
   const imports = new Set<string>()
   // Hono mounts are compared on their own (`mountId` → prefix as written), like the handlers.
-  const mounts = withRest && importsHono(sf) ? mountNodes(sf) : []
+  const mounts = withRest && (hono || importsHono(sf)) ? mountNodes(sf, file) : []
   const removed: [number, number][] = [...nodes, ...mounts].map(({ node }) => [node.getStart(sf), node.end])
   for (const statement of sf.statements) {
     if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
@@ -106,17 +110,21 @@ export function resolverEntries(file: string, code: string, typeFields: Readonly
     return stripComments(text).replace(/\s+/g, ' ').replace(/,(\s*,)+/g, ',').replace(/\{\s*,/g, '{').replace(/,\s*\}/g, '}').trim()
   }
   const items: string[] = []
+  // Top-level calls other than handlers and mounts run when the file loads (`app.use(mw)`): adding one is a change.
+  const loadCode: string[] = []
   for (const statement of sf.statements) {
     if (ts.isImportDeclaration(statement)) continue
     const object = topLevelObject(statement)
     if (!object) {
-      items.push(blank(statement))
+      const text = blank(statement)
+      items.push(text)
+      if (ts.isExpressionStatement(statement) && ts.isCallExpression(unwrap(statement.expression)) && text.replace(/;$/, '') !== '') loadCode.push(text)
       continue
     }
     for (const prop of object.properties) items.push(blank(prop))
     items.push(blank(statement).replace(blank(object), '{}'))
   }
-  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, imports, mounts: new Map(mounts.map((m) => [mountId(file, m.call), { prefix: m.prefix, plain: m.plain }])) }
+  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, loadCode, imports, mounts: new Map(mounts.map((m) => [m.id, { id: m.id, prefix: m.prefix, plain: m.plain }])) }
 }
 
 /** Code without comments (they never change behavior), tokenized with the TypeScript scanner so strings stay intact. */
@@ -146,9 +154,10 @@ export interface ResolverChanges {
   changed: string[]
   /** Code outside the resolver members changed (imports, helpers, module-level code): every resolver may be affected. */
   restChanged: boolean
-  /** Hono mounts: added ones (`mountId`) and what is not additive (removed or changed mounts, code in a new mount). */
-  addedMounts: string[]
-  mountProblems: string[]
+  /** Hono mounts the head adds (a changed mount is removed and added). */
+  addedMounts: MountEntry[]
+  /** What is not additive besides entries: removed or changed mounts, new code that runs when the file loads. */
+  problems: string[]
 }
 
 /** Resolver-level comparison of a changed resolver file: only resolvers whose own code changed are affected. */
@@ -160,10 +169,10 @@ export function diffResolvers(base: ReturnType<typeof resolverEntries>, head: Re
     removed: [...before.keys()].filter((k) => !after.has(k)).sort(compareStrings),
     changed: [...before.keys()].filter((k) => after.has(k) && after.get(k) !== before.get(k)).sort(compareStrings),
     restChanged: base.rest.some((item) => !head.rest.includes(item)) || [...base.imports].some((i) => !head.imports.has(i)),
-    addedMounts: [...head.mounts.keys()].filter((m) => !base.mounts.has(m)).sort(compareStrings),
-    mountProblems: sortedUnique([
-      ...[...base.mounts].filter(([m]) => !head.mounts.has(m)).map(([, m]) => `mount ${m.prefix} was removed`),
-      ...[...head.mounts].filter(([m, { plain }]) => !base.mounts.has(m) && !plain).map(([, m]) => `mount ${m.prefix} was added with a call in its arguments: that code is not compared`),
+    addedMounts: [...head.mounts.values()].filter((m) => !base.mounts.has(m.id)).sort((a, b) => compareStrings(a.id, b.id)),
+    problems: sortedUnique([
+      ...[...base.mounts.values()].filter((m) => !head.mounts.has(m.id)).map((m) => `mount ${m.prefix} was removed`),
+      ...head.loadCode.filter((c) => !base.rest.includes(c)).map((c) => `code that runs when the file loads was added: ${c.length > 80 ? `${c.slice(0, 77)}...` : c}`),
     ]),
   }
 }

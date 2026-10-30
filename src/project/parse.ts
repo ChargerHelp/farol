@@ -36,3 +36,39 @@ export function parseIsolated(fileName: string, code: string): IsolatedParse {
   }))
   return { sourceFile, errors }
 }
+
+/** The expression inside parentheses, `as`, `satisfies`, `!` and `<T>x`. */
+export function unwrap(expr: ts.Expression): ts.Expression {
+  let e = expr
+  while (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e) || ts.isNonNullExpression(e) || ts.isTypeAssertionExpression(e)) e = e.expression
+  return e
+}
+
+/**
+ * An expression that only builds a value: literals, objects and arrays of them, references, `as const`; an arrow
+ * function that only returns such a value (`(p) => ({ key: 'x', p })`); a call of a named function with such
+ * arguments only, none of them a call (`defineKeys({ … })`, a typed identity wrapper). No other functions, statements or JSX.
+ */
+export function isStaticValue(e: ts.Expression, depth = 0, calls = true): boolean {
+  if (depth > 20) return false
+  const value = (x: ts.Expression): boolean => isStaticValue(x, depth + 1, calls)
+  if (ts.isArrowFunction(e)) return !ts.isBlock(e.body) && value(e.body)
+  // The wrapper takes the declared value: at least one argument, and no call inside its arguments.
+  if (ts.isCallExpression(e)) return calls && (ts.isIdentifier(e.expression) || ts.isPropertyAccessExpression(e.expression)) && value(e.expression) && e.arguments.length > 0 && e.arguments.every((a) => !ts.isSpreadElement(a) && isStaticValue(a, depth + 1, false))
+  if (ts.isStringLiteral(e) || ts.isNumericLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e) || ts.isBigIntLiteral(e) || ts.isRegularExpressionLiteral(e)) return true
+  if (e.kind === ts.SyntaxKind.TrueKeyword || e.kind === ts.SyntaxKind.FalseKeyword || e.kind === ts.SyntaxKind.NullKeyword) return true
+  if (ts.isIdentifier(e) || ts.isPropertyAccessExpression(e)) return ts.isIdentifier(e) || value(e.expression)
+  if (ts.isPrefixUnaryExpression(e)) return (e.operator === ts.SyntaxKind.MinusToken || e.operator === ts.SyntaxKind.PlusToken) && value(e.operand)
+  if (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e) || ts.isTypeAssertionExpression(e)) return value(e.expression)
+  if (ts.isTemplateExpression(e)) return e.templateSpans.every((s) => value(s.expression))
+  if (ts.isArrayLiteralExpression(e)) return e.elements.every((x) => (ts.isSpreadElement(x) ? value(x.expression) : value(x)))
+  if (ts.isObjectLiteralExpression(e)) {
+    return e.properties.every((p) => {
+      if (ts.isPropertyAssignment(p)) return (!ts.isComputedPropertyName(p.name) || value(p.name.expression)) && value(p.initializer)
+      if (ts.isShorthandPropertyAssignment(p)) return true
+      if (ts.isSpreadAssignment(p)) return value(p.expression)
+      return false
+    })
+  }
+  return false
+}

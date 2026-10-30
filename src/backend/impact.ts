@@ -1,5 +1,6 @@
 import { compareStrings, sortedUnique } from '../output/order.js'
-import type { ResolverChanges } from './resolvers.js'
+import { overlaps } from './hono.js'
+import type { MountEntry, ResolverChanges } from './resolvers.js'
 import { restAnchor } from './rest.js'
 import type { SchemaDiff } from './schema.js'
 
@@ -52,7 +53,7 @@ export function backendFileImpact(table: ImpactTable, file: string, schema: Sche
   /** The full endpoint keys of a handler when its mounts change them, else the key as written. */
   const label = (k: string): string => {
     const ops = k.includes(' ') ? using(k) : []
-    return ops.length === 0 || (ops.length === 1 && ops[0] === k) ? k : ops.join(', ')
+    return ops.length === 0 ? k : ops.join(', ')
   }
   const affected = new Map<string, string>()
   const problems: string[] = []
@@ -82,13 +83,14 @@ export function backendFileImpact(table: ImpactTable, file: string, schema: Sche
       hit(using(k), k)
     }
     // The endpoints under a removed mount are gone from the head: they cannot be named, the change still counts.
-    problems.push(...resolvers.mountProblems)
+    problems.push(...resolvers.problems)
     if (resolvers.restChanged) {
       problems.push('code outside the resolvers changed (imports, helpers or module-level code): every resolver of the file may behave differently')
       for (const k of resolvers.keys) hit(using(k), `module code of ${k}`)
     }
     for (const k of resolvers.added) {
-      if (k.includes(' ')) addedOperations.push(...label(k).split(', '))
+      const ops = k.includes(' ') ? using(k) : []
+      if (k.includes(' ')) addedOperations.push(...(ops.length > 0 ? ops : [k]))
       else added.push(k)
     }
   }
@@ -99,4 +101,41 @@ export function backendFileImpact(table: ImpactTable, file: string, schema: Sche
     addedOperations: sortedUnique(addedOperations),
     added: sortedUnique(added),
   }
+}
+
+/** A Hono mount a PR adds, with the file that adds it. */
+export interface AddedMount extends MountEntry {
+  file: string
+}
+
+const pathOf = (key: string): string => key.slice(key.indexOf(' ') + 1)
+
+export interface MountTable {
+  mountBases: (id: string) => string[]
+  mountMiddleware: (id: string) => boolean
+}
+
+/**
+ * Impacts with the PR's new Hono mounts. A mount whose sub-app registers middleware runs it for every request under
+ * its full paths, so existing endpoints there are touched; without middleware it only adds routes, like a new handler.
+ * A new mount that runs other code, or whose paths farol cannot compute, is not additive either. `baseRest`: the REST
+ * endpoints that existed before the PR.
+ */
+export function mountImpacts(table: MountTable, mounts: readonly AddedMount[], baseRest: ReadonlySet<string>, impacts: ReadonlyMap<string, BackendFileImpact>): Map<string, BackendFileImpact> {
+  const out = new Map(impacts)
+  for (const m of mounts) {
+    const bases = table.mountBases(m.id)
+    const covered = table.mountMiddleware(m.id) ? sortedUnique([...baseRest].filter((k) => bases.some((b) => overlaps(pathOf(k), b)))) : []
+    const problems = [
+      ...(m.plain ? [] : [`mount ${m.prefix} was added with a call in its arguments: that code is not compared`]),
+      ...(bases.length === 0 ? [`mount ${m.prefix} was added: farol cannot compute its full paths`] : []),
+      ...(covered.length > 0 ? [`mount ${m.prefix} covers existing endpoints: its middleware runs for them`] : []),
+    ]
+    if (problems.length === 0) continue
+    const prev = out.get(m.file) ?? { additive: true, problems: [], affected: new Map<string, string>(), addedOperations: [], added: [] }
+    const affected = new Map(prev.affected)
+    for (const k of covered) if (!affected.has(k)) affected.set(k, `mount ${m.prefix}`)
+    out.set(m.file, { ...prev, additive: false, problems: [...prev.problems, ...problems], affected: new Map([...affected].sort(([a], [b]) => compareStrings(a, b))) })
+  }
+  return out
 }

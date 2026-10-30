@@ -6,7 +6,7 @@ import { isProjectPath } from '../project/fs.js'
 import type { ProjectProgram } from '../project/program.js'
 import type { DynamicRoute, RouteEntry } from '../routes/types.js'
 import { definedGlobals, usesGlobal } from './globals.js'
-import { honoApps, mergePath, UNRESOLVED_APP } from './hono.js'
+import { honoApps, prefixKey, UNRESOLVED_APP } from './hono.js'
 import { restAnchor } from './rest.js'
 import { ENUM_MARKER, entryNodes, resolverAnchors } from './resolvers.js'
 import picomatch from 'picomatch'
@@ -39,10 +39,14 @@ export interface BackendTable {
   problems: SdlProblem[]
   /** Hono constructs farol cannot follow: they make every PR `unknown`. */
   dynamic: DynamicRoute[]
-  /** REST endpoint keys without the given mounts (`mountId`) and handler anchors: the endpoints that existed before them. */
+  /** REST endpoint keys without the given mounts (`MountNode` ids) and handler anchors: the endpoints that existed before them. */
   restKeysWithout: (mounts: ReadonlySet<string>, anchors: ReadonlySet<string>) => Set<string>
-  /** Full paths a Hono mount (`mountId`) serves. */
+  /** Full paths a Hono mount (`MountNode` id) serves; empty when farol cannot compute them. */
   mountBases: (id: string) => string[]
+  /** Whether a Hono mount's sub-app registers middleware (it then runs for existing endpoints under its paths). */
+  mountMiddleware: (id: string) => boolean
+  /** Files that use Hono: their mounts are compared even without a hono import. */
+  honoFiles: Set<string>
 }
 
 export interface BackendInput {
@@ -140,8 +144,7 @@ export function buildBackendTable(input: BackendInput): BackendTable {
     for (const h of handlers) {
       if (without?.has(h.anchor)) continue
       const bases = hono?.basesOf(h.receiver, mounts)
-      const space = h.key.indexOf(' ')
-      const keys = bases === undefined || bases === null ? [h.key] : bases.map((b) => `${h.key.slice(0, space)} ${mergePath(b, h.key.slice(space + 1))}`)
+      const keys = bases === undefined || bases === null ? [h.key] : bases.map((b) => prefixKey(h.key, b))
       for (const k of keys) out.set(k, (out.get(k) ?? new Set<string>()).add(h.anchor))
     }
     return out
@@ -190,6 +193,8 @@ export function buildBackendTable(input: BackendInput): BackendTable {
     dynamic: dynamic.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.detail, b.detail)),
     restKeysWithout: (mounts, without) => new Set(restKeys(mounts, without).keys()),
     mountBases: (id) => hono?.mountBases(id) ?? [],
+    mountMiddleware: (id) => hono?.mountMiddleware(id) ?? false,
+    honoFiles: hono?.honoFiles ?? new Set(),
   }
 }
 
