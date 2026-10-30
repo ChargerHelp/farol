@@ -82,7 +82,7 @@ export function overlaps(path: string, base: string): boolean {
   return true
 }
 
-const isHonoModule = (spec: string): boolean => spec === 'hono' || spec.startsWith('hono/') || spec.startsWith('@hono/')
+export const isHonoModule = (spec: string): boolean => spec === 'hono' || spec.startsWith('hono/') || spec.startsWith('@hono/')
 
 /** Whether a file imports or re-exports from a hono package (syntax only). */
 export function importsHono(sf: ts.SourceFile): boolean {
@@ -275,11 +275,18 @@ function collectEdges(files: readonly ts.SourceFile[], honoFiles: ReadonlySet<ts
     const x = unwrap(a)
     return (ts.isArrowFunction(x) || ts.isFunctionExpression(x)) && x.parameters.length >= 2
   }
+  // A named handler on `all` or a `*` path is middleware when its function takes `next`, or when farol cannot find it.
+  const namedNext = (call: MountCall): boolean => {
+    const last = call.arguments[call.arguments.length - 1]
+    const wide = call.expression.name.text === 'all' || (literal(call.arguments[0]) ?? '*').includes('*')
+    const fn = last && !takesNext(last) ? r.functionOf(last) : undefined
+    return last !== undefined && wide && !ts.isArrowFunction(unwrap(last)) && !ts.isFunctionExpression(unwrap(last)) && (fn ? fn.parameters.length >= 2 : true)
+  }
   const middlewareCall = (call: MountCall): void => {
     const name = call.expression.name.text
     // Hono's `on(method, path, ...handlers)` has three arguments or more (`process.on(event, fn)` has two).
     const on = name === 'on' && call.arguments.length >= 3
-    if (!(name === 'use' || on || (METHODS.has(name) && call.arguments.some(takesNext)))) return
+    if (!(name === 'use' || on || (METHODS.has(name) && (call.arguments.some(takesNext) || namedNext(call))))) return
     const app = r.appOf(call.expression.expression)
     if (app) middleware.add(app)
     // A handler on an app farol cannot follow is already a dynamic route (`buildBackendTable`).

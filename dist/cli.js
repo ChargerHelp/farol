@@ -248909,14 +248909,20 @@ function collectEdges(files, honoFiles, r, rel) {
       if (from !== p) addEdge({ from, to: p });
     });
   };
-  const takesNext = (a) => {
+  const takesNext2 = (a) => {
     const x = unwrap(a);
     return (import_typescript8.default.isArrowFunction(x) || import_typescript8.default.isFunctionExpression(x)) && x.parameters.length >= 2;
+  };
+  const namedNext = (call) => {
+    const last = call.arguments[call.arguments.length - 1];
+    const wide = call.expression.name.text === "all" || (literal2(call.arguments[0]) ?? "*").includes("*");
+    const fn = last && !takesNext2(last) ? r.functionOf(last) : void 0;
+    return last !== void 0 && wide && !import_typescript8.default.isArrowFunction(unwrap(last)) && !import_typescript8.default.isFunctionExpression(unwrap(last)) && (fn ? fn.parameters.length >= 2 : true);
   };
   const middlewareCall = (call) => {
     const name = call.expression.name.text;
     const on = name === "on" && call.arguments.length >= 3;
-    if (!(name === "use" || on || METHODS2.has(name) && call.arguments.some(takesNext))) return;
+    if (!(name === "use" || on || METHODS2.has(name) && (call.arguments.some(takesNext2) || namedNext(call)))) return;
     const app = r.appOf(call.expression.expression);
     if (app) middleware.add(app);
     else if ((name === "use" || on) && honoFiles.has(call.getSourceFile())) at(call, `Hono ${name}() is on an app farol cannot follow: its middleware cannot be placed`);
@@ -249051,7 +249057,9 @@ function mountImpacts(table3, mounts, baseRest, impacts) {
   for (const m of mounts) {
     const bases = table3.mountBases(m.id);
     const reached = table3.mountMiddleware(m.id) ? [...baseRest].filter((k) => bases.some((b) => overlaps(pathOf(k), b))) : [];
-    const covered = sortedUnique([...reached, ...table3.mountKeys(m.id).filter((k) => baseRest.has(k))]);
+    const keys = table3.mountKeys(m.id);
+    const collides = (k) => keys.some((n) => n === k || pathOf(n) === pathOf(k) && (n.startsWith("ALL ") || k.startsWith("ALL ")));
+    const covered = sortedUnique([...reached, ...[...baseRest].filter(collides)]);
     const problems = [
       ...m.plain ? [] : [`mount ${m.prefix} was added with a call in its arguments: that code is not compared`],
       ...bases.length === 0 ? [`mount ${m.prefix} was added: farol cannot compute its full paths`] : [],
@@ -249107,28 +249115,34 @@ function resolverNodes(sf, typeFields) {
 function entryNodes(sf, typeFields, rest) {
   return [...resolverNodes(sf, typeFields), ...rest ? restNodes(sf) : []];
 }
-function inertValue(e, honoNames) {
-  const x = unwrap(e);
-  const value = (v) => inertValue(v, honoNames);
-  if (import_typescript9.default.isArrowFunction(x) || import_typescript9.default.isFunctionExpression(x) || import_typescript9.default.isClassExpression(x)) return true;
-  if (import_typescript9.default.isObjectLiteralExpression(x)) return x.properties.every((p) => inertProperty(p, honoNames));
-  if (import_typescript9.default.isArrayLiteralExpression(x)) return x.elements.every((el) => !import_typescript9.default.isSpreadElement(el) && value(el));
-  if (import_typescript9.default.isCallExpression(x) && import_typescript9.default.isIdentifier(x.expression) && x.expression.text === "require") return x.arguments.length === 1 && x.arguments[0] !== void 0 && import_typescript9.default.isStringLiteral(x.arguments[0]);
-  if (import_typescript9.default.isTaggedTemplateExpression(x)) return import_typescript9.default.isIdentifier(x.tag) && (x.tag.text === "gql" || x.tag.text === "graphql") && (import_typescript9.default.isNoSubstitutionTemplateLiteral(x.template) || x.template.templateSpans.every((t) => import_typescript9.default.isIdentifier(t.expression)));
-  if (import_typescript9.default.isNewExpression(x) && import_typescript9.default.isIdentifier(x.expression) && honoNames.has(x.expression.text)) return (x.arguments ?? []).every((a) => isStaticValue(a, 0, false));
-  return isStaticValue(x, 0, false);
+function isExportTarget(e) {
+  const chain = import_typescript9.default.isPropertyAccessExpression(e) ? accessChain(e) : [];
+  return chain[0] === "exports" || chain[0] === "module" && chain[1] === "exports";
 }
-function inertProperty(p, honoNames) {
-  return import_typescript9.default.isMethodDeclaration(p) || import_typescript9.default.isAccessor(p) || import_typescript9.default.isShorthandPropertyAssignment(p) || import_typescript9.default.isPropertyAssignment(p) && !import_typescript9.default.isComputedPropertyName(p.name) && inertValue(p.initializer, honoNames);
+function runsCode(node2, honoNames) {
+  const runs = (n) => n !== void 0 && runsCode(n, honoNames);
+  if (import_typescript9.default.isExpressionWithTypeArguments(node2) && import_typescript9.default.isHeritageClause(node2.parent) && node2.parent.token === import_typescript9.default.SyntaxKind.ExtendsKeyword && import_typescript9.default.isClassLike(node2.parent.parent)) return runs(node2.expression);
+  if (import_typescript9.default.isTypeNode(node2) || import_typescript9.default.isInterfaceDeclaration(node2) || import_typescript9.default.isTypeAliasDeclaration(node2)) return false;
+  if (import_typescript9.default.isDecorator(node2) || import_typescript9.default.isClassStaticBlockDeclaration(node2) || import_typescript9.default.isAwaitExpression(node2) || import_typescript9.default.isYieldExpression(node2) || import_typescript9.default.isDeleteExpression(node2)) return true;
+  if (import_typescript9.default.isFunctionLike(node2)) return import_typescript9.default.canHaveDecorators(node2) && (import_typescript9.default.getDecorators(node2) ?? []).length > 0 || node2.name !== void 0 && import_typescript9.default.isComputedPropertyName(node2.name) && runs(node2.name.expression);
+  if (import_typescript9.default.isPropertyDeclaration(node2)) return (import_typescript9.default.getDecorators(node2) ?? []).length > 0 || import_typescript9.default.isComputedPropertyName(node2.name) && runs(node2.name.expression) || (import_typescript9.default.getCombinedModifierFlags(node2) & import_typescript9.default.ModifierFlags.Static ? runs(node2.initializer) : false);
+  if (import_typescript9.default.isCallExpression(node2)) return !(import_typescript9.default.isIdentifier(node2.expression) && node2.expression.text === "require" && node2.arguments.length === 1 && node2.arguments[0] !== void 0 && import_typescript9.default.isStringLiteral(node2.arguments[0]));
+  if (import_typescript9.default.isNewExpression(node2)) return !(import_typescript9.default.isIdentifier(node2.expression) && honoNames.has(node2.expression.text)) || (node2.arguments ?? []).some(runs);
+  if (import_typescript9.default.isTaggedTemplateExpression(node2)) return !(import_typescript9.default.isIdentifier(node2.tag) && (node2.tag.text === "gql" || node2.tag.text === "graphql")) || runs(node2.template);
+  if (import_typescript9.default.isBinaryExpression(node2) && node2.operatorToken.kind >= import_typescript9.default.SyntaxKind.FirstAssignment && node2.operatorToken.kind <= import_typescript9.default.SyntaxKind.LastAssignment) return !(node2.operatorToken.kind === import_typescript9.default.SyntaxKind.EqualsToken && isExportTarget(node2.left)) || runs(node2.right);
+  if ((import_typescript9.default.isPrefixUnaryExpression(node2) || import_typescript9.default.isPostfixUnaryExpression(node2)) && (node2.operator === import_typescript9.default.SyntaxKind.PlusPlusToken || node2.operator === import_typescript9.default.SyntaxKind.MinusMinusToken)) return true;
+  return import_typescript9.default.forEachChild(node2, (child) => runs(child) ? true : void 0) ?? false;
 }
-function inertStatement(s, honoNames) {
-  if (import_typescript9.default.isFunctionDeclaration(s) || import_typescript9.default.isInterfaceDeclaration(s) || import_typescript9.default.isTypeAliasDeclaration(s) || import_typescript9.default.isEnumDeclaration(s) || import_typescript9.default.isEmptyStatement(s) || import_typescript9.default.isExportDeclaration(s) || import_typescript9.default.isImportEqualsDeclaration(s)) return true;
-  if (import_typescript9.default.isModuleDeclaration(s)) return s.modifiers?.some((m) => m.kind === import_typescript9.default.SyntaxKind.DeclareKeyword) ?? false;
-  if (import_typescript9.default.isClassDeclaration(s)) return (import_typescript9.default.getDecorators(s) ?? []).length === 0 && s.members.every((m) => !import_typescript9.default.isClassStaticBlockDeclaration(m) && !(import_typescript9.default.isPropertyDeclaration(m) && m.initializer && import_typescript9.default.getCombinedModifierFlags(m) & import_typescript9.default.ModifierFlags.Static && !inertValue(m.initializer, honoNames)));
-  if (import_typescript9.default.isVariableStatement(s)) return s.declarationList.declarations.every((d) => !d.initializer || inertValue(d.initializer, honoNames));
-  if (import_typescript9.default.isExportAssignment(s)) return inertValue(s.expression, honoNames);
-  const e = import_typescript9.default.isExpressionStatement(s) ? s.expression : void 0;
-  return e !== void 0 && import_typescript9.default.isBinaryExpression(e) && e.operatorToken.kind === import_typescript9.default.SyntaxKind.EqualsToken && inertValue(e.right, honoNames);
+function middlewareLike(n) {
+  const call = n.node;
+  if (!import_typescript9.default.isCallExpression(call)) return false;
+  const x = unwrap(n.value);
+  if (import_typescript9.default.isArrowFunction(x) || import_typescript9.default.isFunctionExpression(x)) return x.parameters.length >= 2 || call.arguments.some((a) => takesNext(a));
+  return n.key.startsWith("ALL ") || n.key.includes("*");
+}
+function takesNext(a) {
+  const x = unwrap(a);
+  return (import_typescript9.default.isArrowFunction(x) || import_typescript9.default.isFunctionExpression(x)) && x.parameters.length >= 2;
 }
 function resolverEntries(file2, code2, typeFields, withRest = true, hono = false) {
   const { sourceFile: sf } = parseIsolated(file2, code2);
@@ -249147,7 +249161,7 @@ function resolverEntries(file2, code2, typeFields, withRest = true, hono = false
       const named = clause?.namedBindings;
       if (named && import_typescript9.default.isNamespaceImport(named)) imports.add(`${spec}|* as ${named.name.text}`);
       if (named && import_typescript9.default.isNamedImports(named)) for (const el of named.elements) imports.add(`${spec}|${(el.propertyName ?? el.name).text} as ${el.name.text}`);
-      if (named && import_typescript9.default.isNamedImports(named)) {
+      if (named && import_typescript9.default.isNamedImports(named) && isHonoModule(spec)) {
         for (const el of named.elements) if ((el.propertyName ?? el.name).text === "Hono") honoNames.add(el.name.text);
       }
       removed.push([statement.getStart(sf), statement.end]);
@@ -249169,17 +249183,19 @@ function resolverEntries(file2, code2, typeFields, withRest = true, hono = false
     if (!object2) {
       const text = blank(statement);
       items.push(text);
-      if (!inertStatement(statement, honoNames) && text.replace(/;$/, "") !== "") loadCode.push(text);
+      if (runsCode(statement, honoNames) && text.replace(/;$/, "") !== "") loadCode.push(text);
       continue;
     }
     for (const prop of object2.properties) {
       items.push(blank(prop));
-      if (!inertProperty(prop, honoNames)) loadCode.push(blank(prop));
+      if (runsCode(prop, honoNames)) loadCode.push(blank(prop));
     }
     items.push(blank(statement).replace(blank(object2), "{}"));
   }
-  const impure = new Set(nodes.flatMap((n) => "receiver" in n && !plainChain(n.receiver) ? [n.key] : []));
-  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, loadCode, imports, mounts: new Map(mounts.map((m) => [m.id, { id: m.id, prefix: m.prefix, plain: m.plain }])), impure };
+  const rest = nodes.filter((n) => "receiver" in n);
+  const impure = new Set(rest.filter((n) => !plainChain(n.receiver) || import_typescript9.default.isCallExpression(n.node) && n.node.arguments.some((a) => runsCode(a, honoNames))).map((n) => n.key));
+  const middleware = new Set(rest.filter(middlewareLike).map((n) => n.key));
+  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, loadCode, imports, mounts: new Map(mounts.map((m) => [m.id, { id: m.id, prefix: m.prefix, plain: m.plain }])), impure, middleware };
 }
 function stripComments(code2) {
   const scanner = import_typescript9.default.createScanner(import_typescript9.default.ScriptTarget.Latest, false, import_typescript9.default.LanguageVariant.Standard, code2);
@@ -249211,7 +249227,8 @@ function diffResolvers(base, head) {
       ...[...base.mounts.values()].filter((m) => !head.mounts.has(m.id)).map((m) => `mount ${m.prefix} was removed`),
       ...head.loadCode.filter((c) => !base.rest.includes(c)).map((c) => `code that runs when the file loads was added: ${c.length > 80 ? `${c.slice(0, 77)}...` : c}`),
       ...[...head.imports].filter((i) => i.endsWith("|") && !base.imports.has(i)).map((i) => `side-effect import ${i.slice(0, -1)} was added: it runs that module when the file loads`),
-      ...[...head.impure].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added on a chain that runs other code`)
+      ...[...head.impure].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added with code that runs when it is registered (a call in its chain or arguments)`),
+      ...[...head.middleware].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added as middleware (it can call next): it runs for other endpoints`)
     ])
   };
 }

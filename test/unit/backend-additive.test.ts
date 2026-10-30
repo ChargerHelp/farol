@@ -29,6 +29,9 @@ describe('what a new Hono mount touches', () => {
     ['a parameter route (it only shadows, like a new handler)', "  routes.get('/:slug', (c) => c.text(''))", []],
     ['a handler that calls next', "  routes.get('/audit', async (_c, next) => next())", ['GET /items/:id', 'GET /whoami']],
     ['a route with the key of an existing endpoint', "  routes.get('/whoami', (c) => c.text('other'))", ['GET /whoami']],
+    ['an ALL route on the path of an existing endpoint', "  routes.all('/whoami', (c) => c.text('other'))", ['GET /whoami']],
+    ['a named handler that calls next on a wildcard', "  const pass = async (_c: unknown, next: () => Promise<void>) => next()\n  routes.all('*', pass)", ['GET /items/:id', 'GET /whoami']],
+    ['a named handler without next on a wildcard', "  const page = (c: { text: (s: string) => unknown }) => c.text('')\n  routes.get('*', page)", []],
   ])('a sub-app with %s', (_name, sub, expected) => {
     expect(touchedBy(sub)).toEqual(expected)
   })
@@ -50,6 +53,8 @@ describe('new code in an existing REST file', () => {
     ['a new Hono app', 'export const pong = new Hono()'],
     ['a type', 'type Id = string'],
     ['a named import', "import { other } from './other'"],
+    ['an export to module.exports', 'module.exports.helper = () => 1'],
+    ['a class whose instance fields call code', 'class Store {\n  items = load()\n}'],
   ])('%s is additive', (_name, code) => {
     expect(problems(`${base}${code}\n`)).toEqual([])
   })
@@ -61,7 +66,16 @@ describe('new code in an existing REST file', () => {
     ['a top-level await', 'await warmUp()'],
     ['a side-effect import', "import './instrument'"],
     ['a handler on a chain that runs middleware', "ping.use('*', guard).get('/pong', (c) => c.text('ping'))"],
+    ['a handler with a call in its arguments', "ping.get('/pong', rateLimit({ max: 1 }), (c) => c.text('ping'))"],
+    ['a default value built by a call', 'const { a = boot() } = config'],
+    ['a class built from a call', 'class Store extends mixin() {}'],
+    ['an enum member built by a call', 'enum Level {\n  A = compute(),\n}'],
+    ['an assignment to a global', 'globalThis.ready = true'],
+    ['a class with static code', 'const Cache = class {\n  static shared = init()\n}'],
+    ['a new app of another Hono', "import { Hono as Other } from './my-hono'\nexport const pong = new Other()"],
+    ['a handler that calls next', "ping.all('*', async (_c, next) => next())"],
+    ['a named handler on a wildcard', "ping.get('*', fallback)"],
   ])('%s runs when the file loads', (_name, code) => {
-    expect(problems(`${base}${code}\n`)).toEqual([expect.stringMatching(/when the file loads|runs other code/)])
+    expect(problems(`${base}${code}\n`)).toEqual([expect.stringMatching(/when the file loads|when it is registered|as middleware/)])
   })
 })

@@ -1,7 +1,7 @@
 import ts from 'typescript'
 import { compareStrings, sortedUnique } from '../output/order.js'
-import { isStaticValue, parseIsolated, unwrap } from '../project/parse.js'
-import { importsHono, mountNodes } from './hono.js'
+import { parseIsolated, unwrap } from '../project/parse.js'
+import { importsHono, isHonoModule, mountNodes } from './hono.js'
 import { plainChain, restNodes, type RestNode } from './rest.js'
 
 /** One resolver of a resolver map: `Type.field` and the code that implements it. */
@@ -66,32 +66,45 @@ export function entryNodes(sf: ts.SourceFile, typeFields: ReadonlyMap<string, Re
   return [...resolverNodes(sf, typeFields), ...(rest ? restNodes(sf) : [])]
 }
 
-/** A value whose evaluation runs no code of its own: static values, functions, `require('x')`, gql templates, `new Hono()`, and objects or arrays of them. */
-function inertValue(e: ts.Expression, honoNames: ReadonlySet<string>): boolean {
-  const x = unwrap(e)
-  const value = (v: ts.Expression): boolean => inertValue(v, honoNames)
-  if (ts.isArrowFunction(x) || ts.isFunctionExpression(x) || ts.isClassExpression(x)) return true
-  if (ts.isObjectLiteralExpression(x)) return x.properties.every((p) => inertProperty(p, honoNames))
-  if (ts.isArrayLiteralExpression(x)) return x.elements.every((el) => !ts.isSpreadElement(el) && value(el))
-  if (ts.isCallExpression(x) && ts.isIdentifier(x.expression) && x.expression.text === 'require') return x.arguments.length === 1 && x.arguments[0] !== undefined && ts.isStringLiteral(x.arguments[0])
-  if (ts.isTaggedTemplateExpression(x)) return ts.isIdentifier(x.tag) && (x.tag.text === 'gql' || x.tag.text === 'graphql') && (ts.isNoSubstitutionTemplateLiteral(x.template) || x.template.templateSpans.every((t) => ts.isIdentifier(t.expression)))
-  if (ts.isNewExpression(x) && ts.isIdentifier(x.expression) && honoNames.has(x.expression.text)) return (x.arguments ?? []).every((a) => isStaticValue(a, 0, false))
-  return isStaticValue(x, 0, false)
+/** `module.exports`, `module.exports.x`, `exports.x`: assigning there only exports. */
+function isExportTarget(e: ts.Expression): boolean {
+  const chain = ts.isPropertyAccessExpression(e) ? accessChain(e) : []
+  return chain[0] === 'exports' || (chain[0] === 'module' && chain[1] === 'exports')
 }
 
-function inertProperty(p: ts.ObjectLiteralElementLike, honoNames: ReadonlySet<string>): boolean {
-  return ts.isMethodDeclaration(p) || ts.isAccessor(p) || ts.isShorthandPropertyAssignment(p) || (ts.isPropertyAssignment(p) && !ts.isComputedPropertyName(p.name) && inertValue(p.initializer, honoNames))
+/**
+ * Whether evaluating a node runs code when the file loads: a call, `new`, a tagged template, `await`, a decorator, an
+ * assignment or static class code, outside function bodies. `require('x')`, `gql` templates and `new Hono()` of a hono
+ * package do not count; nor do instance fields (they run when an object is built).
+ */
+export function runsCode(node: ts.Node, honoNames: ReadonlySet<string>): boolean {
+  const runs = (n: ts.Node | undefined): boolean => n !== undefined && runsCode(n, honoNames)
+  // `class A extends mixin()` evaluates its base class (an `ExpressionWithTypeArguments`, which is also a type node).
+  if (ts.isExpressionWithTypeArguments(node) && ts.isHeritageClause(node.parent) && node.parent.token === ts.SyntaxKind.ExtendsKeyword && ts.isClassLike(node.parent.parent)) return runs(node.expression)
+  if (ts.isTypeNode(node) || ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) return false
+  if (ts.isDecorator(node) || ts.isClassStaticBlockDeclaration(node) || ts.isAwaitExpression(node) || ts.isYieldExpression(node) || ts.isDeleteExpression(node)) return true
+  if (ts.isFunctionLike(node)) return (ts.canHaveDecorators(node) && (ts.getDecorators(node) ?? []).length > 0) || (node.name !== undefined && ts.isComputedPropertyName(node.name) && runs(node.name.expression))
+  if (ts.isPropertyDeclaration(node)) return (ts.getDecorators(node) ?? []).length > 0 || (ts.isComputedPropertyName(node.name) && runs(node.name.expression)) || (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Static ? runs(node.initializer) : false)
+  if (ts.isCallExpression(node)) return !(ts.isIdentifier(node.expression) && node.expression.text === 'require' && node.arguments.length === 1 && node.arguments[0] !== undefined && ts.isStringLiteral(node.arguments[0]))
+  if (ts.isNewExpression(node)) return !(ts.isIdentifier(node.expression) && honoNames.has(node.expression.text)) || (node.arguments ?? []).some(runs)
+  if (ts.isTaggedTemplateExpression(node)) return !(ts.isIdentifier(node.tag) && (node.tag.text === 'gql' || node.tag.text === 'graphql')) || runs(node.template)
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment) return !(node.operatorToken.kind === ts.SyntaxKind.EqualsToken && isExportTarget(node.left)) || runs(node.right)
+  if ((ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) && (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken)) return true
+  return ts.forEachChild(node, (child) => (runs(child) ? true : undefined)) ?? false
 }
 
-/** A top-level statement that runs no code when the file loads: declarations and constants with inert values. */
-function inertStatement(s: ts.Statement, honoNames: ReadonlySet<string>): boolean {
-  if (ts.isFunctionDeclaration(s) || ts.isInterfaceDeclaration(s) || ts.isTypeAliasDeclaration(s) || ts.isEnumDeclaration(s) || ts.isEmptyStatement(s) || ts.isExportDeclaration(s) || ts.isImportEqualsDeclaration(s)) return true
-  if (ts.isModuleDeclaration(s)) return s.modifiers?.some((m) => m.kind === ts.SyntaxKind.DeclareKeyword) ?? false
-  if (ts.isClassDeclaration(s)) return (ts.getDecorators(s) ?? []).length === 0 && s.members.every((m) => !ts.isClassStaticBlockDeclaration(m) && !(ts.isPropertyDeclaration(m) && m.initializer && ts.getCombinedModifierFlags(m) & ts.ModifierFlags.Static && !inertValue(m.initializer, honoNames)))
-  if (ts.isVariableStatement(s)) return s.declarationList.declarations.every((d) => !d.initializer || inertValue(d.initializer, honoNames))
-  if (ts.isExportAssignment(s)) return inertValue(s.expression, honoNames)
-  const e = ts.isExpressionStatement(s) ? s.expression : undefined
-  return e !== undefined && ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.EqualsToken && inertValue(e.right, honoNames)
+/** A REST handler that can pass a request on (`next`), so it runs for other endpoints: inline with two parameters, or not inline on `all` or a `*` path. */
+function middlewareLike(n: RestNode): boolean {
+  const call = n.node
+  if (!ts.isCallExpression(call)) return false
+  const x = unwrap(n.value as ts.Expression)
+  if (ts.isArrowFunction(x) || ts.isFunctionExpression(x)) return x.parameters.length >= 2 || call.arguments.some((a) => takesNext(a))
+  return n.key.startsWith('ALL ') || n.key.includes('*')
+}
+
+function takesNext(a: ts.Expression): boolean {
+  const x = unwrap(a)
+  return (ts.isArrowFunction(x) || ts.isFunctionExpression(x)) && x.parameters.length >= 2
 }
 
 /** A Hono mount of a file version: its prefix as written and whether adding it runs no other code. */
@@ -111,7 +124,7 @@ export function resolverEntries(
   typeFields: ReadonlyMap<string, ReadonlySet<string>>,
   withRest = true,
   hono = false,
-): { entries: ResolverEntry[]; rest: string[]; loadCode: string[]; imports: Set<string>; mounts: Map<string, MountEntry>; impure: Set<string> } {
+): { entries: ResolverEntry[]; rest: string[]; loadCode: string[]; imports: Set<string>; mounts: Map<string, MountEntry>; impure: Set<string>; middleware: Set<string> } {
   const { sourceFile: sf } = parseIsolated(file, code)
   const nodes = entryNodes(sf, typeFields, withRest)
   const entries = nodes.map(({ key, node }) => ({ key, file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, text: normalized(node, sf) }))
@@ -132,7 +145,7 @@ export function resolverEntries(
       const named = clause?.namedBindings
       if (named && ts.isNamespaceImport(named)) imports.add(`${spec}|* as ${named.name.text}`)
       if (named && ts.isNamedImports(named)) for (const el of named.elements) imports.add(`${spec}|${(el.propertyName ?? el.name).text} as ${el.name.text}`)
-      if (named && ts.isNamedImports(named)) for (const el of named.elements) if ((el.propertyName ?? el.name).text === 'Hono') honoNames.add(el.name.text)
+      if (named && ts.isNamedImports(named) && isHonoModule(spec)) for (const el of named.elements) if ((el.propertyName ?? el.name).text === 'Hono') honoNames.add(el.name.text)
       removed.push([statement.getStart(sf), statement.end])
     }
   }
@@ -156,18 +169,21 @@ export function resolverEntries(
     if (!object) {
       const text = blank(statement)
       items.push(text)
-      if (!inertStatement(statement, honoNames) && text.replace(/;$/, '') !== '') loadCode.push(text)
+      if (runsCode(statement, honoNames) && text.replace(/;$/, '') !== '') loadCode.push(text)
       continue
     }
     for (const prop of object.properties) {
       items.push(blank(prop))
-      if (!inertProperty(prop, honoNames)) loadCode.push(blank(prop))
+      if (runsCode(prop, honoNames)) loadCode.push(blank(prop))
     }
     items.push(blank(statement).replace(blank(object), '{}'))
   }
-  // Handlers registered on a chain that runs other code (`app.use(mw).get(…)`): the chain is blanked with the handler.
-  const impure = new Set(nodes.flatMap((n) => ('receiver' in n && !plainChain(n.receiver) ? [n.key] : [])))
-  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, loadCode, imports, mounts: new Map(mounts.map((m) => [m.id, { id: m.id, prefix: m.prefix, plain: m.plain }])), impure }
+  // Handlers whose registration runs other code (`app.use(mw).get(…)`, `get('/x', rateLimit(), h)`): the chain and the
+  // arguments are blanked with the handler. Handlers that can call `next` run for other endpoints.
+  const rest = nodes.filter((n): n is RestNode => 'receiver' in n)
+  const impure = new Set(rest.filter((n) => !plainChain(n.receiver) || (ts.isCallExpression(n.node) && n.node.arguments.some((a) => runsCode(a, honoNames)))).map((n) => n.key))
+  const middleware = new Set(rest.filter(middlewareLike).map((n) => n.key))
+  return { entries: entries.sort((a, b) => compareStrings(a.key, b.key)), rest: items, loadCode, imports, mounts: new Map(mounts.map((m) => [m.id, { id: m.id, prefix: m.prefix, plain: m.plain }])), impure, middleware }
 }
 
 /** Code without comments (they never change behavior), tokenized with the TypeScript scanner so strings stay intact. */
@@ -217,7 +233,8 @@ export function diffResolvers(base: ReturnType<typeof resolverEntries>, head: Re
       ...[...base.mounts.values()].filter((m) => !head.mounts.has(m.id)).map((m) => `mount ${m.prefix} was removed`),
       ...head.loadCode.filter((c) => !base.rest.includes(c)).map((c) => `code that runs when the file loads was added: ${c.length > 80 ? `${c.slice(0, 77)}...` : c}`),
       ...[...head.imports].filter((i) => i.endsWith('|') && !base.imports.has(i)).map((i) => `side-effect import ${i.slice(0, -1)} was added: it runs that module when the file loads`),
-      ...[...head.impure].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added on a chain that runs other code`),
+      ...[...head.impure].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added with code that runs when it is registered (a call in its chain or arguments)`),
+      ...[...head.middleware].filter((k) => !before.has(k)).map((k) => `endpoint ${k} was added as middleware (it can call next): it runs for other endpoints`),
     ]),
   }
 }

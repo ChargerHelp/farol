@@ -128,7 +128,9 @@ export function mountImpacts(table: MountTable, mounts: readonly AddedMount[], b
   for (const m of mounts) {
     const bases = table.mountBases(m.id)
     const reached = table.mountMiddleware(m.id) ? [...baseRest].filter((k) => bases.some((b) => overlaps(pathOf(k), b))) : []
-    const covered = sortedUnique([...reached, ...table.mountKeys(m.id).filter((k) => baseRest.has(k))])
+    const keys = table.mountKeys(m.id)
+    const collides = (k: string): boolean => keys.some((n) => n === k || (pathOf(n) === pathOf(k) && (n.startsWith('ALL ') || k.startsWith('ALL '))))
+    const covered = sortedUnique([...reached, ...[...baseRest].filter(collides)])
     const problems = [
       ...(m.plain ? [] : [`mount ${m.prefix} was added with a call in its arguments: that code is not compared`]),
       ...(bases.length === 0 ? [`mount ${m.prefix} was added: farol cannot compute its full paths`] : []),
