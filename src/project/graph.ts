@@ -51,6 +51,24 @@ export interface ImportGraph {
   reexportOnly: string[]
 }
 
+/**
+ * Adds `static` edges the import statements do not show (such as a use of a global). An edge to its own file, or one
+ * the graph already has, is not added. Nodes and edges stay sorted.
+ */
+export function addStaticEdges(graph: ImportGraph, edges: readonly { from: string; to: string }[]): void {
+  const keys = new Set(graph.edges.filter((e) => e.kind === 'static').map((e) => `${e.from}\0${e.to}`))
+  const added = edges.filter((e) => {
+    const key = `${e.from}\0${e.to}`
+    if (e.from === e.to || keys.has(key)) return false
+    keys.add(key)
+    return true
+  })
+  if (added.length === 0) return
+  graph.edges.push(...added.map((e) => ({ from: e.from, to: e.to, kind: 'static' as const })))
+  graph.edges.sort((a, b) => compareStrings(a.from, b.from) || compareStrings(a.to, b.to) || compareStrings(a.kind, b.kind))
+  graph.nodes = [...new Set([...graph.nodes, ...added.map((e) => e.to)])].sort(compareStrings)
+}
+
 export interface GraphOptions {
   repoRoot: string
   /** Whether imports of this repo-relative file count (tests, stories and excluded files are not callers). */

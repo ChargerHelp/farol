@@ -66,6 +66,8 @@ const SCENARIOS: Record<string, { classification: Output['classification']; affe
   'b11-hono': { classification: 'touches-existing', affected: ['GET /admin/api/prompts'] },
   // A Kafka handler named in backend.entries calls a use case it only imports as a type.
   'b13-entries': { classification: 'touches-existing', affected: ['CONSUMER src/consumers/signal.handler.ts'] },
+  // The use case holds the repository only as an interface; the class that implements it is wired in main.ts.
+  'b14-implements': { classification: 'touches-existing', affected: ['GET /items'] },
 }
 
 describe('backend scenarios (GraphQL and REST)', () => {
