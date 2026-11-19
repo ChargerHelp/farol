@@ -58,6 +58,20 @@ describe('reach through interface implementations', () => {
     expect(affected(o)).toEqual(['GET /items'])
   })
 
+  it('a port written as a type alias of an object type reaches the class that implements it', async () => {
+    const o = await pr(changeFind, (repo) => {
+      repo.write('src/ports/item-repository.port.ts', 'export type IItemRepository = {\n  find(): Promise<string[]>\n}\n')
+    })
+    expect(affected(o)).toEqual(['GET /items'])
+  })
+
+  it('a use case that destructures the member from the port still reaches the class', async () => {
+    const o = await pr(changeFind, (repo) => {
+      edit(repo, USE_CASE, 'return this.repo.find()', 'const { find: load } = this.repo\n    return load.call(this.repo)')
+    })
+    expect(affected(o)).toEqual(['GET /items'])
+  })
+
   it('reach follows two implementations in a row', async () => {
     const REDIS = 'src/infra/redis-cache.ts'
     const o = await pr(

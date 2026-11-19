@@ -90,6 +90,8 @@ type Readonly<T> = { readonly [P in keyof T]: T[P] }
 type Exclude<T, U> = T extends U ? never : T
 type Omit<T, K extends keyof any> = Pick<T, Exclude<keyof T, K>>
 `
+/** Files the host serves from memory, by absolute path. */
+const VIRTUAL_FILES = new Map([[UTILITY_TYPES_FILE, UTILITY_TYPES]])
 
 /**
  * Creates the TypeScript program of the project. Only module resolution options matter for the analysis,
@@ -121,11 +123,11 @@ export function createProjectProgram(input: { fs: ProjectFileSystem; projectDir:
   host.getDefaultLibFileName = () => posix.join(projectDir, '__farol_no_lib__.d.ts')
   host.writeFile = () => undefined
   host.getSourceFile = (fileName, languageVersionOrOptions) => {
-    const text = fileName === UTILITY_TYPES_FILE ? UTILITY_TYPES : fs.readFile(fileName)
+    const text = VIRTUAL_FILES.get(fileName) ?? fs.readFile(fileName)
     return text === undefined ? undefined : ts.createSourceFile(fileName, text, languageVersionOrOptions, true)
   }
   const rootNames = input.anchorFile === undefined || parsed.fileNames.includes(input.anchorFile) ? parsed.fileNames : [...parsed.fileNames, input.anchorFile]
-  const program = ts.createProgram({ rootNames: [...rootNames, UTILITY_TYPES_FILE], options, host, projectReferences: undefined })
+  const program = ts.createProgram({ rootNames: [...rootNames, ...VIRTUAL_FILES.keys()], options, host, projectReferences: undefined })
   const resolutionCache = ts.createModuleResolutionCache(projectDir, (f) => f, options)
   return { program, options, configPath, resolutionHost: host, resolutionCache, fs }
 }

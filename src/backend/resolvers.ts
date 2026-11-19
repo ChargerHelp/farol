@@ -303,21 +303,25 @@ export function accessChain(node: ts.PropertyAccessExpression): string[] {
 
 const TYPE_ONLY = new Set([ts.SyntaxKind.InterfaceDeclaration, ts.SyntaxKind.TypeAliasDeclaration, ts.SyntaxKind.PropertySignature, ts.SyntaxKind.MethodSignature, ts.SyntaxKind.TypeParameter, ts.SyntaxKind.TypeLiteral])
 
+/** What `resolverAnchors` needs besides the code: every source of uses is required, so none is left out by mistake. */
+export interface AnchorSources {
+  checker: ts.TypeChecker
+  isProjectFile: (fileName: string) => boolean
+  rel: (fileName: string) => string
+  globals: ReadonlyMap<string, string>
+  /** Context properties (`loaders.X…`) → provider files. */
+  context: (chain: readonly string[]) => readonly string[]
+  /** Interface members → the files of the classes that implement them. */
+  implemented: (symbol: ts.Symbol | undefined) => readonly string[]
+}
+
 /**
  * Project modules a resolver uses: every identifier in its code resolved with the type checker to its declaration
  * (through imports and re-exports), following functions declared in the same file. Free identifiers that name a
- * global set with `global.X = …` count as uses of the module that sets it. A member of an interface counts as a use
+ * global set with `global.X = …` count as uses of the module that sets it. A member of a port counts as a use
  * of the files that `implemented` gives for it.
  */
-export function resolverAnchors(
-  value: ts.Node,
-  checker: ts.TypeChecker,
-  isProjectFile: (fileName: string) => boolean,
-  rel: (fileName: string) => string,
-  globals: ReadonlyMap<string, string>,
-  context: (chain: readonly string[]) => readonly string[] = () => [],
-  implemented: (symbol: ts.Symbol | undefined) => readonly string[] = () => [],
-): string[] {
+export function resolverAnchors(value: ts.Node, { checker, isProjectFile, rel, globals, context, implemented }: AnchorSources): string[] {
   const own = value.getSourceFile()
   const modules = new Set<string>()
   const seen = new Set<ts.Node>()

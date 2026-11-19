@@ -249630,7 +249630,7 @@ function accessChain(node2) {
   return parts;
 }
 var TYPE_ONLY = /* @__PURE__ */ new Set([import_typescript13.default.SyntaxKind.InterfaceDeclaration, import_typescript13.default.SyntaxKind.TypeAliasDeclaration, import_typescript13.default.SyntaxKind.PropertySignature, import_typescript13.default.SyntaxKind.MethodSignature, import_typescript13.default.SyntaxKind.TypeParameter, import_typescript13.default.SyntaxKind.TypeLiteral]);
-function resolverAnchors(value, checker, isProjectFile, rel, globals, context = () => [], implemented = () => []) {
+function resolverAnchors(value, { checker, isProjectFile, rel, globals, context, implemented }) {
   const own2 = value.getSourceFile();
   const modules = /* @__PURE__ */ new Set();
   const seen = /* @__PURE__ */ new Set();
@@ -250514,25 +250514,38 @@ function usesGlobal(sf, name, checker) {
   visit3(sf);
   return found;
 }
+function globalUses(project, globals, rel, isProjectFile) {
+  if (globals.size === 0) return [];
+  const checker = project.program.getTypeChecker();
+  const edges = [];
+  for (const sf of project.program.getSourceFiles()) {
+    if (!isProjectFile(sf.fileName) || sf.isDeclarationFile) continue;
+    const from = rel(sf.fileName);
+    for (const [name, to] of globals) {
+      if (to !== from && sf.text.includes(name) && usesGlobal(sf, name, checker)) edges.push({ from, to });
+    }
+  }
+  return edges;
+}
 
 // src/backend/implements.ts
 var import_typescript17 = __toESM(require_typescript(), 1);
-var isInterfaceMember = (d) => (import_typescript17.default.isMethodSignature(d) || import_typescript17.default.isPropertySignature(d)) && import_typescript17.default.isInterfaceDeclaration(d.parent);
+var isPortMember = (d) => (import_typescript17.default.isMethodSignature(d) || import_typescript17.default.isPropertySignature(d)) && (import_typescript17.default.isInterfaceDeclaration(d.parent) || import_typescript17.default.isTypeLiteralNode(d.parent) && import_typescript17.default.isTypeAliasDeclaration(d.parent.parent));
+function portMembers(expr, checker, isProjectFile) {
+  return checker.getPropertiesOfType(checker.getTypeAtLocation(expr)).flatMap(
+    (property) => (property.declarations ?? []).filter((d) => isPortMember(d) && isProjectFile(d.getSourceFile().fileName) && !d.getSourceFile().isDeclarationFile).map((d) => [d, property.name])
+  );
+}
 function implementersOf(files, checker, isProjectFile, rel) {
   const byDeclaration = /* @__PURE__ */ new Map();
   const names = /* @__PURE__ */ new Set();
   for (const sf of files) {
     const file2 = rel(sf.fileName);
     const visit3 = (node2) => {
-      if (import_typescript17.default.isHeritageClause(node2) && node2.token === import_typescript17.default.SyntaxKind.ImplementsKeyword && import_typescript17.default.isClassLike(node2.parent)) {
-        for (const expr of node2.types) {
-          for (const property of checker.getPropertiesOfType(checker.getTypeAtLocation(expr))) {
-            for (const d of property.declarations ?? []) {
-              if (!isInterfaceMember(d) || !isProjectFile(d.getSourceFile().fileName) || d.getSourceFile().isDeclarationFile) continue;
-              byDeclaration.set(d, (byDeclaration.get(d) ?? /* @__PURE__ */ new Set()).add(file2));
-              names.add(property.name);
-            }
-          }
+      if (import_typescript17.default.isHeritageClause(node2) && node2.token === import_typescript17.default.SyntaxKind.ImplementsKeyword) {
+        for (const [d, name] of node2.types.flatMap((expr) => portMembers(expr, checker, isProjectFile))) {
+          byDeclaration.set(d, (byDeclaration.get(d) ?? /* @__PURE__ */ new Set()).add(file2));
+          names.add(name);
         }
       }
       import_typescript17.default.forEachChild(node2, visit3);
@@ -250540,10 +250553,10 @@ function implementersOf(files, checker, isProjectFile, rel) {
     visit3(sf);
   }
   const sorted2 = new Map([...byDeclaration].map(([d, f]) => [d, sortedUnique(f)]));
-  return { names, filesOf: (d) => sorted2.get(d) ?? [] };
-}
-function implementingFiles(implementers, symbol2) {
-  return sortedUnique((symbol2?.declarations ?? []).flatMap((d) => implementers.filesOf(d)));
+  return {
+    names,
+    filesFor: (symbol2) => symbol2 === void 0 || !names.has(symbol2.name) ? [] : sortedUnique((symbol2.declarations ?? []).flatMap((d) => sorted2.get(d) ?? []))
+  };
 }
 function implementationUses(files, checker, implementers, rel) {
   if (implementers.names.size === 0) return [];
@@ -250551,8 +250564,9 @@ function implementationUses(files, checker, implementers, rel) {
   for (const sf of files) {
     const from = rel(sf.fileName);
     const visit3 = (node2) => {
-      if (import_typescript17.default.isIdentifier(node2) && implementers.names.has(node2.text) && import_typescript17.default.isPropertyAccessExpression(node2.parent) && node2.parent.name === node2) {
-        for (const to of implementingFiles(implementers, checker.getSymbolAtLocation(node2))) if (to !== from) edges.set(`${from}\0${to}`, { from, to });
+      if (import_typescript17.default.isTypeNode(node2) || import_typescript17.default.isTypeAliasDeclaration(node2) || import_typescript17.default.isInterfaceDeclaration(node2)) return;
+      if (import_typescript17.default.isIdentifier(node2) && implementers.names.has(node2.text)) {
+        for (const to of implementers.filesFor(checker.getSymbolAtLocation(node2))) if (to !== from) edges.set(`${from}\0${to}`, { from, to });
       }
       import_typescript17.default.forEachChild(node2, visit3);
     };
@@ -250628,7 +250642,7 @@ function buildBackendTable(input2) {
   };
   const checker = input2.project.program.getTypeChecker();
   const implementers = implementersOf(programFiles, checker, isProjectFile, rel);
-  const anchorsOf = (node2) => resolverAnchors(node2, checker, isProjectFile, rel, globals, contextOf, (s) => implementingFiles(implementers, s));
+  const anchorsOf = (node2) => resolverAnchors(node2, { checker, isProjectFile, rel, globals, context: contextOf, implemented: implementers.filesFor });
   const argumentModules = (arg) => {
     const own2 = arg.getSourceFile();
     const followed = /* @__PURE__ */ new Set([arg]);
@@ -250718,8 +250732,7 @@ function buildBackendTable(input2) {
     resolverFiles,
     schemaFiles,
     schemaDocs: docs,
-    globals,
-    implementers,
+    extraEdges: [...globalUses(input2.project, globals, rel, isProjectFile), ...implementationUses(programFiles, checker, implementers, rel)],
     problems: problems.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line),
     dynamic: dynamic.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.detail, b.detail)),
     restKeysWithout: (mounts, without) => new Set(restKeys(mounts, without).keys()),
@@ -250734,19 +250747,6 @@ function buildBackendTable(input2) {
       return sortedUnique([...under, ...entries.filter((e) => e.modules.includes(file2)).map((e) => e.key)]);
     }
   };
-}
-function globalUses(project, globals, rel, isProjectFile) {
-  if (globals.size === 0) return [];
-  const checker = project.program.getTypeChecker();
-  const edges = [];
-  for (const sf of project.program.getSourceFiles()) {
-    if (!isProjectFile(sf.fileName) || sf.isDeclarationFile) continue;
-    const from = rel(sf.fileName);
-    for (const [name, to] of globals) {
-      if (to !== from && sf.text.includes(name) && usesGlobal(sf, name, checker)) edges.push({ from, to });
-    }
-  }
-  return edges;
 }
 
 // src/classify/roles.ts
@@ -250808,6 +250808,19 @@ function createIgnoreMatcher(globs3) {
 // src/project/graph.ts
 var import_typescript19 = __toESM(require_typescript(), 1);
 import { posix as posix11 } from "path";
+function addStaticEdges(graph, edges) {
+  const keys = new Set(graph.edges.filter((e) => e.kind === "static").map((e) => `${e.from}\0${e.to}`));
+  const added = edges.filter((e) => {
+    const key = `${e.from}\0${e.to}`;
+    if (e.from === e.to || keys.has(key)) return false;
+    keys.add(key);
+    return true;
+  });
+  if (added.length === 0) return;
+  graph.edges.push(...added.map((e) => ({ from: e.from, to: e.to, kind: "static" })));
+  graph.edges.sort((a, b) => compareStrings(a.from, b.from) || compareStrings(a.to, b.to) || compareStrings(a.kind, b.kind));
+  graph.nodes = [.../* @__PURE__ */ new Set([...graph.nodes, ...added.map((e) => e.to)])].sort(compareStrings);
+}
 function lineOf(sf, node2) {
   return sf.getLineAndCharacterOfPosition(node2.getStart(sf)).line + 1;
 }
@@ -251026,6 +251039,7 @@ type Readonly<T> = { readonly [P in keyof T]: T[P] }
 type Exclude<T, U> = T extends U ? never : T
 type Omit<T, K extends keyof any> = Pick<T, Exclude<keyof T, K>>
 `;
+var VIRTUAL_FILES = /* @__PURE__ */ new Map([[UTILITY_TYPES_FILE, UTILITY_TYPES]]);
 function createProjectProgram(input2) {
   const { fs: fs2, projectDir } = input2;
   const { parsed, configPath } = selectConfig(input2.tsconfigPath, input2.anchorFile, fs2, projectDir);
@@ -251052,11 +251066,11 @@ function createProjectProgram(input2) {
   host.getDefaultLibFileName = () => posix12.join(projectDir, "__farol_no_lib__.d.ts");
   host.writeFile = () => void 0;
   host.getSourceFile = (fileName, languageVersionOrOptions) => {
-    const text = fileName === UTILITY_TYPES_FILE ? UTILITY_TYPES : fs2.readFile(fileName);
+    const text = VIRTUAL_FILES.get(fileName) ?? fs2.readFile(fileName);
     return text === void 0 ? void 0 : import_typescript20.default.createSourceFile(fileName, text, languageVersionOrOptions, true);
   };
   const rootNames = input2.anchorFile === void 0 || parsed.fileNames.includes(input2.anchorFile) ? parsed.fileNames : [...parsed.fileNames, input2.anchorFile];
-  const program3 = import_typescript20.default.createProgram({ rootNames: [...rootNames, UTILITY_TYPES_FILE], options, host, projectReferences: void 0 });
+  const program3 = import_typescript20.default.createProgram({ rootNames: [...rootNames, ...VIRTUAL_FILES.keys()], options, host, projectReferences: void 0 });
   const resolutionCache = import_typescript20.default.createModuleResolutionCache(projectDir, (f) => f, options);
   return { program: program3, options, configPath, resolutionHost: host, resolutionCache, fs: fs2 };
 }
@@ -252078,25 +252092,7 @@ function loadBackendWorkspace(ctx, fs2, treeFiles, lap) {
   lap("graph");
   const files = (treeFiles ?? diskFiles(projectDir, repoRoot2)).filter((f) => ctx.projectPrefix === "" || f.startsWith(`${ctx.projectPrefix}/`));
   const backend = buildBackendTable({ project, repoRoot: repoRoot2, files, read: (f) => fs2.readFile(posix15.join(repoRoot2, f)), isOrigin, graphql: ctx.config.backend.graphql, rest: ctx.config.backend.rest, context: projectGlobs(ctx, ctx.config.backend.context), entries: projectGlobs(ctx, ctx.config.backend.entries) });
-  const rel = (fileName) => posix15.relative(repoRoot2, toPosix(fileName));
-  const isProjectFile = (fileName) => isProjectPath(repoRoot2, fileName);
-  const originFiles = project.program.getSourceFiles().filter((sf) => isProjectFile(sf.fileName) && !sf.isDeclarationFile && isOrigin(rel(sf.fileName)));
-  const existing = new Set(graph.edges.filter((e) => e.kind === "static").map((e) => `${e.from}\0${e.to}`));
-  const extra = [...globalUses(project, backend.globals, rel, isProjectFile), ...implementationUses(originFiles, project.program.getTypeChecker(), backend.implementers, rel)].filter((e) => {
-    const key = `${e.from}\0${e.to}`;
-    if (existing.has(key)) return false;
-    existing.add(key);
-    return true;
-  });
-  if (extra.length > 0) {
-    const nodes = new Set(graph.nodes);
-    for (const e of extra) {
-      graph.edges.push({ from: e.from, to: e.to, kind: "static" });
-      nodes.add(e.to);
-    }
-    graph.nodes = [...nodes].sort(compareStrings);
-    graph.edges.sort((a, b) => compareStrings(a.from, b.from) || compareStrings(a.to, b.to) || compareStrings(a.kind, b.kind));
-  }
+  addStaticEdges(graph, backend.extraEdges);
   for (const p of backend.problems) if (p.detail.startsWith("invalid GraphQL")) graph.parseErrors.push({ file: p.file, line: p.line, message: p.detail });
   lap("routes");
   return { fs: fs2, project, graph, routes: { routes: backend.operations, dynamic: backend.dynamic, sources: [] }, routesFile: "", backend, ...treeFiles ? { treeFiles } : {} };

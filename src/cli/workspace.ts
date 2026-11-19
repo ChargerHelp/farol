@@ -1,13 +1,12 @@
 import { readdirSync } from 'node:fs'
 import { posix } from 'node:path'
-import { buildBackendTable, globalUses, type BackendTable } from '../backend/entrypoints.js'
-import { implementationUses } from '../backend/implements.js'
+import { buildBackendTable, type BackendTable } from '../backend/entrypoints.js'
 import { compareStrings } from '../output/order.js'
 import { ECOSYSTEM_FILES, LOCKFILES, MANIFESTS } from '../classify/dependencies.js'
 import { createIgnoreMatcher, createInfraMatcher, createRoleMatcher, type AnalysisRole, type FileRole, type RoleMatcher } from '../classify/roles.js'
 import { listFiles, readFiles } from '../git/index.js'
-import { createTreeFileSystem, isProjectPath, toPosix, type ProjectFileSystem } from '../project/fs.js'
-import { buildImportGraph, type ImportGraph } from '../project/graph.js'
+import { createTreeFileSystem, toPosix, type ProjectFileSystem } from '../project/fs.js'
+import { addStaticEdges, buildImportGraph, type ImportGraph } from '../project/graph.js'
 import { createProjectProgram, type ProjectProgram } from '../project/program.js'
 import { resolveSpecifier, type ResolverContext } from '../project/resolve.js'
 import { getRouteAdapter, type ModuleResolution, type RouteTable } from '../routes/index.js'
@@ -243,27 +242,8 @@ function loadBackendWorkspace(ctx: Context, fs: ProjectFileSystem, treeFiles: st
   lap('graph')
   const files = (treeFiles ?? diskFiles(projectDir, repoRoot)).filter((f) => ctx.projectPrefix === '' || f.startsWith(`${ctx.projectPrefix}/`))
   const backend = buildBackendTable({ project, repoRoot, files, read: (f) => fs.readFile(posix.join(repoRoot, f)), isOrigin, graphql: ctx.config.backend.graphql, rest: ctx.config.backend.rest, context: projectGlobs(ctx, ctx.config.backend.context), entries: projectGlobs(ctx, ctx.config.backend.entries) })
-  // A global set with `global.X = …` (service locators such as `Core`) is an import of its module for every reader.
-  const rel = (fileName: string): string => posix.relative(repoRoot, toPosix(fileName))
-  const isProjectFile = (fileName: string): boolean => isProjectPath(repoRoot, fileName)
-  // A use of an interface member (`repo.find()`) is an import of the files of the classes that implement it.
-  const originFiles = project.program.getSourceFiles().filter((sf) => isProjectFile(sf.fileName) && !sf.isDeclarationFile && isOrigin(rel(sf.fileName)))
-  const existing = new Set(graph.edges.filter((e) => e.kind === 'static').map((e) => `${e.from}\0${e.to}`))
-  const extra = [...globalUses(project, backend.globals, rel, isProjectFile), ...implementationUses(originFiles, project.program.getTypeChecker(), backend.implementers, rel)].filter((e) => {
-    const key = `${e.from}\0${e.to}`
-    if (existing.has(key)) return false
-    existing.add(key)
-    return true
-  })
-  if (extra.length > 0) {
-    const nodes = new Set(graph.nodes)
-    for (const e of extra) {
-      graph.edges.push({ from: e.from, to: e.to, kind: 'static' })
-      nodes.add(e.to)
-    }
-    graph.nodes = [...nodes].sort(compareStrings)
-    graph.edges.sort((a, b) => compareStrings(a.from, b.from) || compareStrings(a.to, b.to) || compareStrings(a.kind, b.kind))
-  }
+  // Globals (`global.Core = …`) and port implementations (`repo.find()`) are imports the import statements do not show.
+  addStaticEdges(graph, backend.extraEdges)
   // Invalid SDL is a syntax error of its file (unknown when the file changed).
   for (const p of backend.problems) if (p.detail.startsWith('invalid GraphQL')) graph.parseErrors.push({ file: p.file, line: p.line, message: p.detail })
   lap('routes')
