@@ -79,8 +79,21 @@ function selectConfig(rootConfig: string, anchorFile: string | undefined, fs: Pr
 }
 
 /**
+ * The lib utility types that keep the members of the type they map (`Pick<IRepo, 'find'>` still has `IRepo.find`),
+ * as `lib.es5.d.ts` writes them. Outside the project directory, so no project file count includes it.
+ */
+const UTILITY_TYPES_FILE = '/__farol__/utility-types.d.ts'
+const UTILITY_TYPES = `type Pick<T, K extends keyof T> = { [P in K]: T[P] }
+type Partial<T> = { [P in keyof T]?: T[P] }
+type Required<T> = { [P in keyof T]-?: T[P] }
+type Readonly<T> = { readonly [P in keyof T]: T[P] }
+type Exclude<T, U> = T extends U ? never : T
+type Omit<T, K extends keyof any> = Pick<T, Exclude<keyof T, K>>
+`
+
+/**
  * Creates the TypeScript program of the project. Only module resolution options matter for the analysis,
- * so lib files and ambient types are never loaded (see docs/DECISIONS.md).
+ * so lib files and ambient types are never loaded, except the utility types above (see docs/DECISIONS.md).
  */
 export function createProjectProgram(input: { fs: ProjectFileSystem; projectDir: string; tsconfigPath: string; anchorFile?: string }): ProjectProgram {
   const { fs, projectDir } = input
@@ -108,11 +121,11 @@ export function createProjectProgram(input: { fs: ProjectFileSystem; projectDir:
   host.getDefaultLibFileName = () => posix.join(projectDir, '__farol_no_lib__.d.ts')
   host.writeFile = () => undefined
   host.getSourceFile = (fileName, languageVersionOrOptions) => {
-    const text = fs.readFile(fileName)
+    const text = fileName === UTILITY_TYPES_FILE ? UTILITY_TYPES : fs.readFile(fileName)
     return text === undefined ? undefined : ts.createSourceFile(fileName, text, languageVersionOrOptions, true)
   }
   const rootNames = input.anchorFile === undefined || parsed.fileNames.includes(input.anchorFile) ? parsed.fileNames : [...parsed.fileNames, input.anchorFile]
-  const program = ts.createProgram({ rootNames, options, host, projectReferences: undefined })
+  const program = ts.createProgram({ rootNames: [...rootNames, UTILITY_TYPES_FILE], options, host, projectReferences: undefined })
   const resolutionCache = ts.createModuleResolutionCache(projectDir, (f) => f, options)
   return { program, options, configPath, resolutionHost: host, resolutionCache, fs }
 }

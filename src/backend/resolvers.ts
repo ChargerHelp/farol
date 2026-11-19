@@ -306,7 +306,8 @@ const TYPE_ONLY = new Set([ts.SyntaxKind.InterfaceDeclaration, ts.SyntaxKind.Typ
 /**
  * Project modules a resolver uses: every identifier in its code resolved with the type checker to its declaration
  * (through imports and re-exports), following functions declared in the same file. Free identifiers that name a
- * global set with `global.X = …` count as uses of the module that sets it.
+ * global set with `global.X = …` count as uses of the module that sets it. A member of an interface counts as a use
+ * of the files that `implemented` gives for it.
  */
 export function resolverAnchors(
   value: ts.Node,
@@ -315,6 +316,7 @@ export function resolverAnchors(
   rel: (fileName: string) => string,
   globals: ReadonlyMap<string, string>,
   context: (chain: readonly string[]) => readonly string[] = () => [],
+  implemented: (symbol: ts.Symbol | undefined) => readonly string[] = () => [],
 ): string[] {
   const own = value.getSourceFile()
   const modules = new Set<string>()
@@ -329,6 +331,7 @@ export function resolverAnchors(
     if (ts.isIdentifier(node)) {
       const symbol = checker.getSymbolAtLocation(node)
       const target = symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol
+      for (const m of implemented(target)) modules.add(m)
       // JS expando assignments (`process.env.X = …` somewhere) are not declarations of the identifier.
       const decls = (target?.declarations ?? []).filter((d) => !TYPE_ONLY.has(d.kind) && !ts.isBinaryExpression(d) && !ts.isPropertyAccessExpression(d) && !ts.isElementAccessExpression(d) && !ts.isIdentifier(d))
       if (decls.every((d) => d.getSourceFile().isDeclarationFile) && globals.has(node.text)) {

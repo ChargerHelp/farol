@@ -1,6 +1,7 @@
 import { readdirSync } from 'node:fs'
 import { posix } from 'node:path'
 import { buildBackendTable, globalUses, type BackendTable } from '../backend/entrypoints.js'
+import { implementationUses } from '../backend/implements.js'
 import { compareStrings } from '../output/order.js'
 import { ECOSYSTEM_FILES, LOCKFILES, MANIFESTS } from '../classify/dependencies.js'
 import { createIgnoreMatcher, createInfraMatcher, createRoleMatcher, type AnalysisRole, type FileRole, type RoleMatcher } from '../classify/roles.js'
@@ -245,7 +246,15 @@ function loadBackendWorkspace(ctx: Context, fs: ProjectFileSystem, treeFiles: st
   // A global set with `global.X = …` (service locators such as `Core`) is an import of its module for every reader.
   const rel = (fileName: string): string => posix.relative(repoRoot, toPosix(fileName))
   const isProjectFile = (fileName: string): boolean => isProjectPath(repoRoot, fileName)
-  const extra = globalUses(project, backend.globals, rel, isProjectFile)
+  // A use of an interface member (`repo.find()`) is an import of the files of the classes that implement it.
+  const originFiles = project.program.getSourceFiles().filter((sf) => isProjectFile(sf.fileName) && !sf.isDeclarationFile && isOrigin(rel(sf.fileName)))
+  const existing = new Set(graph.edges.filter((e) => e.kind === 'static').map((e) => `${e.from}\0${e.to}`))
+  const extra = [...globalUses(project, backend.globals, rel, isProjectFile), ...implementationUses(originFiles, project.program.getTypeChecker(), backend.implementers, rel)].filter((e) => {
+    const key = `${e.from}\0${e.to}`
+    if (existing.has(key)) return false
+    existing.add(key)
+    return true
+  })
   if (extra.length > 0) {
     const nodes = new Set(graph.nodes)
     for (const e of extra) {

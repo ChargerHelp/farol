@@ -158,6 +158,7 @@ Only three roles have an additive rule. Any other existing file that is modified
 - For each new file, find the routes that reach it. If an existing route reaches it, that is only possible through a modified existing file, which will already have been detected; record the reason anyway.
 - New files that no route reaches are listed as disconnected.
 - A modified existing file that no route reaches is still a non-additive change, with an empty route list and its own reason.
+- TypeScript backends: a use of a member of a project interface reaches the files of the classes that declare `implements` of it (see DECISIONS.md, 2026-11-19).
 
 ### 7. Classification
 

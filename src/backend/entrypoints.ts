@@ -7,6 +7,7 @@ import type { ProjectProgram } from '../project/program.js'
 import type { DynamicRoute, RouteEntry } from '../routes/types.js'
 import { definedGlobals, usesGlobal } from './globals.js'
 import { honoApps, UNRESOLVED_APP } from './hono.js'
+import { type Implementers, implementersOf, implementingFiles } from './implements.js'
 import { keyPath, prefixKey, underPath } from './hono-paths.js'
 import { restAnchor } from './rest.js'
 import { ENUM_MARKER, entryNodes, resolverAnchors } from './resolvers.js'
@@ -39,6 +40,8 @@ export interface BackendTable {
   schemaDocs: { doc: DocumentNode; file: string }[]
   /** `global.X = …` assignments: global name → module. */
   globals: Map<string, string>
+  /** Members of project interfaces → the files of the classes that implement them. */
+  implementers: Implementers
   problems: SdlProblem[]
   /** Hono constructs farol cannot follow: they make every PR `unknown`. */
   dynamic: DynamicRoute[]
@@ -148,7 +151,8 @@ export function buildBackendTable(input: BackendInput): BackendTable {
   }
   // Resolvers and REST handlers, with the modules their code uses.
   const checker = input.project.program.getTypeChecker()
-  const anchorsOf = (node: ts.Node): string[] => resolverAnchors(node, checker, isProjectFile, rel, globals, contextOf)
+  const implementers = implementersOf(programFiles, checker, isProjectFile, rel)
+  const anchorsOf = (node: ts.Node): string[] => resolverAnchors(node, checker, isProjectFile, rel, globals, contextOf, (s) => implementingFiles(implementers, s))
   // REST handlers and middleware are often held in a variable of the same file (`const mw = create()`, `const { mw } = build()`).
   const argumentModules = (arg: ts.Node): string[] => {
     const own = arg.getSourceFile()
@@ -244,6 +248,7 @@ export function buildBackendTable(input: BackendInput): BackendTable {
     schemaFiles,
     schemaDocs: docs,
     globals,
+    implementers,
     problems: problems.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line),
     dynamic: dynamic.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.detail, b.detail)),
     restKeysWithout: (mounts, without) => new Set(restKeys(mounts, without).keys()),
