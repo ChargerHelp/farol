@@ -149,6 +149,18 @@ describe('generator inputs (generated[].from)', () => {
     expect(codesOf(o, SCHEMA)).toEqual(['generator-input-changed'])
   })
 
+  it.each([
+    ['an import type equals require', "import type Models = require('../generated/prisma/models.js')\n\nexport async function handleStripe(request: { body: Models.Payment }) {"],
+    ['an inline import type', "export async function handleStripe(request: { body: import('../generated/prisma/models.js').Payment }) {"],
+  ])('a user of the generated types through %s counts', async (_form, head) => {
+    const o = await analyzeVariant(SCENARIO, cleanups, changeSchema, (r) => {
+      r.write('src/rest/stripe.ts', `${head}\n  return { received: Boolean(request.body) }\n}\n`)
+    })
+    expect(o.classification).toBe('touches-existing')
+    expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
+    expect(codesOf(o, SCHEMA)).toEqual(['generator-input-changed'])
+  })
+
   it('a rename into an excluded folder still reaches the importers', async () => {
     const o = await analyzeVariant(SCENARIO, cleanups, (r) => {
       r.write('legacy/schema.prisma', r.read(SCHEMA))

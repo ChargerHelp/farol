@@ -251074,6 +251074,8 @@ var GraphBuilder = class {
         } else if (import_typescript20.default.isPropertyAccessExpression(node2.expression) && import_typescript20.default.isMetaProperty(node2.expression.expression) && node2.expression.expression.keywordToken === import_typescript20.default.SyntaxKind.ImportKeyword && node2.expression.name.text === "glob") {
           this.unresolved.push({ file: from, specifier: node2.getText(sf), line: lineOf(sf, node2), reason: "non-literal" });
         }
+      } else if (import_typescript20.default.isImportTypeNode(node2) && import_typescript20.default.isLiteralTypeNode(node2.argument) && import_typescript20.default.isStringLiteral(node2.argument.literal)) {
+        this.typeImport(sf, from, node2.argument.literal);
       }
       import_typescript20.default.forEachChild(node2, visit3);
     };
@@ -251086,9 +251088,11 @@ var GraphBuilder = class {
     for (const statement of sf.statements) {
       if (import_typescript20.default.isImportDeclaration(statement)) this.visitImport(sf, from, statement);
       else if (import_typescript20.default.isExportDeclaration(statement)) this.visitExport(sf, from, statement);
-      else if (import_typescript20.default.isImportEqualsDeclaration(statement) && !statement.isTypeOnly && import_typescript20.default.isExternalModuleReference(statement.moduleReference)) {
+      else if (import_typescript20.default.isImportEqualsDeclaration(statement) && import_typescript20.default.isExternalModuleReference(statement.moduleReference)) {
         const expr = statement.moduleReference.expression;
-        if (import_typescript20.default.isStringLiteralLike(expr)) this.link(sf, from, expr, "require");
+        if (!import_typescript20.default.isStringLiteralLike(expr)) continue;
+        if (statement.isTypeOnly) this.typeImport(sf, from, expr);
+        else this.link(sf, from, expr, "require");
       }
     }
     this.visitCalls(sf, from);

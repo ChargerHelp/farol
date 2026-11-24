@@ -116,7 +116,7 @@ ignores.
 `"../../schemas/protobuf/**/*.proto"` names proto files at the root of a monorepo. A change to an input (added,
 modified, deleted or renamed) counts as a change to the code that uses the generated files: the files that import them, and the
 generated files that are in the import graph (committed, or on disk in working-tree mode). Type-only imports and
-re-exports count, also through other files (a file that re-exports Prisma types): protobuf types are often only types,
+re-exports count (also `import type X = require(…)` and `import('…').T` in a type), also through other files (a file that re-exports Prisma types): protobuf types are often only types,
 and the `.proto` file itself is loaded at runtime. The PR is `touches-existing`
 with reason `generator-input-changed` and lists the routes behind that code; the detail says so when nothing in the
 project imports the generated code. A rename counts when the old or the new path is an input (both entries when each path is an input of a different

@@ -248,6 +248,8 @@ class GraphBuilder {
           // Vite's import.meta.glob: the set of modules depends on the file system, not on a literal module path.
           this.unresolved.push({ file: from, specifier: node.getText(sf), line: lineOf(sf, node), reason: 'non-literal' })
         }
+      } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
+        this.typeImport(sf, from, node.argument.literal) // `import('./x').T` in a type
       }
       ts.forEachChild(node, visit)
     }
@@ -261,9 +263,11 @@ class GraphBuilder {
     for (const statement of sf.statements) {
       if (ts.isImportDeclaration(statement)) this.visitImport(sf, from, statement)
       else if (ts.isExportDeclaration(statement)) this.visitExport(sf, from, statement)
-      else if (ts.isImportEqualsDeclaration(statement) && !statement.isTypeOnly && ts.isExternalModuleReference(statement.moduleReference)) {
+      else if (ts.isImportEqualsDeclaration(statement) && ts.isExternalModuleReference(statement.moduleReference)) {
         const expr = statement.moduleReference.expression
-        if (ts.isStringLiteralLike(expr)) this.link(sf, from, expr, 'require')
+        if (!ts.isStringLiteralLike(expr)) continue
+        if (statement.isTypeOnly) this.typeImport(sf, from, expr)
+        else this.link(sf, from, expr, 'require')
       }
     }
     this.visitCalls(sf, from)
