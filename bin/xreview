@@ -1,0 +1,307 @@
+#!/usr/bin/env bash
+# xreview — second-opinion code review from non-Anthropic models (CHA-15400).
+#
+# Usage: bin/xreview [--models MODEL[,MODEL...]] [--timeout SECONDS] [BASE]
+#   BASE       the ref to review against. Default: origin/main.
+#   --models   the models to ask, as `us.` inference profile ids.
+#              Default: XREVIEW_MODELS if it is set, else DEFAULT_MODELS below.
+#   --timeout  how long each model may take, in seconds. A model that has not
+#              answered by then is stopped and reported as failed.
+#              Default: XREVIEW_TIMEOUT if it is set, else DEFAULT_TIMEOUT below.
+#
+# Runs the Codex CLI's review once per model, all at the same time, and prints
+# each model's review. Inference runs on Amazon Bedrock in our AWS account,
+# through `us.` inference profiles.
+# Setup and how to approve a new model: docs/xreview.md in ChargerHelp/empwr-platform.
+#
+# Choosing a model here does not approve it. The BedrockCodeReview permission
+# set is the allowlist: a model it does not list fails with AccessDenied.
+#
+# What keeps a run on the approved models:
+#   - The AWS session must be the BedrockCodeReview role. Its permission set can
+#     call only the approved models (infra/terraform/modules/bedrock-code-review).
+#     A bedrock-review profile that points at another role is refused.
+#   - Other AWS settings are removed from the environment. Static keys
+#     (AWS_ACCESS_KEY_ID and the rest) win over AWS_PROFILE, and Codex prefers a
+#     Bedrock API key (AWS_BEARER_TOKEN_BEDROCK) to both: either one would make
+#     the call as another identity. AWS_ENDPOINT_URL would send it elsewhere.
+#   - Codex gets an empty home folder for the run, and --ignore-user-config. So
+#     a developer's own Codex config, stored key or hooks cannot change the
+#     provider or the identity.
+#   - The read-only sandbox: the commands the reviewer runs cannot write files
+#     or reach the network.
+#
+# Exit codes: 0 at least one model answered, 1 no model answered or the run
+# could not start, 130 the run was stopped by a signal.
+set -uo pipefail
+
+AWS_REVIEW_PROFILE="bedrock-review"
+AWS_REVIEW_REGION="us-east-1"
+AWS_REVIEW_ROLE="BedrockCodeReview"
+# The models a run asks when none are named. To add one, see "Approve a new
+# model" in docs/xreview.md in ChargerHelp/empwr-platform. The permission set must allow it first.
+# The other approved models run only when named, with --models or
+# XREVIEW_MODELS (docs/xreview.md in ChargerHelp/empwr-platform, "Choose the models").
+DEFAULT_MODELS=(
+  "us.openai.gpt-5.5"
+  "us.openai.gpt-6.2-sol"
+)
+# Seconds each model may take. Codex retries a dropped connection for minutes
+# without failing, so a run needs its own limit.
+DEFAULT_TIMEOUT=300
+USAGE="usage: xreview [--models MODEL[,MODEL...]] [--timeout SECONDS] [BASE]"
+
+usage_error() {
+  echo "$USAGE" >&2
+  exit 1
+}
+
+refuse_models() {
+  echo "xreview: each model must be a us. inference profile id, such as us.openai.gpt-5.5," >&2
+  echo "  with commas between the ids. Got: '$models_list'" >&2
+  exit 1
+}
+
+models_list="${XREVIEW_MODELS:-}"
+models_source="from XREVIEW_MODELS"
+timeout_seconds="${XREVIEW_TIMEOUT:-}"
+base=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -h | --help)
+      echo "$USAGE"
+      exit 0
+      ;;
+    --models | --models=*)
+      if [ "$1" = "--models" ]; then
+        [ "$#" -ge 2 ] || usage_error
+        shift
+        models_list="$1"
+      else
+        models_list="${1#--models=}"
+      fi
+      # An empty value must not fall back to the defaults: the caller meant to
+      # name the models.
+      [ -n "$models_list" ] || usage_error
+      models_source="from --models"
+      shift
+      ;;
+    --timeout | --timeout=*)
+      if [ "$1" = "--timeout" ]; then
+        [ "$#" -ge 2 ] || usage_error
+        shift
+        timeout_seconds="$1"
+      else
+        timeout_seconds="${1#--timeout=}"
+      fi
+      [ -n "$timeout_seconds" ] || usage_error
+      shift
+      ;;
+    -*) usage_error ;;
+    *)
+      [ -z "$base" ] || usage_error
+      base="$1"
+      shift
+      ;;
+  esac
+done
+base="${base:-origin/main}"
+timeout_seconds="${timeout_seconds:-$DEFAULT_TIMEOUT}"
+if ! [[ "$timeout_seconds" =~ ^[1-9][0-9]*$ ]]; then
+  echo "xreview: the time limit must be a whole number of seconds, 1 or more. Got: '$timeout_seconds'" >&2
+  exit 1
+fi
+
+if [ -z "$models_list" ]; then
+  MODELS=("${DEFAULT_MODELS[@]}")
+  models_source="the defaults"
+else
+  # `read` takes one line. Refuse a second line, or its models would be
+  # dropped with no message.
+  case "$models_list" in
+    *$'\n'*) refuse_models ;;
+  esac
+  IFS=',' read -r -a MODELS <<<"$models_list"
+  [ "${#MODELS[@]}" -gt 0 ] || refuse_models
+  # A `us.` profile keeps processing in the US. Any other profile prefix can
+  # route outside the US, and a bare model id is a direct call, which the
+  # permission set does not grant. The permission set is the authority; this
+  # check only stops such a run before it starts.
+  for model in "${MODELS[@]}"; do
+    [[ "$model" =~ ^us\.[a-z0-9][a-z0-9-]*\.[a-z0-9][a-z0-9.:-]*$ ]] || refuse_models
+  done
+fi
+
+unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_BEARER_TOKEN_BEDROCK \
+  AWS_ENDPOINT_URL AWS_ENDPOINT_URL_BEDROCK_RUNTIME AWS_ENDPOINT_URL_STS
+
+if ! command -v codex >/dev/null 2>&1; then
+  echo "xreview: the Codex CLI is not installed. Install it with: npm install -g @openai/codex" >&2
+  exit 1
+fi
+if ! command -v aws >/dev/null 2>&1; then
+  echo "xreview: the AWS CLI is not installed. See Setup in docs/xreview.md in ChargerHelp/empwr-platform." >&2
+  exit 1
+fi
+
+if ! work=$(mktemp -d); then
+  echo "xreview: cannot create a temporary folder." >&2
+  exit 1
+fi
+pids=()
+# Stop the model runs when this script stops, and wait until they have
+# stopped. Without this, a cancelled run leaves Codex working, and sending
+# code, with no one waiting. Each run stops its own Codex process and timer;
+# Codex must stop its own children.
+#
+# A run that has ended is skipped by its done-<i> marker, not by whether it is
+# in the list: bash collects a run that ends early at once, so the system can
+# give its process id to another process before the loop below reaches it.
+cleanup() {
+  local i
+  for i in "${!pids[@]}"; do
+    [ -e "$work/done-$i" ] || kill "${pids[$i]}" 2>/dev/null
+  done
+  for i in "${!pids[@]}"; do
+    wait "${pids[$i]}" 2>/dev/null
+  done
+  rm -rf "$work"
+}
+
+# Seconds a Codex process gets to stop after TERM, before it gets KILL.
+KILL_GRACE=5
+
+# stop_later <seconds> <pid> [<marker>]: in the background, wait the given
+# time, create the marker file if one is named, and stop the process: TERM,
+# then KILL if it has not stopped after KILL_GRACE seconds. Signal it to cancel;
+# it stops its own `sleep`.
+stop_later() {
+  (
+    sleeper=""
+    trap '[ -z "$sleeper" ] || kill "$sleeper" 2>/dev/null; exit 0' TERM
+    sleep "$1" &
+    sleeper=$!
+    wait "$sleeper"
+    [ -z "${3:-}" ] || touch "$3"
+    kill "$2" 2>/dev/null
+    sleep "$KILL_GRACE" &
+    sleeper=$!
+    wait "$sleeper"
+    kill -KILL "$2" 2>/dev/null
+  ) &
+}
+
+# run_model <index>: run Codex for one model, with a timer. At the limit the
+# timer marks the model as timed out and stops Codex. The run stops the timer
+# as soon as Codex ends, so a timer cannot fire for a model that has answered,
+# or signal a process id the system has given to something else. If the run is
+# cancelled (TERM), it stops Codex the same way, at once. Exits with Codex's
+# status.
+#
+# The caller sends the run's output to /dev/null. So if this script is killed
+# with no chance to clean up (kill -9), the run still stops Codex at the limit,
+# and does not hold this script's output open, and keep a caller that reads it
+# waiting, until then.
+run_model() {
+  codex="" timer=""
+  model_index=$1
+  trap 'cancel_model "$model_index"' TERM
+  AWS_PROFILE="$AWS_REVIEW_PROFILE" AWS_REGION="$AWS_REVIEW_REGION" \
+    CODEX_HOME="$work/codex-home" \
+    codex exec review --base "$base" -m "${MODELS[$1]}" \
+    -c 'model_provider="amazon-bedrock-runtime"' \
+    -c 'sandbox_mode="read-only"' \
+    --ignore-user-config --ephemeral \
+    -o "$work/review-$1" >"$work/log-$1" 2>&1 &
+  codex=$!
+  stop_later "$timeout_seconds" "$codex" "$work/timed-out-$1"
+  timer=$!
+  wait "$codex"
+  status=$?
+  kill "$timer" 2>/dev/null
+  wait "$timer"
+  touch "$work/done-$1"
+  exit "$status"
+}
+# cancel_model <index>: stop the timer and Codex, at once, and exit.
+cancel_model() {
+  [ -z "$timer" ] || kill "$timer" 2>/dev/null
+  if [ -n "$codex" ]; then
+    stop_later 0 "$codex"
+    stopper=$!
+    wait "$codex"
+    kill "$stopper" 2>/dev/null
+  fi
+  touch "$work/done-$1"
+  exit 143
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+
+if ! role_arn=$(aws sts get-caller-identity --profile "$AWS_REVIEW_PROFILE" \
+  --query Arn --output text 2>"$work/aws-error"); then
+  cat "$work/aws-error" >&2
+  echo "xreview: no usable AWS session for the '$AWS_REVIEW_PROFILE' profile." >&2
+  echo "  Fix: aws sso login --profile $AWS_REVIEW_PROFILE" >&2
+  echo "  If the profile does not exist, see Setup in docs/xreview.md in ChargerHelp/empwr-platform." >&2
+  exit 1
+fi
+# Identity Center names the role AWSReservedSSO_<permission set>_<16 hex digits>.
+# The suffix is matched so that a permission set whose name only begins with
+# the same words does not pass.
+if ! [[ "$role_arn" =~ :assumed-role/AWSReservedSSO_${AWS_REVIEW_ROLE}_[0-9a-f]{16}/ ]]; then
+  echo "xreview: the '$AWS_REVIEW_PROFILE' profile is not signed in as the $AWS_REVIEW_ROLE role." >&2
+  echo "  It is: $role_arn" >&2
+  echo "  Set sso_role_name = $AWS_REVIEW_ROLE for that profile. See Setup in docs/xreview.md in ChargerHelp/empwr-platform." >&2
+  exit 1
+fi
+
+model_word="models"
+[ "${#MODELS[@]}" -eq 1 ] && model_word="model"
+echo "xreview: asking ${#MODELS[@]} $model_word ($models_source): ${MODELS[*]}"
+echo "xreview: time limit $timeout_seconds seconds per model"
+echo
+
+mkdir "$work/codex-home"
+for i in "${!MODELS[@]}"; do
+  run_model "$i" >/dev/null 2>&1 &
+  pids+=("$!")
+done
+
+answered=0
+for i in "${!MODELS[@]}"; do
+  wait "${pids[$i]}"
+  status=$?
+  # The process has ended and been collected, so the system can give its id
+  # to another process. Drop it, so that the exit trap does not signal that one.
+  unset "pids[$i]"
+  echo "=== ${MODELS[$i]}"
+  # A Codex process the timer stopped exits non-zero. A zero status means the
+  # model answered just as the limit came, and its review counts.
+  if [ "$status" != 0 ] && [ -e "$work/timed-out-$i" ]; then
+    status=timeout
+  fi
+  if [ "$status" = 0 ] && [ -s "$work/review-$i" ]; then
+    cat "$work/review-$i"
+    answered=$((answered + 1))
+  else
+    if [ "$status" = timeout ]; then
+      echo "${MODELS[$i]}: FAILED (no answer within $timeout_seconds seconds)"
+    elif [ "$status" = 0 ]; then
+      echo "${MODELS[$i]}: FAILED (it wrote no review)"
+    else
+      echo "${MODELS[$i]}: FAILED (exit $status)"
+    fi
+    # The work folder is deleted on exit, so keep this model's output.
+    if kept=$(mktemp "${TMPDIR:-/tmp}/xreview-failed.XXXXXX"); then
+      cp "$work/log-$i" "$kept"
+      echo "Last lines of its output. Full output: $kept"
+    else
+      echo "Last lines of its output:"
+    fi
+    tail -n 20 "$work/log-$i"
+  fi
+  echo
+done
+echo "$answered of ${#MODELS[@]} models answered"
+[ "$answered" -gt 0 ]
