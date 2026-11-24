@@ -30,7 +30,7 @@ First, check which branch you're on:
 
 Then handle the PR:
 - If a PR doesn't exist for this branch, create one with a clear title and description summarizing the changes.
-- If a PR already exists, push any uncommitted changes to it.
+- If a PR already exists, do not push uncommitted changes yet. The review and tests below check them first; Step 5 commits and pushes only the changes you intend to ship.
 
 ## Step 2: Launch Three Review Agents in Parallel
 
