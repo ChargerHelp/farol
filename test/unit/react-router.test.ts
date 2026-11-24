@@ -224,6 +224,55 @@ describe('react-router adapter: JSX form', () => {
     expect(keys(t)).toEqual([['/', '/', 'src/Home.tsx', '']])
   })
 
+  it('reads <Routes> nested in Refine providers and ignores the Refine resources array', () => {
+    const t = extract(`
+      import { Authenticated, Refine } from '@refinedev/core'
+      import { NavigateToResource } from '@refinedev/react-router'
+      import { BrowserRouter, Outlet, Route, Routes } from 'react-router'
+      import Login from './Login'
+      import WidgetList from './WidgetList'
+      import WidgetShow from './WidgetShow'
+      export function App() {
+        return (
+          <BrowserRouter basename="/admin">
+            <Refine
+              resources={[
+                { name: 'widgets', list: '/widgets', show: '/widgets/show/:id', meta: { label: 'Widgets' } },
+                { name: 'reports', list: '/reports' },
+              ]}
+            >
+              <Routes>
+                <Route element={<Authenticated key="protected"><Outlet /></Authenticated>}>
+                  <Route index element={<NavigateToResource resource="widgets" />} />
+                  <Route path="/widgets">
+                    <Route index element={<WidgetList />} />
+                    <Route path="show/:id" element={<WidgetShow />} />
+                  </Route>
+                </Route>
+                <Route path="/login" element={<Login />} />
+              </Routes>
+            </Refine>
+          </BrowserRouter>
+        )
+      }`)
+    expect(t.dynamic).toEqual([])
+    const pages = t.routes.filter((r) => r.entry?.startsWith('src/')).map((r) => [r.path, r.entry])
+    expect(pages).toEqual([
+      ['/widgets', 'src/WidgetList.tsx'],
+      ['/widgets/show/:id', 'src/WidgetShow.tsx'],
+      ['/login', 'src/Login.tsx'],
+    ])
+    // The pathless layout and the index redirect render only package components: their entry is not pinned.
+    expect(t.routes.map((r) => [r.path, r.index])).toEqual([
+      ['/', false],
+      ['/', true],
+      ['/widgets', false],
+      ['/widgets', true],
+      ['/widgets/show/:id', false],
+      ['/login', false],
+    ])
+  })
+
   it('flags .map, spreads and foreign elements inside JSX routes', () => {
     const t = extract(`
       import Home from './Home'
