@@ -262,7 +262,8 @@ describe('react-router adapter: JSX form', () => {
       ['/widgets/show/:id', 'src/WidgetShow.tsx'],
       ['/login', 'src/Login.tsx'],
     ])
-    // The pathless layout and the index redirect render only package components: their entry is not pinned.
+    // The pathless layout and the index redirect render only package components, so their entry is a `package:`
+    // module. This case checks only their path and index.
     expect(t.routes.map((r) => [r.path, r.index])).toEqual([
       ['/', false],
       ['/', true],
