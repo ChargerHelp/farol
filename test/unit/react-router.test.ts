@@ -224,6 +224,49 @@ describe('react-router adapter: JSX form', () => {
     expect(keys(t)).toEqual([['/', '/', 'src/Home.tsx', '']])
   })
 
+  it('reads <Routes> nested in Refine providers and ignores the Refine resources array', () => {
+    const t = extract(`
+      import { Authenticated, Refine } from '@refinedev/core'
+      import { NavigateToResource } from '@refinedev/react-router'
+      import { BrowserRouter, Outlet, Route, Routes } from 'react-router'
+      import Login from './Login'
+      import WidgetList from './WidgetList'
+      import WidgetShow from './WidgetShow'
+      export function App() {
+        return (
+          <BrowserRouter basename="/admin">
+            <Refine
+              resources={[
+                { name: 'widgets', list: '/widgets', show: '/widgets/show/:id', meta: { label: 'Widgets' } },
+                { name: 'reports', list: '/reports' },
+              ]}
+            >
+              <Routes>
+                <Route element={<Authenticated><Outlet /></Authenticated>}>
+                  <Route index element={<NavigateToResource resource="widgets" />} />
+                  <Route path="/widgets">
+                    <Route index element={<WidgetList />} />
+                    <Route path="show/:id" element={<WidgetShow />} />
+                  </Route>
+                </Route>
+                <Route path="/login" element={<Login />} />
+              </Routes>
+            </Refine>
+          </BrowserRouter>
+        )
+      }`)
+    expect(t.dynamic).toEqual([])
+    // `/reports` is only in `resources`: its absence shows that resources are not routes. Paths do not get the basename.
+    expect(keys(t)).toEqual([
+      ['(layout:package:react-router)', '/', 'package:react-router', ''],
+      ['(layout:package:react-router) > (index)', '/', 'package:@refinedev/react-router', 'package:react-router'],
+      ['(layout:package:react-router) > /widgets', '/widgets', '-', 'package:react-router'],
+      ['(layout:package:react-router) > /widgets > (index)', '/widgets', 'src/WidgetList.tsx', 'package:react-router'],
+      ['(layout:package:react-router) > /widgets > show/:id', '/widgets/show/:id', 'src/WidgetShow.tsx', 'package:react-router'],
+      ['/login', '/login', 'src/Login.tsx', ''],
+    ])
+  })
+
   it('flags .map, spreads and foreign elements inside JSX routes', () => {
     const t = extract(`
       import Home from './Home'
