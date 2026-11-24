@@ -113,8 +113,8 @@ is still imported. `ignore` is for committed generated files you do not want ana
 ignores.
 
 `from` lists the generator inputs of an entry, as project-relative globs; `../` climbs above the project, so
-`"../../schemas/protobuf/**/*.proto"` names proto files at the root of a monorepo. A change to an input (modified,
-deleted or renamed) counts as a change to the code that uses the generated files: the files that import them, and the
+`"../../schemas/protobuf/**/*.proto"` names proto files at the root of a monorepo. A change to an input (added,
+modified, deleted or renamed) counts as a change to the code that uses the generated files: the files that import them, and the
 generated files that are in the import graph (committed, or on disk in working-tree mode). The PR is
 `touches-existing` with reason `generator-input-changed` and lists the routes behind that code; when nothing in the
 project uses the generated code it is `existing-file-unreachable`. An input that matches `ignore` is ignored, and one

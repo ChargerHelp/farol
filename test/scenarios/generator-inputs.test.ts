@@ -69,6 +69,41 @@ describe('generator inputs (generated[].from)', () => {
     expect(codesOf(o, SCHEMA).sort()).toEqual(['existing-file-deleted', 'generator-input-changed'])
   })
 
+  it('an added input reaches the importers of the generated code', async () => {
+    const o = await analyzeVariant(SCENARIO, cleanups, (r) => { r.write('prisma/payment.prisma', 'model Refund {\n  id String @id\n}\n') }, (r) => {
+      const config = JSON.parse(r.read('farol.config.json')) as Record<string, unknown>
+      r.write('farol.config.json', JSON.stringify({ ...config, generated: [{ files: 'src/generated/**', from: ['prisma/*.prisma'] }] }, null, 2))
+    })
+    expect(o.classification).toBe('touches-existing')
+    expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
+    expect(codesOf(o, 'prisma/payment.prisma')).toEqual(['generator-input-changed'])
+  })
+
+  it('a renamed input reaches the importers of the generated code', async () => {
+    const o = await analyzeVariant(SCENARIO, cleanups, (r) => {
+      r.write('prisma/main.prisma', r.read(SCHEMA))
+      r.remove(SCHEMA)
+    }, (r) => {
+      const config = JSON.parse(r.read('farol.config.json')) as Record<string, unknown>
+      r.write('farol.config.json', JSON.stringify({ ...config, generated: [{ files: 'src/generated/**', from: ['prisma/*.prisma'] }] }, null, 2))
+    })
+    expect(o.classification).toBe('touches-existing')
+    expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
+    expect(codesOf(o, 'prisma/main.prisma').sort()).toEqual(['existing-file-renamed', 'generator-input-changed'])
+  })
+
+  it('an input whose importers no route reaches is still touches-existing', async () => {
+    const o = await analyzeVariant(SCENARIO, cleanups, changeSchema, (r) => {
+      r.write('src/lib/payments.ts', "import { Prisma } from '../generated/prisma/client.js'\n\nexport const known = Prisma\n")
+      edit(r, 'src/rest/stripe.ts', "'../generated/prisma/client.js'", "'@prisma/client'")
+    })
+    expect(o.classification).toBe('touches-existing')
+    expect(affectedKeys(o)).toEqual([])
+    expect(o.reasons.filter((r) => r.file === SCHEMA).map((r) => [r.code, r.detail])).toEqual([
+      ['existing-file-unreachable', 'generator input of src/generated/**, used by 1 file(s); no route reaches them'],
+    ])
+  })
+
   it('an input that is also a global file makes the PR global', async () => {
     const o = await analyzeVariant(SCENARIO, cleanups, changeSchema, (r) => {
       const config = JSON.parse(r.read('farol.config.json')) as { roles: { global: string[] } }

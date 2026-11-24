@@ -212,6 +212,11 @@ export function classify(input: ClassifyInput): ClassifyResult {
       continue
     }
     if (file.status === 'added') {
+      // A new generator input changes the generated code that existing files import: not a new file.
+      if (!nodes.has(file.path) && input.generatorInputOf?.(file.path)) {
+        reachTargets.push({ path: file.path, reportModified: false })
+        continue
+      }
       newFiles.push(file.path)
       // A new file whose Hono mount covers existing endpoints touches them (`backendImpacts`).
       const mountImpact = input.backend?.impacts.get(file.path)

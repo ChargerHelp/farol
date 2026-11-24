@@ -238072,6 +238072,10 @@ function classify(input2) {
       continue;
     }
     if (file2.status === "added") {
+      if (!nodes.has(file2.path) && input2.generatorInputOf?.(file2.path)) {
+        reachTargets.push({ path: file2.path, reportModified: false });
+        continue;
+      }
       newFiles.push(file2.path);
       const mountImpact = input2.backend?.impacts.get(file2.path);
       if (mountImpact) {
