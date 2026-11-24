@@ -68,15 +68,16 @@ const globs = z.array(pathGlob)
 export const ENTRY_KINDS = ['JOB', 'CONSUMER', 'RPC', 'RUN'] as const
 // `!(a).ts` is a positive glob; `{./a,b}` holds a segment like any other.
 const isPositive = (g: string): boolean => !g.startsWith('!') || g.startsWith('!(')
-const hasDotSegment = (g: string): boolean => g.split(/[/{},]/).some((seg) => seg === '.' || seg === '..')
+const segments = (g: string): string[] => g.split(/[/{},]/)
+const hasDotSegment = (g: string): boolean => segments(g).some((seg) => seg === '.' || seg === '..')
 const entryGlob = pathGlob.refine((g) => isPositive(g) && !hasDotSegment(g), 'write a positive glob relative to the project, with no "!", "./" or "../"')
 /** A generator input: project-relative, "../" climbs above the project (a .proto folder at the repository root). */
-const inputGlob = pathGlob.refine((g) => isPositive(g) && !g.split(/[/{},]/).includes('.'), 'write a positive glob relative to the project ("../" climbs above it), with no "!" or "./"')
+const inputGlob = pathGlob.refine((g) => isPositive(g) && !segments(g).includes('.'), 'write a positive glob relative to the project ("../" climbs above it), with no "!" or "./"')
 /** A plain glob is generated code without inputs. */
 const generatedEntry = z.preprocess(
   (entry) => (typeof entry === 'string' ? { files: entry } : entry),
-  z.object({ files: pathGlob, from: z.array(inputGlob).min(1, 'list at least one generator input, or write the glob alone').optional() }).strict(),
-).transform((entry) => ({ files: entry.files, from: entry.from ?? [] }))
+  z.object({ files: pathGlob, from: z.array(inputGlob).min(1, 'list at least one generator input, or write the glob alone').default([]) }).strict(),
+)
 
 /**
  * Environment, infrastructure and CI files (deploy-time configuration, not code): matched anywhere in the repository,

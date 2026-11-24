@@ -115,11 +115,12 @@ ignores.
 `from` lists the generator inputs of an entry, as project-relative globs; `../` climbs above the project, so
 `"../../schemas/protobuf/**/*.proto"` names proto files at the root of a monorepo. A change to an input (added,
 modified, deleted or renamed) counts as a change to the code that uses the generated files: the files that import them, and the
-generated files that are in the import graph (committed, or on disk in working-tree mode). The PR is
-`touches-existing` with reason `generator-input-changed` and lists the routes behind that code; when nothing in the
-project uses the generated code it is `existing-file-unreachable`. An input that matches `ignore` is ignored, and one
-that matches `roles.global` makes the PR `global` (every schema PR then is). Type-only imports and imports of a package
-(`@prisma/client`) do not count: point the generator `output` into the project and list that folder in `files`.
+generated files that are in the import graph (committed, or on disk in working-tree mode). Type-only imports count:
+protobuf types are often only types, and the `.proto` file itself is loaded at runtime. The PR is `touches-existing`
+with reason `generator-input-changed` and lists the routes behind that code; the detail says so when nothing in the
+project imports the generated code. A rename counts when the old or the new path is an input. An input that matches
+`ignore` is ignored, and one that matches `roles.global` makes the PR `global` (every schema PR then is). Imports of a
+package (`@prisma/client`) do not count: point the generator `output` into the project and list that folder in `files`.
 
 Each `roles` key left out takes the default of the project's language, key by key. A complete frontend example is in
 [examples/farol.config.json](../examples/farol.config.json); [examples/README.md](../examples/README.md) lists the defaults

@@ -23642,26 +23642,26 @@ ${lanes.join("\n")}
         }
         const startIndex = 2, endIndex = stringValue.length - 1;
         const bitsNeeded = (endIndex - startIndex) * log2Base;
-        const segments2 = new Uint16Array((bitsNeeded >>> 4) + (bitsNeeded & 15 ? 1 : 0));
+        const segments3 = new Uint16Array((bitsNeeded >>> 4) + (bitsNeeded & 15 ? 1 : 0));
         for (let i = endIndex - 1, bitOffset = 0; i >= startIndex; i--, bitOffset += log2Base) {
           const segment = bitOffset >>> 4;
           const digitChar = stringValue.charCodeAt(i);
           const digit = digitChar <= 57 ? digitChar - 48 : 10 + digitChar - (digitChar <= 70 ? 65 : 97);
           const shiftedDigit = digit << (bitOffset & 15);
-          segments2[segment] |= shiftedDigit;
+          segments3[segment] |= shiftedDigit;
           const residual = shiftedDigit >>> 16;
-          if (residual) segments2[segment + 1] |= residual;
+          if (residual) segments3[segment + 1] |= residual;
         }
         let base10Value = "";
-        let firstNonzeroSegment = segments2.length - 1;
+        let firstNonzeroSegment = segments3.length - 1;
         let segmentsRemaining = true;
         while (segmentsRemaining) {
           let mod10 = 0;
           segmentsRemaining = false;
           for (let segment = firstNonzeroSegment; segment >= 0; segment--) {
-            const newSegment = mod10 << 16 | segments2[segment];
+            const newSegment = mod10 << 16 | segments3[segment];
             const segmentValue = newSegment / 10 | 0;
-            segments2[segment] = segmentValue;
+            segments3[segment] = segmentValue;
             mod10 = newSegment - segmentValue * 10;
             if (segmentValue && !segmentsRemaining) {
               firstNonzeroSegment = segment;
@@ -121029,23 +121029,23 @@ ${lanes.join("\n")}
         }
         function transformAndSpreadElements(elements, isArgumentList, multiLine, hasTrailingComma) {
           const numElements = elements.length;
-          const segments2 = flatten(
+          const segments3 = flatten(
             // As we visit each element, we return one of two functions to use as the "key":
             // - `visitSpanOfSpreads` for one or more contiguous `...` spread expressions, i.e. `...a, ...b` in `[1, 2, ...a, ...b]`
             // - `visitSpanOfNonSpreads` for one or more contiguous non-spread elements, i.e. `1, 2`, in `[1, 2, ...a, ...b]`
             spanMap(elements, partitionSpread, (partition, visitPartition, _start, end) => visitPartition(partition, multiLine, hasTrailingComma && end === numElements))
           );
-          if (segments2.length === 1) {
-            const firstSegment = segments2[0];
+          if (segments3.length === 1) {
+            const firstSegment = segments3[0];
             if (isArgumentList && !compilerOptions.downlevelIteration || isPackedArrayLiteral(firstSegment.expression) || isCallToHelper(firstSegment.expression, "___spreadArray")) {
               return firstSegment.expression;
             }
           }
           const helpers = emitHelpers();
-          const startsWithSpread = segments2[0].kind !== 0;
-          let expression = startsWithSpread ? factory2.createArrayLiteralExpression() : segments2[0].expression;
-          for (let i = startsWithSpread ? 0 : 1; i < segments2.length; i++) {
-            const segment = segments2[i];
+          const startsWithSpread = segments3[0].kind !== 0;
+          let expression = startsWithSpread ? factory2.createArrayLiteralExpression() : segments3[0].expression;
+          for (let i = startsWithSpread ? 0 : 1; i < segments3.length; i++) {
+            const segment = segments3[i];
             expression = helpers.createSpreadArrayHelper(
               expression,
               segment.expression,
@@ -236500,13 +236500,14 @@ var pathGlob = glob.refine((g) => !isRooted(g), 'write the glob relative to the 
 var globs = external_exports.array(pathGlob);
 var ENTRY_KINDS = ["JOB", "CONSUMER", "RPC", "RUN"];
 var isPositive = (g) => !g.startsWith("!") || g.startsWith("!(");
-var hasDotSegment = (g) => g.split(/[/{},]/).some((seg) => seg === "." || seg === "..");
+var segments = (g) => g.split(/[/{},]/);
+var hasDotSegment = (g) => segments(g).some((seg) => seg === "." || seg === "..");
 var entryGlob = pathGlob.refine((g) => isPositive(g) && !hasDotSegment(g), 'write a positive glob relative to the project, with no "!", "./" or "../"');
-var inputGlob = pathGlob.refine((g) => isPositive(g) && !g.split(/[/{},]/).includes("."), 'write a positive glob relative to the project ("../" climbs above it), with no "!" or "./"');
+var inputGlob = pathGlob.refine((g) => isPositive(g) && !segments(g).includes("."), 'write a positive glob relative to the project ("../" climbs above it), with no "!" or "./"');
 var generatedEntry = external_exports.preprocess(
   (entry) => typeof entry === "string" ? { files: entry } : entry,
-  external_exports.object({ files: pathGlob, from: external_exports.array(inputGlob).min(1, "list at least one generator input, or write the glob alone").optional() }).strict()
-).transform((entry) => ({ files: entry.files, from: entry.from ?? [] }));
+  external_exports.object({ files: pathGlob, from: external_exports.array(inputGlob).min(1, "list at least one generator input, or write the glob alone").default([]) }).strict()
+);
 var DEFAULT_INFRA = [
   "**/.env",
   "**/.env.*",
@@ -237631,11 +237632,11 @@ function describeHits(hits) {
 }
 
 // src/classify/generated.ts
-function generatorInputReach(path3, input2, ctx) {
-  const importers = ctx.graph.unresolved.filter((u) => u.target !== void 0 && ctx.isGenerated(u.target) && input2.feeds(u.target)).map((u) => u.file);
-  const starts = sortedUnique([...importers, ...ctx.graph.nodes.filter((n) => input2.feeds(n))]);
-  const code2 = input2.files.join(", ");
-  if (starts.length === 0) return { hits: [], reason: reason("existing-file-unreachable", `generator input of ${code2}; nothing in the project imports that code`, path3) };
+function generatorInputReach(path3, code2, ctx) {
+  const importers = [...ctx.graph.unresolved, ...ctx.graph.typeOnlyUnresolved].filter((u) => u.target !== void 0 && ctx.isGenerated(u.target) && code2.feeds(u.target)).map((u) => u.file);
+  const starts = sortedUnique([...importers, ...ctx.graph.nodes.filter((n) => code2.feeds(n))]);
+  const of = `generator input of ${code2.files.join(", ")}`;
+  if (starts.length === 0) return { hits: [], reason: reason("generator-input-changed", `${of}; no import of that code found (imports of a package name do not count): no route listed`, path3) };
   const best = /* @__PURE__ */ new Map();
   for (const start of starts) {
     for (const h of routesReaching(reachFrom(ctx.index, start), ctx.existingRoutes)) {
@@ -237645,9 +237646,8 @@ function generatorInputReach(path3, input2, ctx) {
     }
   }
   const hits = [...best.values()].sort((a, b) => compareStrings(a.route.path, b.route.path) || compareStrings(a.route.key, b.route.key));
-  const through = `generator input of ${code2}, used by ${starts.length} file(s)`;
-  if (hits.length === 0) return { hits, reason: reason("existing-file-unreachable", `${through}; no route reaches them`, path3) };
-  return { hits, reason: reason("generator-input-changed", `${through}; reached by ${hits.length} existing route(s): ${describeHits(hits)}`, path3) };
+  const used = `${of}, used by ${starts.length} file(s)`;
+  return { hits, reason: reason("generator-input-changed", hits.length === 0 ? `${used}; no route reaches them` : `${used}; reached by ${hits.length} existing route(s): ${describeHits(hits)}`, path3) };
 }
 
 // src/classify/risk.ts
@@ -237761,15 +237761,15 @@ function readWorkspaceLinks(files, read) {
     }
   }
   const follow = (rel) => {
-    let segments2 = rel === "" ? [] : rel.split("/");
+    let segments3 = rel === "" ? [] : rel.split("/");
     for (; ; ) {
-      const i = segments2.indexOf("node_modules");
-      if (i === -1) return { kind: "tree", rel: segments2.join("/") };
-      const name = packageName(segments2.slice(i + 1).join("/"));
-      if (name === void 0 || name === "") return { kind: "modules", rel: segments2.join("/") };
-      const folder = target(segments2.slice(0, i).join("/"), name);
+      const i = segments3.indexOf("node_modules");
+      if (i === -1) return { kind: "tree", rel: segments3.join("/") };
+      const name = packageName(segments3.slice(i + 1).join("/"));
+      if (name === void 0 || name === "") return { kind: "modules", rel: segments3.join("/") };
+      const folder = target(segments3.slice(0, i).join("/"), name);
       if (folder === void 0) return void 0;
-      segments2 = [...folder === "" ? [] : folder.split("/"), ...segments2.slice(i + 1 + name.split("/").length)];
+      segments3 = [...folder === "" ? [] : folder.split("/"), ...segments3.slice(i + 1 + name.split("/").length)];
     }
   };
   return {
@@ -238092,7 +238092,7 @@ function classify(input2) {
     }
     if (file2.status === "renamed") {
       reasons.push(reason("existing-file-renamed", `renamed from ${file2.oldPath}`, file2.path));
-      reachTargets.push({ path: file2.path, reportModified: false });
+      reachTargets.push({ path: file2.path, reportModified: false, ...file2.oldPath === void 0 ? {} : { oldPath: file2.oldPath } });
       continue;
     }
     const declImpact = role === "source" ? impactOf(file2.path) : void 0;
@@ -238174,9 +238174,9 @@ function classify(input2) {
     reachTargets.push({ path: file2.path, reportModified: true });
   }
   for (const target of reachTargets) {
-    const generator = nodes.has(target.path) ? void 0 : input2.generatorInputOf?.(target.path);
-    const viaGenerated = generator && generatorInputReach(target.path, generator, { graph, index, existingRoutes, isGenerated: input2.isGenerated });
-    const hits = viaGenerated ? viaGenerated.hits : nodes.has(target.path) ? routesReaching(reachFrom(index, target.path), existingRoutes) : [];
+    const generated = nodes.has(target.path) ? void 0 : input2.generatorInputOf?.(target.path) ?? (target.oldPath === void 0 ? void 0 : input2.generatorInputOf?.(target.oldPath));
+    const viaGenerated = generated ? generatorInputReach(target.path, generated, { graph, index, existingRoutes, isGenerated: input2.isGenerated }) : void 0;
+    const hits = viaGenerated?.hits ?? (nodes.has(target.path) ? routesReaching(reachFrom(index, target.path), existingRoutes) : []);
     for (const h of hits) affected.add(h.route, target.path, h.via);
     if (viaGenerated) reasons.push(viaGenerated.reason);
     if (viaGenerated || !target.reportModified) continue;
@@ -238799,9 +238799,9 @@ function createTreeFileSystem(options) {
     return followed.kind === "tree" ? { kind: "tree", rel: followed.rel } : { kind: "modules", rel: followed.rel, path: abs(followed.rel) };
   };
   const sourceOf = (rel) => {
-    const segments2 = rel.split("/");
-    for (let i = 0; i < segments2.length; i++) {
-      if (segments2[i] === "dist" && links.isLinked(segments2.slice(0, i).join("/"))) return [...segments2.slice(0, i), "src", ...segments2.slice(i + 1)].join("/");
+    const segments3 = rel.split("/");
+    for (let i = 0; i < segments3.length; i++) {
+      if (segments3[i] === "dist" && links.isLinked(segments3.slice(0, i).join("/"))) return [...segments3.slice(0, i), "src", ...segments3.slice(i + 1)].join("/");
     }
     return void 0;
   };
@@ -239752,10 +239752,10 @@ function reportedSegments(file2) {
   if (scheme >= 0) path3 = path3.slice(scheme + 3);
   const query = path3.search(/[?#]/);
   if (query >= 0) path3 = path3.slice(0, query);
-  const segments2 = path3.split("/").filter((s) => s !== "" && s !== "." && s !== "..");
-  const joined = `/${segments2.join("/")}/`;
+  const segments3 = path3.split("/").filter((s) => s !== "" && s !== "." && s !== "..");
+  const joined = `/${segments3.join("/")}/`;
   if (FOREIGN.some((f) => joined.includes(`/${f}/`))) return null;
-  return segments2.length === 0 ? null : segments2;
+  return segments3.length === 0 ? null : segments3;
 }
 function stem(name) {
   const dot = name.lastIndexOf(".");
@@ -239772,14 +239772,14 @@ function sharedSuffix(a, b) {
   return n;
 }
 function matchReportedFile(file2, changed) {
-  const segments2 = reportedSegments(file2);
-  if (segments2 === null) return null;
+  const segments3 = reportedSegments(file2);
+  if (segments3 === null) return null;
   let best = 0;
   let winners = [];
   for (const path3 of changed) {
     const own2 = path3.split("/");
-    const n = sharedSuffix(segments2, own2);
-    const enough = n >= 3 || n >= 2 && (n === segments2.length || n === own2.length);
+    const n = sharedSuffix(segments3, own2);
+    const enough = n >= 3 || n >= 2 && (n === segments3.length || n === own2.length);
     if (!enough || n < best) continue;
     if (n > best) {
       best = n;
@@ -239870,8 +239870,8 @@ function entryPattern(key) {
   if (at < 0) return { method: null, segments: null, whole: canon(key), name };
   const before = tokens2[at - 1]?.toUpperCase();
   const method = before !== void 0 && METHODS.has(before) && before !== "ANY" ? before : null;
-  const segments2 = splitPath(tokens2.slice(at).join(" ")).map((s) => isVariable(s) ? { text: "", variable: true } : { text: canon(s), variable: false });
-  return { method, segments: segments2, whole: canon(key), name };
+  const segments3 = splitPath(tokens2.slice(at).join(" ")).map((s) => isVariable(s) ? { text: "", variable: true } : { text: canon(s), variable: false });
+  return { method, segments: segments3, whole: canon(key), name };
 }
 function rowPattern(name) {
   const slash = name.indexOf("/");
@@ -239904,8 +239904,8 @@ function labelOf(key) {
 }
 var HEALTH = /* @__PURE__ */ new Set(["health", "healthz", "healthcheck", "health-check", "ping", "readiness", "readyz", "liveness", "livez", "liveliness", "ready", "live", "alive", "metrics"]);
 function isProbe(name) {
-  const segments2 = rowPattern(name).segments ?? [];
-  return segments2.length > 0 && segments2.length <= 2 && HEALTH.has(segments2[segments2.length - 1] ?? "");
+  const segments3 = rowPattern(name).segments ?? [];
+  return segments3.length > 0 && segments3.length <= 2 && HEALTH.has(segments3[segments3.length - 1] ?? "");
 }
 function assignUsage(keys, rows) {
   const patterns = keys.map((key) => ({ key, pattern: entryPattern(key), label: labelOf(key) }));
@@ -248866,7 +248866,7 @@ function prefixKey(key, base) {
   return `${key.slice(0, space)} ${mergePath(base, key.slice(space + 1))}`;
 }
 var keyPath = (key) => key.slice(key.indexOf(" ") + 1);
-function segments(path3) {
+function segments2(path3) {
   const out = [];
   let current = "";
   let depth = 0;
@@ -248882,9 +248882,9 @@ function segments(path3) {
   return out;
 }
 function overlaps(path3, base) {
-  const own2 = segments(path3);
+  const own2 = segments2(path3);
   const any2 = (s) => s.includes(":") || s.includes("*");
-  for (const [i, seg] of segments(base).entries()) {
+  for (const [i, seg] of segments2(base).entries()) {
     const o = own2[i];
     if (o === void 0) return seg.startsWith(":") && seg.endsWith("?");
     if (o.includes("{") || seg.includes("{") || o === "*" && i === own2.length - 1) return true;
@@ -250101,7 +250101,7 @@ function declImportGraph(out) {
   }
   edges.sort((x, y) => compareStrings(x.from, y.from) || compareStrings(x.to, y.to));
   const parseErrors = out.problems.filter((p) => p.kind !== "dynamic-route").map((p) => ({ file: p.file, line: Math.max(1, p.line), message: p.detail }));
-  return { nodes: [...out.files].sort(compareStrings), edges, unresolved: [], parseErrors, reexportOnly: [] };
+  return { nodes: [...out.files].sort(compareStrings), edges, unresolved: [], typeOnlyUnresolved: [], parseErrors, reexportOnly: [] };
 }
 function declRouteTable(out) {
   const routes = out.entries.map((e) => ({ key: e.key, path: e.key, index: false, entry: e.file === "" ? null : e.file, modules: sortedUnique(e.anchors.map((a) => out.decls[a]?.file ?? "").filter((f) => f !== "")), layouts: [] }));
@@ -250883,14 +250883,17 @@ function createIgnoreMatcher(globs3) {
   const match = matcher(globs3);
   return (projectPath, repoPath) => match(projectPath) || match(repoPath);
 }
+function projectRelative(projectPrefix, repoPath) {
+  return projectPrefix === "" ? repoPath : posix10.relative(projectPrefix, repoPath);
+}
 function createGeneratorInputOf(entries, projectPrefix) {
-  const withInputs = entries.filter((e) => e.from.length > 0).map((e) => ({ files: e.files, isInput: matcher(e.from) }));
-  const rel = (repoPath) => projectPrefix === "" ? repoPath : posix10.relative(projectPrefix, repoPath);
+  const withInputs = entries.filter((e) => e.from.length > 0).map((e) => ({ files: e.files, isInput: matcher(e.from), isOutput: matcher([e.files]) }));
+  const rel = (repoPath) => projectRelative(projectPrefix, repoPath);
   return (repoPath) => {
-    const files = withInputs.filter((e) => e.isInput(rel(repoPath))).map((e) => e.files);
-    if (files.length === 0) return void 0;
-    const isFile = matcher(files);
-    return { files, feeds: (path3) => (projectPrefix === "" || path3.startsWith(`${projectPrefix}/`)) && isFile(rel(path3)) };
+    const own2 = rel(repoPath);
+    const hit = withInputs.filter((e) => e.isInput(own2));
+    if (hit.length === 0) return void 0;
+    return { files: hit.map((e) => e.files), feeds: (path3) => hit.some((e) => e.isOutput(rel(path3))) };
   };
 }
 
@@ -250928,6 +250931,7 @@ var GraphBuilder = class {
   nodes = /* @__PURE__ */ new Set();
   edges = /* @__PURE__ */ new Map();
   unresolved = [];
+  typeOnlyUnresolved = [];
   checker;
   /** The emitter keeps `import { type A } from "./x"`: `./x` still runs. */
   keepsInlineTypes;
@@ -250962,6 +250966,12 @@ var GraphBuilder = class {
     this.addEdge(from, to, r.kind === "asset" ? "asset" : kind);
     return r.kind === "module" ? to : void 0;
   }
+  /** Records a type-only import that does not resolve and points into the project. */
+  typeImport(sf, from, literal3) {
+    if (this.options.typeImports !== true || this.resolve(sf, literal3).kind !== "unresolved") return;
+    const target = specifierTarget(this.project, toPosix(sf.fileName), literal3.text);
+    if (target !== void 0 && this.isProjectFile(target)) this.typeOnlyUnresolved.push({ file: from, specifier: literal3.text, line: lineOf(sf, literal3), reason: "not-found", target: this.rel(target) });
+  }
   /** Files that declare the symbol a local import binding refers to, following every alias (barrels). */
   declaringFiles(binding) {
     const local = this.checker.getSymbolAtLocation(binding);
@@ -250985,12 +250995,16 @@ var GraphBuilder = class {
       this.link(sf, from, node2.moduleSpecifier, "side-effect");
       return;
     }
-    if (isTypeOnlyImport(clause)) return;
+    if (isTypeOnlyImport(clause)) {
+      this.typeImport(sf, from, node2.moduleSpecifier);
+      return;
+    }
     const named = clause.namedBindings && import_typescript20.default.isNamedImports(clause.namedBindings) ? clause.namedBindings.elements.filter((e) => !e.isTypeOnly) : [];
     const namespace = clause.namedBindings && import_typescript20.default.isNamespaceImport(clause.namedBindings) ? clause.namedBindings : void 0;
     const allTypes = clause.namedBindings && import_typescript20.default.isNamedImports(clause.namedBindings) && clause.namedBindings.elements.length > 0 && named.length === 0;
     if (!clause.name && !namespace && allTypes) {
       if (this.keepsInlineTypes) this.link(sf, from, node2.moduleSpecifier, "side-effect");
+      else this.typeImport(sf, from, node2.moduleSpecifier);
       return;
     }
     const r = this.resolve(sf, node2.moduleSpecifier);
@@ -251069,7 +251083,8 @@ var GraphBuilder = class {
     const unresolved = this.unresolved.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.specifier, b.specifier));
     const uniqueErrors = [...new Map(parseErrors.map((e) => [`${e.file}\0${e.line}\0${e.message}`, e])).values()];
     uniqueErrors.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.message, b.message));
-    return { nodes: [...this.nodes].sort(compareStrings), edges, unresolved, parseErrors: uniqueErrors, reexportOnly: reexportOnly.sort(compareStrings) };
+    const typeOnlyUnresolved = this.typeOnlyUnresolved.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.specifier, b.specifier));
+    return { nodes: [...this.nodes].sort(compareStrings), edges, unresolved, typeOnlyUnresolved, parseErrors: uniqueErrors, reexportOnly: reexportOnly.sort(compareStrings) };
   }
 };
 function buildImportGraph(project, options) {
@@ -251182,8 +251197,8 @@ function routeModulePath(dir, file2) {
   if (ext === void 0) return null;
   return file2.slice(prefix.length, -ext.length);
 }
-function urlPath(segments2) {
-  return `/${segments2.filter((s) => s !== "").join("/")}`;
+function urlPath(segments3) {
+  return `/${segments3.filter((s) => s !== "").join("/")}`;
 }
 function routeTable(routes, dynamic, sources) {
   const byKey = /* @__PURE__ */ new Map();
@@ -251709,9 +251724,9 @@ var RouteCollector = class {
   emit(def, ctx, children) {
     const segment = routeSegment(def);
     const path3 = def.path !== void 0 ? joinRoutePath(ctx.path, def.path) : ctx.path === "" ? "/" : ctx.path;
-    const segments2 = [...ctx.segments, segment];
-    this.routes.push({ key: segments2.join(KEY_SEPARATOR), path: path3, index: def.index, entry: def.entry, modules: def.modules, layouts: ctx.layouts });
-    const childCtx = { segments: segments2, path: def.path !== void 0 ? path3 : ctx.path, layouts: def.entry === null ? ctx.layouts : [...ctx.layouts, def.entry] };
+    const segments3 = [...ctx.segments, segment];
+    this.routes.push({ key: segments3.join(KEY_SEPARATOR), path: path3, index: def.index, entry: def.entry, modules: def.modules, layouts: ctx.layouts });
+    const childCtx = { segments: segments3, path: def.path !== void 0 ? path3 : ctx.path, layouts: def.entry === null ? ctx.layouts : [...ctx.layouts, def.entry] };
     children?.(childCtx);
   }
   /** Routes from an expression: array literal, constant (here or imported), or createRoutesFromElements(). */
@@ -252014,7 +252029,7 @@ function createRepoRoleOf(ctx) {
   const isInfra = createInfraMatcher(ctx.config);
   const generatorInputOf = createGeneratorInputOf(ctx.config.generated, ctx.projectPrefix);
   return (repoPath) => {
-    const rel = ctx.projectPrefix === "" ? repoPath : posix15.relative(ctx.projectPrefix, repoPath);
+    const rel = projectRelative(ctx.projectPrefix, repoPath);
     if (roleOf(rel) !== "global" && generatorInputOf(repoPath)) return "source";
     if (rel.startsWith("../") || rel === "..") {
       if (roleOf(rel) === "global") return "global";
@@ -252024,12 +252039,10 @@ function createRepoRoleOf(ctx) {
     return (role === "source" || role === "barrel" || role === "i18n" || role === "excluded") && isInfra(repoPath) ? "infra" : role;
   };
 }
-function projectRelative(ctx, repoPath) {
-  return ctx.projectPrefix === "" ? repoPath : posix15.relative(ctx.projectPrefix, repoPath);
-}
+var hasGeneratorInputs = (ctx) => ctx.config.generated.some((g) => g.from.length > 0);
 function createIgnoreOf(ctx, extra, base = ctx.config.ignore) {
   const ignored = createIgnoreMatcher([...base, ...extra]);
-  return (repoPath) => ignored(projectRelative(ctx, repoPath), repoPath);
+  return (repoPath) => ignored(projectRelative(ctx.projectPrefix, repoPath), repoPath);
 }
 function createAnalysisRoleOf(ctx, graphNodes, backend) {
   const config2 = createRepoRoleOf(ctx);
@@ -252123,6 +252136,7 @@ async function loadWorkspace(ctx, ref, timings, now = () => performance.now()) {
   const roleOf = createRepoRoleOf(ctx);
   const graph = buildImportGraph(project, {
     repoRoot: ctx.repoRoot,
+    typeImports: hasGeneratorInputs(ctx),
     isOrigin: (path3) => {
       const role = roleOf(path3);
       return role !== "test" && role !== "story" && role !== "excluded";
@@ -252143,6 +252157,7 @@ function loadDirectoryRoutesWorkspace(ctx, fs2, treeFiles, lap) {
   const roleOf = createRepoRoleOf(ctx);
   const graph = buildImportGraph(project, {
     repoRoot: ctx.repoRoot,
+    typeImports: hasGeneratorInputs(ctx),
     isOrigin: (path3) => {
       const role = roleOf(path3);
       return role !== "test" && role !== "story" && role !== "excluded";
@@ -252179,7 +252194,7 @@ function loadBackendWorkspace(ctx, fs2, treeFiles, lap) {
     const role = roleOf(path3);
     return role !== "test" && role !== "story" && role !== "excluded" && role !== "outside";
   };
-  const graph = buildImportGraph(project, { repoRoot: ctx.repoRoot, isOrigin: (path3) => isOrigin(path3) || roleOf(path3) === "outside" });
+  const graph = buildImportGraph(project, { repoRoot: ctx.repoRoot, typeImports: hasGeneratorInputs(ctx), isOrigin: (path3) => isOrigin(path3) || roleOf(path3) === "outside" });
   lap("graph");
   const files = (treeFiles ?? diskFiles(projectDir, repoRoot2)).filter((f) => ctx.projectPrefix === "" || f.startsWith(`${ctx.projectPrefix}/`));
   const backend = buildBackendTable({ project, repoRoot: repoRoot2, files, read: (f) => fs2.readFile(posix15.join(repoRoot2, f)), isOrigin, graphql: ctx.config.backend.graphql, rest: ctx.config.backend.rest, context: projectGlobs(ctx, ctx.config.backend.context), entries: projectGlobs(ctx, ctx.config.backend.entries) });
@@ -253418,7 +253433,7 @@ var REASON_TEXT = {
   "i18n-not-additive": "existing translations changed",
   "existing-file-modified": "existing file modified",
   "existing-file-unreachable": "existing file modified, no route reaches it",
-  "generator-input-changed": "generator input changed, reached through the code it generates",
+  "generator-input-changed": "generator input changed: reach through the code it generates",
   "existing-file-renamed": "existing file renamed",
   "infra-file-changed": "environment, infrastructure or CI file changed",
   "lockfile-changed-elsewhere": "lockfile changed by another project's dependencies",

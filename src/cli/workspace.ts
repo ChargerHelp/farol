@@ -3,7 +3,7 @@ import { posix } from 'node:path'
 import { buildBackendTable, type BackendTable } from '../backend/entrypoints.js'
 import { compareStrings } from '../output/order.js'
 import { ECOSYSTEM_FILES, LOCKFILES, MANIFESTS } from '../classify/dependencies.js'
-import { createGeneratorInputOf, createIgnoreMatcher, createInfraMatcher, createRoleMatcher, type AnalysisRole, type FileRole, type RoleMatcher } from '../classify/roles.js'
+import { createGeneratorInputOf, createIgnoreMatcher, projectRelative, createInfraMatcher, createRoleMatcher, type AnalysisRole, type FileRole, type RoleMatcher } from '../classify/roles.js'
 import { listFiles, readFiles } from '../git/index.js'
 import { createTreeFileSystem, toPosix, type ProjectFileSystem } from '../project/fs.js'
 import { addStaticEdges, buildImportGraph, type ImportGraph } from '../project/graph.js'
@@ -37,7 +37,7 @@ export function createRepoRoleOf(ctx: Context): (repoPath: string) => FileRole |
   const isInfra = createInfraMatcher(ctx.config)
   const generatorInputOf = createGeneratorInputOf(ctx.config.generated, ctx.projectPrefix)
   return (repoPath) => {
-    const rel = ctx.projectPrefix === '' ? repoPath : posix.relative(ctx.projectPrefix, repoPath)
+    const rel = projectRelative(ctx.projectPrefix, repoPath)
     // Precedence: global, then generator inputs (code the project imports is built from them, also above the project).
     if (roleOf(rel) !== 'global' && generatorInputOf(repoPath)) return 'source'
     if (rel.startsWith('../') || rel === '..') {
@@ -52,14 +52,14 @@ export function createRepoRoleOf(ctx: Context): (repoPath: string) => FileRole |
   }
 }
 
-function projectRelative(ctx: Context, repoPath: string): string {
-  return ctx.projectPrefix === '' ? repoPath : posix.relative(ctx.projectPrefix, repoPath)
-}
+/** Whether a `generated` entry names generator inputs: only they read type-only imports of generated code. */
+const hasGeneratorInputs = (ctx: Context): boolean => ctx.config.generated.some((g) => g.from.length > 0)
+
 
 /** Whether a project- or repo-relative path matches `base` (default: the "ignore" configuration) or `extra` globs. */
 export function createIgnoreOf(ctx: Context, extra: readonly string[], base: readonly string[] = ctx.config.ignore): (repoPath: string) => boolean {
   const ignored = createIgnoreMatcher([...base, ...extra])
-  return (repoPath) => ignored(projectRelative(ctx, repoPath), repoPath)
+  return (repoPath) => ignored(projectRelative(ctx.projectPrefix, repoPath), repoPath)
 }
 
 /**
@@ -177,6 +177,7 @@ export async function loadWorkspace(ctx: Context, ref: string | undefined, timin
   const roleOf = createRepoRoleOf(ctx)
   const graph = buildImportGraph(project, {
     repoRoot: ctx.repoRoot,
+    typeImports: hasGeneratorInputs(ctx),
     isOrigin: (path) => {
       const role = roleOf(path)
       return role !== 'test' && role !== 'story' && role !== 'excluded'
@@ -199,6 +200,7 @@ function loadDirectoryRoutesWorkspace(ctx: Context, fs: ProjectFileSystem, treeF
   const roleOf = createRepoRoleOf(ctx)
   const graph = buildImportGraph(project, {
     repoRoot: ctx.repoRoot,
+    typeImports: hasGeneratorInputs(ctx),
     isOrigin: (path) => {
       const role = roleOf(path)
       return role !== 'test' && role !== 'story' && role !== 'excluded'
@@ -241,7 +243,7 @@ function loadBackendWorkspace(ctx: Context, fs: ProjectFileSystem, treeFiles: st
     const role = roleOf(path)
     return role !== 'test' && role !== 'story' && role !== 'excluded' && role !== 'outside'
   }
-  const graph = buildImportGraph(project, { repoRoot: ctx.repoRoot, isOrigin: (path) => isOrigin(path) || roleOf(path) === 'outside' })
+  const graph = buildImportGraph(project, { repoRoot: ctx.repoRoot, typeImports: hasGeneratorInputs(ctx), isOrigin: (path) => isOrigin(path) || roleOf(path) === 'outside' })
   lap('graph')
   const files = (treeFiles ?? diskFiles(projectDir, repoRoot)).filter((f) => ctx.projectPrefix === '' || f.startsWith(`${ctx.projectPrefix}/`))
   const backend = buildBackendTable({ project, repoRoot, files, read: (f) => fs.readFile(posix.join(repoRoot, f)), isOrigin, graphql: ctx.config.backend.graphql, rest: ctx.config.backend.rest, context: projectGlobs(ctx, ctx.config.backend.context), entries: projectGlobs(ctx, ctx.config.backend.entries) })

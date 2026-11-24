@@ -6,7 +6,7 @@ import { runAnalyze } from '../../src/cli/analyze.js'
 import { OutputSchema, type Output } from '../../src/output/schema.js'
 import { analyzeRepo, FIXED_DATE } from '../helpers/analyze.js'
 import { BASE_API_DIR, BASE_APP_DIR, createRepo, FIXTURES_DIR, type TestRepo } from '../helpers/repo.js'
-import { analyzeVariant, edit } from '../helpers/variant.js'
+import { analyzeVariant, edit, type Change } from '../helpers/variant.js'
 
 const cleanups: (() => void)[] = []
 afterAll(() => {
@@ -18,6 +18,9 @@ const SCHEMA = 'prisma/schema.prisma'
 const changeSchema = (r: TestRepo): void => { edit(r, SCHEMA, '  amount Int', '  amount Int\n  currency String') }
 const codesOf = (o: Output, file: string): string[] => o.reasons.filter((r) => r.file === file).map((r) => r.code)
 const affectedKeys = (o: Output): string[] => o.routes.affected.map((r) => r.key)
+type Config = Record<string, unknown>
+const setConfig = (r: TestRepo, file: string, patch: (c: Config) => Config): void => { r.write(file, JSON.stringify(patch(JSON.parse(r.read(file)) as Config), null, 2)) }
+const PRISMA_GLOB: Change = (r) => { setConfig(r, 'farol.config.json', (c) => ({ ...c, generated: [{ files: 'src/generated/**', from: ['prisma/*.prisma'] }] })) }
 
 async function analyzeIn(repo: TestRepo, project: string): Promise<Output> {
   const ctx = await loadContext({ config: 'farol.config.json', cwd: join(repo.dir, project), verbose: false })
@@ -32,8 +35,7 @@ describe('generator inputs (generated[].from)', () => {
     cleanups.push(() => { repo.cleanup(); })
     cpSync(BASE_API_DIR, join(repo.dir, 'services/api'), { recursive: true })
     cpSync(join(FIXTURES_DIR, SCENARIO, 'base'), join(repo.dir, 'services/api'), { recursive: true })
-    const config = JSON.parse(repo.read('services/api/farol.config.json')) as Record<string, unknown>
-    repo.write('services/api/farol.config.json', JSON.stringify({ ...config, generated: [{ files: 'src/generated/**', from: ['../../schemas/protobuf/**/*.proto'] }] }, null, 2))
+    setConfig(repo, 'services/api/farol.config.json', (c) => ({ ...c, generated: [{ files: 'src/generated/**', from: ['../../schemas/protobuf/**/*.proto'] }] }))
     repo.write('schemas/protobuf/payment.proto', 'syntax = "proto3";\nmessage Payment { string id = 1; }\n')
     repo.commit('base')
     repo.git('checkout', '-q', '-b', 'feature')
@@ -51,8 +53,17 @@ describe('generator inputs (generated[].from)', () => {
     expect(o.classification).toBe('touches-existing')
     expect(affectedKeys(o)).toEqual([])
     expect(o.reasons.filter((r) => r.file === SCHEMA).map((r) => [r.code, r.detail])).toEqual([
-      ['existing-file-unreachable', 'generator input of src/generated/**; nothing in the project imports that code'],
+      ['generator-input-changed', 'generator input of src/generated/**; no import of that code found (imports of a package name do not count): no route listed'],
     ])
+  })
+
+  it('a type-only importer of the generated code counts (protobuf types loaded at runtime)', async () => {
+    const o = await analyzeVariant(SCENARIO, cleanups, changeSchema, (r) => {
+      r.write('src/rest/stripe.ts', "import type { Payment } from '../generated/prisma/models.js'\n\nexport async function handleStripe(request: { body: Payment }) {\n  return { received: Boolean(request.body) }\n}\n")
+    })
+    expect(o.classification).toBe('touches-existing')
+    expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
+    expect(codesOf(o, SCHEMA)).toEqual(['generator-input-changed'])
   })
 
   it('committed generated code (a file of the import graph) is reached through its importers', async () => {
@@ -70,10 +81,7 @@ describe('generator inputs (generated[].from)', () => {
   })
 
   it('an added input reaches the importers of the generated code', async () => {
-    const o = await analyzeVariant(SCENARIO, cleanups, (r) => { r.write('prisma/payment.prisma', 'model Refund {\n  id String @id\n}\n') }, (r) => {
-      const config = JSON.parse(r.read('farol.config.json')) as Record<string, unknown>
-      r.write('farol.config.json', JSON.stringify({ ...config, generated: [{ files: 'src/generated/**', from: ['prisma/*.prisma'] }] }, null, 2))
-    })
+    const o = await analyzeVariant(SCENARIO, cleanups, (r) => { r.write('prisma/payment.prisma', 'model Refund {\n  id String @id\n}\n') }, PRISMA_GLOB)
     expect(o.classification).toBe('touches-existing')
     expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
     expect(codesOf(o, 'prisma/payment.prisma')).toEqual(['generator-input-changed'])
@@ -83,10 +91,7 @@ describe('generator inputs (generated[].from)', () => {
     const o = await analyzeVariant(SCENARIO, cleanups, (r) => {
       r.write('prisma/main.prisma', r.read(SCHEMA))
       r.remove(SCHEMA)
-    }, (r) => {
-      const config = JSON.parse(r.read('farol.config.json')) as Record<string, unknown>
-      r.write('farol.config.json', JSON.stringify({ ...config, generated: [{ files: 'src/generated/**', from: ['prisma/*.prisma'] }] }, null, 2))
-    })
+    }, PRISMA_GLOB)
     expect(o.classification).toBe('touches-existing')
     expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
     expect(codesOf(o, 'prisma/main.prisma').sort()).toEqual(['existing-file-renamed', 'generator-input-changed'])
@@ -100,14 +105,26 @@ describe('generator inputs (generated[].from)', () => {
     expect(o.classification).toBe('touches-existing')
     expect(affectedKeys(o)).toEqual([])
     expect(o.reasons.filter((r) => r.file === SCHEMA).map((r) => [r.code, r.detail])).toEqual([
-      ['existing-file-unreachable', 'generator input of src/generated/**, used by 1 file(s); no route reaches them'],
+      ['generator-input-changed', 'generator input of src/generated/**, used by 1 file(s); no route reaches them'],
     ])
+  })
+
+  it('a rename out of the input globs still reaches the importers', async () => {
+    const o = await analyzeVariant(SCENARIO, cleanups, (r) => {
+      r.write('db/schema.prisma', r.read(SCHEMA))
+      r.remove(SCHEMA)
+    })
+    expect(o.classification).toBe('touches-existing')
+    expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
+    expect(codesOf(o, 'db/schema.prisma').sort()).toEqual(['existing-file-renamed', 'generator-input-changed'])
   })
 
   it('an input that is also a global file makes the PR global', async () => {
     const o = await analyzeVariant(SCENARIO, cleanups, changeSchema, (r) => {
-      const config = JSON.parse(r.read('farol.config.json')) as { roles: { global: string[] } }
-      r.write('farol.config.json', JSON.stringify({ ...config, roles: { ...config.roles, global: [...config.roles.global, SCHEMA] } }, null, 2))
+      setConfig(r, 'farol.config.json', (c) => {
+        const roles = c.roles as { global: string[] }
+        return { ...c, roles: { ...roles, global: [...roles.global, SCHEMA] } }
+      })
     })
     expect(o.classification).toBe('global')
     expect(codesOf(o, SCHEMA)).toEqual(['global-file-changed'])
@@ -129,8 +146,7 @@ describe('generator inputs (generated[].from)', () => {
     const repo = createRepo()
     cleanups.push(() => { repo.cleanup(); })
     repo.overlay(BASE_APP_DIR)
-    const config = JSON.parse(repo.read('farol.config.json')) as Record<string, unknown>
-    repo.write('farol.config.json', JSON.stringify({ ...config, generated: [{ files: 'src/generated/**', from: ['schema.graphql'] }] }, null, 2))
+    setConfig(repo, 'farol.config.json', (c) => ({ ...c, generated: [{ files: 'src/generated/**', from: ['schema.graphql'] }] }))
     repo.write('schema.graphql', 'type Query { about: String }\n')
     edit(repo, 'src/pages/AboutPage.tsx', "import { Button } from '@/components'", "import { Button } from '@/components'\nimport { AboutDocument } from '../generated/graphql'")
     edit(repo, 'src/pages/AboutPage.tsx', '<p>About us</p>', '<p>About us {String(AboutDocument)}</p>')

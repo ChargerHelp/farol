@@ -46,6 +46,8 @@ export interface ImportGraph {
   nodes: string[]
   edges: GraphEdge[]
   unresolved: UnresolvedImport[]
+  /** Unresolved type-only imports that point into the project (with `GraphOptions.typeImports`): never broken, only read for generator inputs. */
+  typeOnlyUnresolved: UnresolvedImport[]
   parseErrors: ParseError[]
   /** Modules whose statements are all `export … from`: changes to them may follow barrel edges. */
   reexportOnly: string[]
@@ -73,6 +75,8 @@ export interface GraphOptions {
   repoRoot: string
   /** Whether imports of this repo-relative file count (tests, stories and excluded files are not callers). */
   isOrigin: (path: string) => boolean
+  /** Records unresolved type-only imports (`typeOnlyUnresolved`): types of git-ignored generated code. */
+  typeImports?: boolean
 }
 
 function lineOf(sf: ts.SourceFile, node: ts.Node): number {
@@ -87,6 +91,7 @@ class GraphBuilder {
   private readonly nodes = new Set<string>()
   private readonly edges = new Map<string, GraphEdge>()
   private readonly unresolved: UnresolvedImport[] = []
+  private readonly typeOnlyUnresolved: UnresolvedImport[] = []
   private readonly checker: ts.TypeChecker
   /** The emitter keeps `import { type A } from "./x"`: `./x` still runs. */
   private readonly keepsInlineTypes: boolean
@@ -135,6 +140,13 @@ class GraphBuilder {
     return r.kind === 'module' ? to : undefined
   }
 
+  /** Records a type-only import that does not resolve and points into the project. */
+  typeImport(sf: ts.SourceFile, from: string, literal: ts.StringLiteralLike): void {
+    if (this.options.typeImports !== true || this.resolve(sf, literal).kind !== 'unresolved') return
+    const target = specifierTarget(this.project, toPosix(sf.fileName), literal.text)
+    if (target !== undefined && this.isProjectFile(target)) this.typeOnlyUnresolved.push({ file: from, specifier: literal.text, line: lineOf(sf, literal), reason: 'not-found', target: this.rel(target) })
+  }
+
   /** Files that declare the symbol a local import binding refers to, following every alias (barrels). */
   declaringFiles(binding: ts.Identifier): string[] | undefined {
     const local = this.checker.getSymbolAtLocation(binding)
@@ -161,12 +173,16 @@ class GraphBuilder {
       this.link(sf, from, node.moduleSpecifier, 'side-effect')
       return
     }
-    if (isTypeOnlyImport(clause)) return
+    if (isTypeOnlyImport(clause)) {
+      this.typeImport(sf, from, node.moduleSpecifier)
+      return
+    }
     const named = clause.namedBindings && ts.isNamedImports(clause.namedBindings) ? clause.namedBindings.elements.filter((e) => !e.isTypeOnly) : []
     const namespace = clause.namedBindings && ts.isNamespaceImport(clause.namedBindings) ? clause.namedBindings : undefined
     const allTypes = clause.namedBindings && ts.isNamedImports(clause.namedBindings) && clause.namedBindings.elements.length > 0 && named.length === 0
     if (!clause.name && !namespace && allTypes) {
       if (this.keepsInlineTypes) this.link(sf, from, node.moduleSpecifier, 'side-effect')
+      else this.typeImport(sf, from, node.moduleSpecifier)
       return
     }
     const r = this.resolve(sf, node.moduleSpecifier)
@@ -255,7 +271,8 @@ class GraphBuilder {
     const unresolved = this.unresolved.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.specifier, b.specifier))
     const uniqueErrors = [...new Map(parseErrors.map((e) => [`${e.file}\0${e.line}\0${e.message}`, e])).values()]
     uniqueErrors.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.message, b.message))
-    return { nodes: [...this.nodes].sort(compareStrings), edges, unresolved, parseErrors: uniqueErrors, reexportOnly: reexportOnly.sort(compareStrings) }
+    const typeOnlyUnresolved = this.typeOnlyUnresolved.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.specifier, b.specifier))
+    return { nodes: [...this.nodes].sort(compareStrings), edges, unresolved, typeOnlyUnresolved, parseErrors: uniqueErrors, reexportOnly: reexportOnly.sort(compareStrings) }
   }
 }
 

@@ -85,9 +85,15 @@ export function createIgnoreMatcher(globs: readonly string[]): (projectPath: str
   return (projectPath, repoPath) => match(projectPath) || match(repoPath)
 }
 
-/** Generated code a changed file is an input of: its `files` globs, and whether a repo-relative path is part of it. */
-export interface GeneratorInput {
+/** Path relative to the project ("../" above it); the repo-relative path when the project is the repository root. */
+export function projectRelative(projectPrefix: string, repoPath: string): string {
+  return projectPrefix === '' ? repoPath : posix.relative(projectPrefix, repoPath)
+}
+
+/** Generated code a changed file is an input of: its `files` globs, and whether a path is part of it. */
+export interface GeneratedCode {
   files: readonly string[]
+  /** Whether a repo-relative path (an import target or a graph node) matches the `files` globs. */
   feeds: (repoPath: string) => boolean
 }
 
@@ -95,13 +101,13 @@ export interface GeneratorInput {
  * Generator inputs (`generated[].from`, project-relative; "../" climbs above the project): for a changed repo-relative
  * path, the generated code of every entry whose inputs match it, or undefined for any other path.
  */
-export function createGeneratorInputOf(entries: Config['generated'], projectPrefix: string): (repoPath: string) => GeneratorInput | undefined {
-  const withInputs = entries.filter((e) => e.from.length > 0).map((e) => ({ files: e.files, isInput: matcher(e.from) }))
-  const rel = (repoPath: string): string => (projectPrefix === '' ? repoPath : posix.relative(projectPrefix, repoPath))
+export function createGeneratorInputOf(entries: Config['generated'], projectPrefix: string): (repoPath: string) => GeneratedCode | undefined {
+  const withInputs = entries.filter((e) => e.from.length > 0).map((e) => ({ files: e.files, isInput: matcher(e.from), isOutput: matcher([e.files]) }))
+  const rel = (repoPath: string): string => projectRelative(projectPrefix, repoPath)
   return (repoPath) => {
-    const files = withInputs.filter((e) => e.isInput(rel(repoPath))).map((e) => e.files)
-    if (files.length === 0) return undefined
-    const isFile = matcher(files)
-    return { files, feeds: (path) => (projectPrefix === '' || path.startsWith(`${projectPrefix}/`)) && isFile(rel(path)) }
+    const own = rel(repoPath)
+    const hit = withInputs.filter((e) => e.isInput(own))
+    if (hit.length === 0) return undefined
+    return { files: hit.map((e) => e.files), feeds: (path) => hit.some((e) => e.isOutput(rel(path))) }
   }
 }
