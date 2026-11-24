@@ -1009,3 +1009,10 @@ Every decision not covered by `docs/SPEC.md`. One entry per decision: problem, o
 - **Side effect:** only modules are added, so a PR can gain endpoints and never loses one, and no class changes. A reason chain starts at the class file and does not name the mount.
 - **Limits, not changed:** a factory call held in a variable before the mount; an argument whose type is a type parameter; `Pick<C, …>`, `Partial<C>` and other mapped types of a class; `C[]`, `Map<K, C>`; `new Router(deps).app`; curried calls `f(a)(b)`; spread arguments; two levels of properties; interface-typed members (out of scope, decided with Ethan); classes from packages. A PR that changes only the wiring of a mount argument (the type of `AdminUseCases.issues.list`, or `main.ts`) and not the mount line is read on the head only: a change to the old class lists no endpoint and stays `touches-existing`. Each of these lists no endpoint, as before.
 - **Reason:** CHA-15672 (A8 of the assess support).
+
+## 2026-11-24 — Review tooling for Claude Code: `/final-review` and `/xreview` (from empwr-platform)
+
+- **Problem:** the review steps used on farol PRs (`/final-review`, `/xreview`) lived only in ChargerHelp/empwr-platform, so a session in farol could not run them.
+- **Choice:** copy `.claude/skills/final-review/SKILL.md`, `.claude/commands/xreview.md` and `bin/xreview` (decided with Ethan). In `final-review`, Step 4 uses farol's npm scripts, golden updates and the committed `dist/`, in place of the Rails and Turborepo steps. `bin/xreview` is unchanged, except that its pointers to `docs/xreview.md` now name ChargerHelp/empwr-platform, where the setup is.
+- **Not copied:** `docs/xreview.md` and `bin/test-xreview`, which refer to empwr-platform infrastructure.
+- **Limits:** `bin/xreview` needs the Codex CLI, the AWS CLI, and the ChargerHelp `bedrock-review` profile signed in as the `BedrockCodeReview` role; without them it stops with a message. It holds ChargerHelp AWS names: review it before farol becomes public. It is development tooling, not part of the CLI or of `dist/`.
