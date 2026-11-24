@@ -237632,15 +237632,34 @@ function describeHits(hits) {
 }
 
 // src/classify/generated.ts
+var NO_REACH = /* @__PURE__ */ new Set(["excluded", "story", "manifest", "lockfile", "global", "infra", "test"]);
+function renamedInputSkipsReach(file2, role, generatorInputOf) {
+  return file2.status === "renamed" && file2.oldPath !== void 0 && NO_REACH.has(role) && generatorInputOf?.(file2.oldPath) !== void 0;
+}
+function generatedUsers(code2, ctx) {
+  const importers = ctx.graph.unresolved.filter((u) => u.target !== void 0 && ctx.isGenerated(u.target) && code2.feeds(u.target)).map((u) => u.file);
+  const users = new Map(sortedUnique([...importers, ...ctx.graph.nodes.filter((n) => code2.feeds(n))]).map((f) => [f, []]));
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const t of ctx.graph.typeImports) {
+      const next = users.get(t.target);
+      const via = code2.feeds(t.target) ? [] : next && [t.target, ...next];
+      if (users.has(t.file) || via === void 0) continue;
+      users.set(t.file, via);
+      grew = true;
+    }
+  }
+  return users;
+}
 function generatorInputReach(path3, code2, ctx) {
-  const importers = [...ctx.graph.unresolved, ...ctx.graph.typeOnlyUnresolved].filter((u) => u.target !== void 0 && ctx.isGenerated(u.target) && code2.feeds(u.target)).map((u) => u.file);
-  const starts = sortedUnique([...importers, ...ctx.graph.nodes.filter((n) => code2.feeds(n))]);
+  const users = generatedUsers(code2, ctx);
+  const starts = [...users.keys()].sort(compareStrings);
   const of = `generator input of ${code2.files.join(", ")}`;
   if (starts.length === 0) return { hits: [], reason: reason("generator-input-changed", `${of}; no import of that code found (imports of a package name do not count): no route listed`, path3) };
   const best = /* @__PURE__ */ new Map();
   for (const start of starts) {
     for (const h of routesReaching(reachFrom(ctx.index, start), ctx.existingRoutes)) {
-      const via = [...h.via, path3];
+      const via = [...h.via, ...users.get(start) ?? [], path3];
       const prev = best.get(h.route.key);
       if (!prev || via.length < prev.via.length) best.set(h.route.key, { route: h.route, via });
     }
@@ -238044,6 +238063,7 @@ function classify(input2) {
     outputFiles.push(out);
     const leaves = renamedOutOfProduction(file2, role, input2.roleOf);
     if (leaves) reasons.push(reason("existing-file-renamed", `renamed from ${file2.oldPath}, which no longer counts as production code`, file2.path));
+    if (renamedInputSkipsReach(file2, role, input2.generatorInputOf)) reachTargets.push({ path: file2.path, reportModified: false, inputPaths: [file2.path, file2.oldPath ?? file2.path] });
     if (role === "excluded" || role === "story") continue;
     if (role === "manifest") {
       const diff2 = input2.manifests.find((m) => m.manifest === file2.path);
@@ -238092,7 +238112,7 @@ function classify(input2) {
     }
     if (file2.status === "renamed") {
       reasons.push(reason("existing-file-renamed", `renamed from ${file2.oldPath}`, file2.path));
-      reachTargets.push({ path: file2.path, reportModified: false, ...file2.oldPath === void 0 ? {} : { oldPath: file2.oldPath } });
+      reachTargets.push({ path: file2.path, reportModified: false, inputPaths: [file2.path, file2.oldPath ?? file2.path] });
       continue;
     }
     const declImpact = role === "source" ? impactOf(file2.path) : void 0;
@@ -238174,7 +238194,7 @@ function classify(input2) {
     reachTargets.push({ path: file2.path, reportModified: true });
   }
   for (const target of reachTargets) {
-    const generated = nodes.has(target.path) ? void 0 : input2.generatorInputOf?.(target.path) ?? (target.oldPath === void 0 ? void 0 : input2.generatorInputOf?.(target.oldPath));
+    const generated = nodes.has(target.path) ? void 0 : input2.generatorInputOf?.(...target.inputPaths ?? [target.path]);
     const viaGenerated = generated ? generatorInputReach(target.path, generated, { graph, index, existingRoutes, isGenerated: input2.isGenerated }) : void 0;
     const hits = viaGenerated?.hits ?? (nodes.has(target.path) ? routesReaching(reachFrom(index, target.path), existingRoutes) : []);
     for (const h of hits) affected.add(h.route, target.path, h.via);
@@ -250101,7 +250121,7 @@ function declImportGraph(out) {
   }
   edges.sort((x, y) => compareStrings(x.from, y.from) || compareStrings(x.to, y.to));
   const parseErrors = out.problems.filter((p) => p.kind !== "dynamic-route").map((p) => ({ file: p.file, line: Math.max(1, p.line), message: p.detail }));
-  return { nodes: [...out.files].sort(compareStrings), edges, unresolved: [], typeOnlyUnresolved: [], parseErrors, reexportOnly: [] };
+  return { nodes: [...out.files].sort(compareStrings), edges, unresolved: [], typeImports: [], parseErrors, reexportOnly: [] };
 }
 function declRouteTable(out) {
   const routes = out.entries.map((e) => ({ key: e.key, path: e.key, index: false, entry: e.file === "" ? null : e.file, modules: sortedUnique(e.anchors.map((a) => out.decls[a]?.file ?? "").filter((f) => f !== "")), layouts: [] }));
@@ -250888,12 +250908,11 @@ function projectRelative(projectPrefix, repoPath) {
 }
 function createGeneratorInputOf(entries, projectPrefix) {
   const withInputs = entries.filter((e) => e.from.length > 0).map((e) => ({ files: e.files, isInput: matcher(e.from), isOutput: matcher([e.files]) }));
-  const rel = (repoPath) => projectRelative(projectPrefix, repoPath);
-  return (repoPath) => {
-    const own2 = rel(repoPath);
-    const hit = withInputs.filter((e) => e.isInput(own2));
+  return (...repoPaths) => {
+    const own2 = repoPaths.map((p) => projectRelative(projectPrefix, p));
+    const hit = withInputs.filter((e) => own2.some((p) => e.isInput(p)));
     if (hit.length === 0) return void 0;
-    return { files: hit.map((e) => e.files), feeds: (path3) => hit.some((e) => e.isOutput(rel(path3))) };
+    return { files: hit.map((e) => e.files), feeds: (path3) => hit.some((e) => e.isOutput(projectRelative(projectPrefix, path3))) };
   };
 }
 
@@ -250931,7 +250950,7 @@ var GraphBuilder = class {
   nodes = /* @__PURE__ */ new Set();
   edges = /* @__PURE__ */ new Map();
   unresolved = [];
-  typeOnlyUnresolved = [];
+  typeImports = /* @__PURE__ */ new Map();
   checker;
   /** The emitter keeps `import { type A } from "./x"`: `./x` still runs. */
   keepsInlineTypes;
@@ -250966,11 +250985,14 @@ var GraphBuilder = class {
     this.addEdge(from, to, r.kind === "asset" ? "asset" : kind);
     return r.kind === "module" ? to : void 0;
   }
-  /** Records a type-only import that does not resolve and points into the project. */
+  /** Records a type-only import or re-export of a project file, resolved or not. */
   typeImport(sf, from, literal3) {
-    if (this.options.typeImports !== true || this.resolve(sf, literal3).kind !== "unresolved") return;
-    const target = specifierTarget(this.project, toPosix(sf.fileName), literal3.text);
-    if (target !== void 0 && this.isProjectFile(target)) this.typeOnlyUnresolved.push({ file: from, specifier: literal3.text, line: lineOf(sf, literal3), reason: "not-found", target: this.rel(target) });
+    if (this.options.typeImports !== true) return;
+    const r = this.resolve(sf, literal3);
+    const target = r.kind === "module" ? r.file : r.kind === "unresolved" ? specifierTarget(this.project, toPosix(sf.fileName), literal3.text) : void 0;
+    if (target === void 0 || !this.isProjectFile(target)) return;
+    const to = this.rel(target);
+    this.typeImports.set(`${from}\0${to}`, { file: from, target: to });
   }
   /** Files that declare the symbol a local import binding refers to, following every alias (barrels). */
   declaringFiles(binding) {
@@ -251027,10 +251049,15 @@ var GraphBuilder = class {
     }
   }
   visitExport(sf, from, node2) {
-    if (!node2.moduleSpecifier || !import_typescript20.default.isStringLiteralLike(node2.moduleSpecifier) || node2.isTypeOnly) return;
+    if (!node2.moduleSpecifier || !import_typescript20.default.isStringLiteralLike(node2.moduleSpecifier)) return;
+    if (node2.isTypeOnly) {
+      this.typeImport(sf, from, node2.moduleSpecifier);
+      return;
+    }
     const clause = node2.exportClause;
     if (clause && import_typescript20.default.isNamedExports(clause) && clause.elements.length > 0 && clause.elements.every((e) => e.isTypeOnly)) {
       if (this.keepsInlineTypes) this.link(sf, from, node2.moduleSpecifier, "side-effect");
+      else this.typeImport(sf, from, node2.moduleSpecifier);
       return;
     }
     this.link(sf, from, node2.moduleSpecifier, "reexport");
@@ -251083,8 +251110,8 @@ var GraphBuilder = class {
     const unresolved = this.unresolved.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.specifier, b.specifier));
     const uniqueErrors = [...new Map(parseErrors.map((e) => [`${e.file}\0${e.line}\0${e.message}`, e])).values()];
     uniqueErrors.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.message, b.message));
-    const typeOnlyUnresolved = this.typeOnlyUnresolved.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.specifier, b.specifier));
-    return { nodes: [...this.nodes].sort(compareStrings), edges, unresolved, typeOnlyUnresolved, parseErrors: uniqueErrors, reexportOnly: reexportOnly.sort(compareStrings) };
+    const typeImports = [...this.typeImports.values()].sort((a, b) => compareStrings(a.file, b.file) || compareStrings(a.target, b.target));
+    return { nodes: [...this.nodes].sort(compareStrings), edges, unresolved, typeImports, parseErrors: uniqueErrors, reexportOnly: reexportOnly.sort(compareStrings) };
   }
 };
 function buildImportGraph(project, options) {

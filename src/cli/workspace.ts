@@ -55,7 +55,6 @@ export function createRepoRoleOf(ctx: Context): (repoPath: string) => FileRole |
 /** Whether a `generated` entry names generator inputs: only they read type-only imports of generated code. */
 const hasGeneratorInputs = (ctx: Context): boolean => ctx.config.generated.some((g) => g.from.length > 0)
 
-
 /** Whether a project- or repo-relative path matches `base` (default: the "ignore" configuration) or `extra` globs. */
 export function createIgnoreOf(ctx: Context, extra: readonly string[], base: readonly string[] = ctx.config.ignore): (repoPath: string) => boolean {
   const ignored = createIgnoreMatcher([...base, ...extra])

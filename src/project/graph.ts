@@ -35,6 +35,13 @@ export interface UnresolvedImport {
   packages?: string[]
 }
 
+/** A type-only import or re-export of a project file: erased at runtime, so not an edge. */
+export interface TypeImport {
+  file: string
+  /** Repo-relative path of the imported module, or the path the specifier points to when it does not resolve. */
+  target: string
+}
+
 export interface ParseError {
   file: string
   line: number
@@ -46,8 +53,8 @@ export interface ImportGraph {
   nodes: string[]
   edges: GraphEdge[]
   unresolved: UnresolvedImport[]
-  /** Unresolved type-only imports that point into the project (with `GraphOptions.typeImports`): never broken, only read for generator inputs. */
-  typeOnlyUnresolved: UnresolvedImport[]
+  /** Type-only imports and re-exports of project files (with `GraphOptions.typeImports`): only read for generator inputs. */
+  typeImports: TypeImport[]
   parseErrors: ParseError[]
   /** Modules whose statements are all `export … from`: changes to them may follow barrel edges. */
   reexportOnly: string[]
@@ -75,7 +82,7 @@ export interface GraphOptions {
   repoRoot: string
   /** Whether imports of this repo-relative file count (tests, stories and excluded files are not callers). */
   isOrigin: (path: string) => boolean
-  /** Records unresolved type-only imports (`typeOnlyUnresolved`): types of git-ignored generated code. */
+  /** Records type-only imports and re-exports (`typeImports`): types of generated code. */
   typeImports?: boolean
 }
 
@@ -91,7 +98,7 @@ class GraphBuilder {
   private readonly nodes = new Set<string>()
   private readonly edges = new Map<string, GraphEdge>()
   private readonly unresolved: UnresolvedImport[] = []
-  private readonly typeOnlyUnresolved: UnresolvedImport[] = []
+  private readonly typeImports = new Map<string, TypeImport>()
   private readonly checker: ts.TypeChecker
   /** The emitter keeps `import { type A } from "./x"`: `./x` still runs. */
   private readonly keepsInlineTypes: boolean
@@ -140,11 +147,14 @@ class GraphBuilder {
     return r.kind === 'module' ? to : undefined
   }
 
-  /** Records a type-only import that does not resolve and points into the project. */
+  /** Records a type-only import or re-export of a project file, resolved or not. */
   typeImport(sf: ts.SourceFile, from: string, literal: ts.StringLiteralLike): void {
-    if (this.options.typeImports !== true || this.resolve(sf, literal).kind !== 'unresolved') return
-    const target = specifierTarget(this.project, toPosix(sf.fileName), literal.text)
-    if (target !== undefined && this.isProjectFile(target)) this.typeOnlyUnresolved.push({ file: from, specifier: literal.text, line: lineOf(sf, literal), reason: 'not-found', target: this.rel(target) })
+    if (this.options.typeImports !== true) return
+    const r = this.resolve(sf, literal)
+    const target = r.kind === 'module' ? r.file : r.kind === 'unresolved' ? specifierTarget(this.project, toPosix(sf.fileName), literal.text) : undefined
+    if (target === undefined || !this.isProjectFile(target)) return
+    const to = this.rel(target)
+    this.typeImports.set(`${from}\0${to}`, { file: from, target: to })
   }
 
   /** Files that declare the symbol a local import binding refers to, following every alias (barrels). */
@@ -206,10 +216,15 @@ class GraphBuilder {
   }
 
   visitExport(sf: ts.SourceFile, from: string, node: ts.ExportDeclaration): void {
-    if (!node.moduleSpecifier || !ts.isStringLiteralLike(node.moduleSpecifier) || node.isTypeOnly) return
+    if (!node.moduleSpecifier || !ts.isStringLiteralLike(node.moduleSpecifier)) return
+    if (node.isTypeOnly) {
+      this.typeImport(sf, from, node.moduleSpecifier)
+      return
+    }
     const clause = node.exportClause
     if (clause && ts.isNamedExports(clause) && clause.elements.length > 0 && clause.elements.every((e) => e.isTypeOnly)) {
       if (this.keepsInlineTypes) this.link(sf, from, node.moduleSpecifier, 'side-effect')
+      else this.typeImport(sf, from, node.moduleSpecifier)
       return
     }
     this.link(sf, from, node.moduleSpecifier, 'reexport')
@@ -271,8 +286,8 @@ class GraphBuilder {
     const unresolved = this.unresolved.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.specifier, b.specifier))
     const uniqueErrors = [...new Map(parseErrors.map((e) => [`${e.file}\0${e.line}\0${e.message}`, e])).values()]
     uniqueErrors.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.message, b.message))
-    const typeOnlyUnresolved = this.typeOnlyUnresolved.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.specifier, b.specifier))
-    return { nodes: [...this.nodes].sort(compareStrings), edges, unresolved, typeOnlyUnresolved, parseErrors: uniqueErrors, reexportOnly: reexportOnly.sort(compareStrings) }
+    const typeImports = [...this.typeImports.values()].sort((a, b) => compareStrings(a.file, b.file) || compareStrings(a.target, b.target))
+    return { nodes: [...this.nodes].sort(compareStrings), edges, unresolved, typeImports, parseErrors: uniqueErrors, reexportOnly: reexportOnly.sort(compareStrings) }
   }
 }
 

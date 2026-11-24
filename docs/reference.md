@@ -115,10 +115,12 @@ ignores.
 `from` lists the generator inputs of an entry, as project-relative globs; `../` climbs above the project, so
 `"../../schemas/protobuf/**/*.proto"` names proto files at the root of a monorepo. A change to an input (added,
 modified, deleted or renamed) counts as a change to the code that uses the generated files: the files that import them, and the
-generated files that are in the import graph (committed, or on disk in working-tree mode). Type-only imports count:
-protobuf types are often only types, and the `.proto` file itself is loaded at runtime. The PR is `touches-existing`
+generated files that are in the import graph (committed, or on disk in working-tree mode). Type-only imports and
+re-exports count, also through other files (a file that re-exports Prisma types): protobuf types are often only types,
+and the `.proto` file itself is loaded at runtime. The PR is `touches-existing`
 with reason `generator-input-changed` and lists the routes behind that code; the detail says so when nothing in the
-project imports the generated code. A rename counts when the old or the new path is an input. An input that matches
+project imports the generated code. A rename counts when the old or the new path is an input (both entries when each path is an input of a different
+entry), also when the new path is excluded or a test. An input that matches
 `ignore` is ignored, and one that matches `roles.global` makes the PR `global` (every schema PR then is). Imports of a
 package (`@prisma/client`) do not count: point the generator `output` into the project and list that folder in `files`.
 

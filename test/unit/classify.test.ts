@@ -4,7 +4,7 @@ import type { ChangedFile } from '../../src/git/types.js'
 import type { ImportGraph } from '../../src/project/graph.js'
 import type { RouteTable } from '../../src/routes/types.js'
 
-const emptyGraph: ImportGraph = { nodes: [], edges: [], unresolved: [], typeOnlyUnresolved: [], parseErrors: [], reexportOnly: [] }
+const emptyGraph: ImportGraph = { nodes: [], edges: [], unresolved: [], typeImports: [], parseErrors: [], reexportOnly: [] }
 const table: RouteTable = { routes: [{ key: '/', path: '/', index: false, entry: 'src/Home.tsx', modules: ['src/Home.tsx'], layouts: [] }], dynamic: [], sources: [] }
 
 function file(path: string, status: ChangedFile['status'], extra: Partial<ChangedFile> = {}): ChangedFile {

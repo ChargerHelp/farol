@@ -98,16 +98,16 @@ export interface GeneratedCode {
 }
 
 /**
- * Generator inputs (`generated[].from`, project-relative; "../" climbs above the project): for a changed repo-relative
- * path, the generated code of every entry whose inputs match it, or undefined for any other path.
+ * Generator inputs (`generated[].from`, project-relative; "../" climbs above the project): for changed repo-relative
+ * paths (a renamed file gives its new and old path), the generated code of every entry whose inputs match one of them,
+ * or undefined when none matches.
  */
-export function createGeneratorInputOf(entries: Config['generated'], projectPrefix: string): (repoPath: string) => GeneratedCode | undefined {
+export function createGeneratorInputOf(entries: Config['generated'], projectPrefix: string): (...repoPaths: string[]) => GeneratedCode | undefined {
   const withInputs = entries.filter((e) => e.from.length > 0).map((e) => ({ files: e.files, isInput: matcher(e.from), isOutput: matcher([e.files]) }))
-  const rel = (repoPath: string): string => projectRelative(projectPrefix, repoPath)
-  return (repoPath) => {
-    const own = rel(repoPath)
-    const hit = withInputs.filter((e) => e.isInput(own))
+  return (...repoPaths) => {
+    const own = repoPaths.map((p) => projectRelative(projectPrefix, p))
+    const hit = withInputs.filter((e) => own.some((p) => e.isInput(p)))
     if (hit.length === 0) return undefined
-    return { files: hit.map((e) => e.files), feeds: (path) => hit.some((e) => e.isOutput(rel(path))) }
+    return { files: hit.map((e) => e.files), feeds: (path) => hit.some((e) => e.isOutput(projectRelative(projectPrefix, path))) }
   }
 }

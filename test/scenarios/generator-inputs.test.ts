@@ -20,7 +20,7 @@ const codesOf = (o: Output, file: string): string[] => o.reasons.filter((r) => r
 const affectedKeys = (o: Output): string[] => o.routes.affected.map((r) => r.key)
 type Config = Record<string, unknown>
 const setConfig = (r: TestRepo, file: string, patch: (c: Config) => Config): void => { r.write(file, JSON.stringify(patch(JSON.parse(r.read(file)) as Config), null, 2)) }
-const PRISMA_GLOB: Change = (r) => { setConfig(r, 'farol.config.json', (c) => ({ ...c, generated: [{ files: 'src/generated/**', from: ['prisma/*.prisma'] }] })) }
+const withPrismaInputs: Change = (r) => { setConfig(r, 'farol.config.json', (c) => ({ ...c, generated: [{ files: 'src/generated/**', from: ['prisma/*.prisma'] }] })) }
 
 async function analyzeIn(repo: TestRepo, project: string): Promise<Output> {
   const ctx = await loadContext({ config: 'farol.config.json', cwd: join(repo.dir, project), verbose: false })
@@ -81,7 +81,7 @@ describe('generator inputs (generated[].from)', () => {
   })
 
   it('an added input reaches the importers of the generated code', async () => {
-    const o = await analyzeVariant(SCENARIO, cleanups, (r) => { r.write('prisma/payment.prisma', 'model Refund {\n  id String @id\n}\n') }, PRISMA_GLOB)
+    const o = await analyzeVariant(SCENARIO, cleanups, (r) => { r.write('prisma/payment.prisma', 'model Refund {\n  id String @id\n}\n') }, withPrismaInputs)
     expect(o.classification).toBe('touches-existing')
     expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
     expect(codesOf(o, 'prisma/payment.prisma')).toEqual(['generator-input-changed'])
@@ -91,7 +91,7 @@ describe('generator inputs (generated[].from)', () => {
     const o = await analyzeVariant(SCENARIO, cleanups, (r) => {
       r.write('prisma/main.prisma', r.read(SCHEMA))
       r.remove(SCHEMA)
-    }, PRISMA_GLOB)
+    }, withPrismaInputs)
     expect(o.classification).toBe('touches-existing')
     expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
     expect(codesOf(o, 'prisma/main.prisma').sort()).toEqual(['existing-file-renamed', 'generator-input-changed'])
@@ -117,6 +117,59 @@ describe('generator inputs (generated[].from)', () => {
     expect(o.classification).toBe('touches-existing')
     expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
     expect(codesOf(o, 'db/schema.prisma').sort()).toEqual(['existing-file-renamed', 'generator-input-changed'])
+  })
+
+  it('a type-only importer of committed generated code counts', async () => {
+    const o = await analyzeVariant(SCENARIO, cleanups, changeSchema, (r) => {
+      r.write('src/generated/prisma/models.ts', 'export interface Payment { id: string }\n')
+      r.write('src/rest/stripe.ts', "import type { Payment } from '../generated/prisma/models.js'\n\nexport async function handleStripe(request: { body: Payment }) {\n  return { received: Boolean(request.body) }\n}\n")
+    })
+    expect(o.classification).toBe('touches-existing')
+    expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
+    expect(codesOf(o, SCHEMA)).toEqual(['generator-input-changed'])
+  })
+
+  it('a type-only re-export of the generated code counts', async () => {
+    const o = await analyzeVariant(SCENARIO, cleanups, changeSchema, (r) => {
+      r.write('src/db/types.ts', "export type { Payment } from '../generated/prisma/models.js'\nexport const PAYMENT = 'payment'\n")
+      r.write('src/rest/stripe.ts', "import { PAYMENT } from '../db/types.js'\n\nexport async function handleStripe(request: { body: unknown }) {\n  return { received: Boolean(request.body), kind: PAYMENT }\n}\n")
+    })
+    expect(o.classification).toBe('touches-existing')
+    expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
+    expect(codesOf(o, SCHEMA)).toEqual(['generator-input-changed'])
+  })
+
+  it('a type-only importer of a file that re-exports generated types counts', async () => {
+    const o = await analyzeVariant(SCENARIO, cleanups, changeSchema, (r) => {
+      r.write('src/db/types.ts', "export type { Payment } from '../generated/prisma/models.js'\n")
+      r.write('src/rest/stripe.ts', "import type { Payment } from '../db/types.js'\n\nexport async function handleStripe(request: { body: Payment }) {\n  return { received: Boolean(request.body) }\n}\n")
+    })
+    expect(o.classification).toBe('touches-existing')
+    expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
+    expect(codesOf(o, SCHEMA)).toEqual(['generator-input-changed'])
+  })
+
+  it('a rename into an excluded folder still reaches the importers', async () => {
+    const o = await analyzeVariant(SCENARIO, cleanups, (r) => {
+      r.write('legacy/schema.prisma', r.read(SCHEMA))
+      r.remove(SCHEMA)
+    }, (r) => { setConfig(r, 'farol.config.json', (c) => ({ ...c, exclude: ['legacy/**'] })) })
+    expect(o.classification).toBe('touches-existing')
+    expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe'])
+    expect(codesOf(o, 'legacy/schema.prisma').sort()).toEqual(['existing-file-renamed', 'file-excluded', 'generator-input-changed'])
+  })
+
+  it('a rename from one generator input to another reaches the importers of both', async () => {
+    const o = await analyzeVariant(SCENARIO, cleanups, (r) => {
+      r.write('proto/schema.prisma', r.read(SCHEMA))
+      r.remove(SCHEMA)
+    }, (r) => {
+      setConfig(r, 'farol.config.json', (c) => ({ ...c, generated: [{ files: 'src/generated/prisma/**', from: ['prisma/**'] }, { files: 'src/generated/proto/**', from: ['proto/**'] }] }))
+      edit(r, 'src/services/users.ts', 'export function getUser', "import { User } from '../generated/proto/user.js'\n\nexport const USER = User\n\nexport function getUser")
+    })
+    expect(o.classification).toBe('touches-existing')
+    expect(affectedKeys(o)).toEqual(['POST /webhooks/stripe', 'Query.me'])
+    expect(codesOf(o, 'proto/schema.prisma').sort()).toEqual(['existing-file-renamed', 'generator-input-changed'])
   })
 
   it('an input that is also a global file makes the PR global', async () => {

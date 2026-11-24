@@ -12,7 +12,7 @@ const edges: ImportGraph['edges'] = [
   ...Array.from({ length: 10 }, (_, i) => ({ from: `src/tool${i}.ts`, to: 'src/shared-tool.ts', kind: 'static' as const })),
 ]
 const nodes = new Set(edges.flatMap((e) => [e.from, e.to]))
-const graph: ImportGraph = { nodes: [...nodes], edges, unresolved: [], typeOnlyUnresolved: [], parseErrors: [], reexportOnly: [] }
+const graph: ImportGraph = { nodes: [...nodes], edges, unresolved: [], typeImports: [], parseErrors: [], reexportOnly: [] }
 const route = (key: string, entry: string, layouts: string[] = []): RouteEntry => ({ key, path: `/${key}`, index: false, entry, modules: [entry], layouts })
 const routes = [route('l', 'src/L.tsx'), ...['A', 'B', 'C', 'D'].map((p) => route(`l > ${p}`, `src/${p}.tsx`, ['src/L.tsx']))]
 
