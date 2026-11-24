@@ -5,8 +5,9 @@ import { compareStrings, sortedUnique } from '../output/order.js'
 import { isProjectPath } from '../project/fs.js'
 import type { ProjectProgram } from '../project/program.js'
 import type { DynamicRoute, RouteEntry } from '../routes/types.js'
-import { definedGlobals, usesGlobal } from './globals.js'
+import { definedGlobals, globalUses } from './globals.js'
 import { honoApps, UNRESOLVED_APP } from './hono.js'
+import { implementationUses, implementersOf } from './implements.js'
 import { keyPath, prefixKey, underPath } from './hono-paths.js'
 import { restAnchor } from './rest.js'
 import { ENUM_MARKER, entryNodes, resolverAnchors } from './resolvers.js'
@@ -37,8 +38,11 @@ export interface BackendTable {
   schemaFiles: Set<string>
   /** Every SDL document of the head, with its file (the schema the contracts are compared on). */
   schemaDocs: { doc: DocumentNode; file: string }[]
-  /** `global.X = …` assignments: global name → module. */
-  globals: Map<string, string>
+  /**
+   * Import graph edges the imports do not show: a reader of a `global.X = …` global points at the module that sets
+   * it, and a user of a port member (`repo.find()`) at the files of the classes that implement the port.
+   */
+  extraEdges: { from: string; to: string }[]
   problems: SdlProblem[]
   /** Hono constructs farol cannot follow: they make every PR `unknown`. */
   dynamic: DynamicRoute[]
@@ -148,7 +152,8 @@ export function buildBackendTable(input: BackendInput): BackendTable {
   }
   // Resolvers and REST handlers, with the modules their code uses.
   const checker = input.project.program.getTypeChecker()
-  const anchorsOf = (node: ts.Node): string[] => resolverAnchors(node, checker, isProjectFile, rel, globals, contextOf)
+  const implementers = implementersOf(programFiles, checker, isProjectFile, rel)
+  const anchorsOf = (node: ts.Node): string[] => resolverAnchors(node, { checker, isProjectFile, rel, globals, context: contextOf, implemented: implementers.filesFor })
   // REST handlers and middleware are often held in a variable of the same file (`const mw = create()`, `const { mw } = build()`).
   const argumentModules = (arg: ts.Node): string[] => {
     const own = arg.getSourceFile()
@@ -243,7 +248,7 @@ export function buildBackendTable(input: BackendInput): BackendTable {
     resolverFiles,
     schemaFiles,
     schemaDocs: docs,
-    globals,
+    extraEdges: [...globalUses(input.project, globals, rel, isProjectFile), ...implementationUses(programFiles, checker, implementers, rel)],
     problems: problems.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line),
     dynamic: dynamic.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.detail, b.detail)),
     restKeysWithout: (mounts, without) => new Set(restKeys(mounts, without).keys()),
@@ -258,19 +263,4 @@ export function buildBackendTable(input: BackendInput): BackendTable {
       return sortedUnique([...under, ...entries.filter((e) => e.modules.includes(file)).map((e) => e.key)])
     },
   }
-}
-
-/** Global edges for the import graph: every program file that reads a global points at the module defining it. */
-export function globalUses(project: ProjectProgram, globals: ReadonlyMap<string, string>, rel: (fileName: string) => string, isProjectFile: (fileName: string) => boolean): { from: string; to: string }[] {
-  if (globals.size === 0) return []
-  const checker = project.program.getTypeChecker()
-  const edges: { from: string; to: string }[] = []
-  for (const sf of project.program.getSourceFiles()) {
-    if (!isProjectFile(sf.fileName) || sf.isDeclarationFile) continue
-    const from = rel(sf.fileName)
-    for (const [name, to] of globals) {
-      if (to !== from && sf.text.includes(name) && usesGlobal(sf, name, checker)) edges.push({ from, to })
-    }
-  }
-  return edges
 }

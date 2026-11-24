@@ -1,4 +1,5 @@
 import ts from 'typescript'
+import type { ProjectProgram } from '../project/program.js'
 
 /** Globals a module defines with `global.X = …` / `globalThis.X = …` (e.g. a service locator like `Core`). */
 export function definedGlobals(sf: ts.SourceFile): string[] {
@@ -28,4 +29,19 @@ export function usesGlobal(sf: ts.SourceFile, name: string, checker: ts.TypeChec
   }
   visit(sf)
   return found
+}
+
+/** Global edges for the import graph: every program file that reads a global points at the module defining it. */
+export function globalUses(project: ProjectProgram, globals: ReadonlyMap<string, string>, rel: (fileName: string) => string, isProjectFile: (fileName: string) => boolean): { from: string; to: string }[] {
+  if (globals.size === 0) return []
+  const checker = project.program.getTypeChecker()
+  const edges: { from: string; to: string }[] = []
+  for (const sf of project.program.getSourceFiles()) {
+    if (!isProjectFile(sf.fileName) || sf.isDeclarationFile) continue
+    const from = rel(sf.fileName)
+    for (const [name, to] of globals) {
+      if (to !== from && sf.text.includes(name) && usesGlobal(sf, name, checker)) edges.push({ from, to })
+    }
+  }
+  return edges
 }
