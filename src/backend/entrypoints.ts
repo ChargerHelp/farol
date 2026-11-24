@@ -3,12 +3,14 @@ import type { DocumentNode } from 'graphql'
 import { posix } from 'node:path'
 import { compareStrings, sortedUnique } from '../output/order.js'
 import { isProjectPath } from '../project/fs.js'
+import { unwrap } from '../project/parse.js'
 import type { ProjectProgram } from '../project/program.js'
 import type { DynamicRoute, RouteEntry } from '../routes/types.js'
 import { definedGlobals, globalUses } from './globals.js'
-import { honoApps, UNRESOLVED_APP } from './hono.js'
+import { honoApps, mountNodes, UNRESOLVED_APP } from './hono.js'
 import { implementationUses, implementersOf } from './implements.js'
 import { keyPath, prefixKey, underPath } from './hono-paths.js'
+import { inlineArgumentClasses } from './mount-arguments.js'
 import { restAnchor } from './rest.js'
 import { ENUM_MARKER, entryNodes, resolverAnchors } from './resolvers.js'
 import picomatch from 'picomatch'
@@ -214,6 +216,19 @@ export function buildBackendTable(input: BackendInput): BackendTable {
     }
   }
 
+  const mountKeys = (id: string): string[] => sortedUnique(handlers.flatMap((h) => (hono?.basesThrough(h.receiver, id) ?? []).map((b) => prefixKey(h.key, b))))
+  // A factory whose parameter is an inline type (`{ list: { execute(…) } }`) gets its classes from each mount's arguments.
+  const origins = new Set(programFiles)
+  const classFile = (d: ts.Declaration): string | undefined => (origins.has(d.getSourceFile()) ? rel(d.getSourceFile().fileName) : undefined)
+  const mountModules = new Map<string, Set<string>>()
+  for (const sf of hono ? programFiles : []) {
+    for (const m of mountNodes(sf, rel(sf.fileName))) {
+      const target = unwrap(m.target)
+      const files = ts.isCallExpression(target) ? inlineArgumentClasses(target, checker, classFile) : []
+      for (const key of files.length > 0 ? mountKeys(m.id) : []) mountModules.set(key, new Set([...(mountModules.get(key) ?? []), ...files]))
+    }
+  }
+
   const byType = new Map<string, string[]>()
   for (const key of anchors.keys()) {
     const type = key.includes('.') && !key.includes(' ') ? key.slice(0, key.indexOf('.')) : ''
@@ -232,7 +247,9 @@ export function buildBackendTable(input: BackendInput): BackendTable {
   for (const [key, ids] of restKeys()) {
     resolverKeys.set(key, ids)
     const installed = honoKeys.has(key) ? registrations.filter((reg) => reg.paths.some((p) => underPath(keyPath(key), p))).flatMap((reg) => reg.modules) : []
-    entries.push({ key, path: key, index: false, entry: null, modules: sortedUnique([...[...ids].flatMap((id) => [...(anchors.get(id)?.modules ?? [])]), ...installed]), layouts: [] })
+    const handlerFiles = new Set([...ids].map((id) => anchors.get(id)?.file))
+    const passed = [...(mountModules.get(key) ?? [])].filter((f) => !handlerFiles.has(f))
+    entries.push({ key, path: key, index: false, entry: null, modules: sortedUnique([...[...ids].flatMap((id) => [...(anchors.get(id)?.modules ?? [])]), ...installed, ...passed]), layouts: [] })
   }
   const configured = configuredEntries(input.entries, programFiles, rel, anchorsOf)
   entries.push(...configured)
@@ -254,7 +271,7 @@ export function buildBackendTable(input: BackendInput): BackendTable {
     restKeysWithout: (mounts, without) => new Set(restKeys(mounts, without).keys()),
     mountBases: (id) => hono?.mountBases(id) ?? [],
     mountMiddleware: (id) => hono?.mountMiddleware(id) ?? false,
-    mountKeys: (id) => sortedUnique(handlers.flatMap((h) => (hono?.basesThrough(h.receiver, id) ?? []).map((b) => prefixKey(h.key, b)))),
+    mountKeys,
     honoFiles: hono?.honoFiles ?? new Set(),
     fileHoldsApp: (file) => (hono?.fileBases(file) ?? []).length > 0,
     fileReachKeys: (file) => {
