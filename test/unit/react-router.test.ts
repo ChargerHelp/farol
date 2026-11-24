@@ -242,7 +242,7 @@ describe('react-router adapter: JSX form', () => {
               ]}
             >
               <Routes>
-                <Route element={<Authenticated key="protected"><Outlet /></Authenticated>}>
+                <Route element={<Authenticated><Outlet /></Authenticated>}>
                   <Route index element={<NavigateToResource resource="widgets" />} />
                   <Route path="/widgets">
                     <Route index element={<WidgetList />} />
@@ -256,21 +256,14 @@ describe('react-router adapter: JSX form', () => {
         )
       }`)
     expect(t.dynamic).toEqual([])
-    const pages = t.routes.filter((r) => r.entry?.startsWith('src/')).map((r) => [r.path, r.entry])
-    expect(pages).toEqual([
-      ['/widgets', 'src/WidgetList.tsx'],
-      ['/widgets/show/:id', 'src/WidgetShow.tsx'],
-      ['/login', 'src/Login.tsx'],
-    ])
-    // The pathless layout and the index redirect render only package components, so their entry is a `package:`
-    // module. This case checks only their path and index.
-    expect(t.routes.map((r) => [r.path, r.index])).toEqual([
-      ['/', false],
-      ['/', true],
-      ['/widgets', false],
-      ['/widgets', true],
-      ['/widgets/show/:id', false],
-      ['/login', false],
+    // `/reports` is only in `resources`: its absence shows that resources are not routes. Paths do not get the basename.
+    expect(keys(t)).toEqual([
+      ['(layout:package:react-router)', '/', 'package:react-router', ''],
+      ['(layout:package:react-router) > (index)', '/', 'package:@refinedev/react-router', 'package:react-router'],
+      ['(layout:package:react-router) > /widgets', '/widgets', '-', 'package:react-router'],
+      ['(layout:package:react-router) > /widgets > (index)', '/widgets', 'src/WidgetList.tsx', 'package:react-router'],
+      ['(layout:package:react-router) > /widgets > show/:id', '/widgets/show/:id', 'src/WidgetShow.tsx', 'package:react-router'],
+      ['/login', '/login', 'src/Login.tsx', ''],
     ])
   })
 
