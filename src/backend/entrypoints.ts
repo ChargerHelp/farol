@@ -225,7 +225,12 @@ export function buildBackendTable(input: BackendInput): BackendTable {
     for (const m of mountNodes(sf, rel(sf.fileName))) {
       const target = unwrap(m.target)
       const files = ts.isCallExpression(target) ? inlineArgumentClasses(target, checker, classFile) : []
-      for (const key of files.length > 0 ? mountKeys(m.id) : []) mountModules.set(key, new Set([...(mountModules.get(key) ?? []), ...files]))
+      if (files.length === 0) continue
+      for (const key of mountKeys(m.id)) {
+        const modules = mountModules.get(key) ?? new Set<string>()
+        for (const f of files) modules.add(f)
+        mountModules.set(key, modules)
+      }
     }
   }
 
@@ -247,9 +252,7 @@ export function buildBackendTable(input: BackendInput): BackendTable {
   for (const [key, ids] of restKeys()) {
     resolverKeys.set(key, ids)
     const installed = honoKeys.has(key) ? registrations.filter((reg) => reg.paths.some((p) => underPath(keyPath(key), p))).flatMap((reg) => reg.modules) : []
-    const handlerFiles = new Set([...ids].map((id) => anchors.get(id)?.file))
-    const passed = [...(mountModules.get(key) ?? [])].filter((f) => !handlerFiles.has(f))
-    entries.push({ key, path: key, index: false, entry: null, modules: sortedUnique([...[...ids].flatMap((id) => [...(anchors.get(id)?.modules ?? [])]), ...installed, ...passed]), layouts: [] })
+    entries.push({ key, path: key, index: false, entry: null, modules: sortedUnique([...[...ids].flatMap((id) => [...(anchors.get(id)?.modules ?? [])]), ...installed, ...(mountModules.get(key) ?? [])]), layouts: [] })
   }
   const configured = configuredEntries(input.entries, programFiles, rel, anchorsOf)
   entries.push(...configured)

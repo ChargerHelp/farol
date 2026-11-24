@@ -37,4 +37,31 @@ describe('reach through the argument types of Hono mounts', () => {
     )
     expect(affected(o)).toEqual(ISSUES)
   })
+
+  it('a factory member typed with a type-alias port keeps one use case per endpoint', async () => {
+    const o = await pr(
+      (repo) => { edit(repo, 'src/use-cases/list-prompts.ts', "return ['prompt']", "return ['prompt', 'draft']") },
+      (repo) => {
+        repo.write('src/ports/list-prompts.port.ts', 'export type ListPromptsPort = {\n  execute(): Promise<string[]>\n}\n')
+        edit(repo, 'src/use-cases/list-prompts.ts', 'export class ListPrompts {', "import type { ListPromptsPort } from '../ports/list-prompts.port'\n\nexport class ListPrompts implements ListPromptsPort {")
+        edit(repo, 'src/http/prompts.routes.ts', "import type { ListPrompts } from '../use-cases/list-prompts'", "import type { ListPromptsPort } from '../ports/list-prompts.port'")
+        edit(repo, 'src/http/prompts.routes.ts', 'list: ListPrompts', 'list: ListPromptsPort')
+        edit(repo, ADMIN, 'prompts: PromptUseCases', "prompts: { list: ListPrompts; get: GetPrompt }")
+        edit(repo, ADMIN, "import type { ListSignals } from '../use-cases/list-signals'", "import type { GetPrompt } from '../use-cases/get-prompt'\nimport type { ListPrompts } from '../use-cases/list-prompts'\nimport type { ListSignals } from '../use-cases/list-signals'")
+      },
+    )
+    expect(affected(o)).toEqual(['GET /admin/api/prompts'])
+  })
+
+  it('a use case class passed where the factory takes an inline type lists the endpoints of that mount', async () => {
+    const o = await pr(
+      (repo) => { edit(repo, 'src/use-cases/list-signals.ts', 'signal page ${page}', 'signal p${page}') },
+      (repo) => {
+        repo.write('src/http/status.routes.ts', "import { Hono } from 'hono'\n\nexport function createStatusRoutes(useCase: { execute(page: number): Promise<string[]> }): Hono {\n  const routes = new Hono()\n  routes.get('/', async (c) => c.json(await useCase.execute(1)))\n  return routes\n}\n")
+        edit(repo, ADMIN, "import { createReadResourceRoutes } from './read-resource.routes'", "import { createReadResourceRoutes } from './read-resource.routes'\nimport { createStatusRoutes } from './status.routes'")
+        edit(repo, ADMIN, "  routes.route('/prompts',", "  routes.route('/status', createStatusRoutes(useCases.signals.list))\n  routes.route('/prompts',")
+      },
+    )
+    expect(affected(o)).toEqual(['GET /admin/api/signals', 'GET /admin/api/signals/:id', 'GET /admin/api/status'])
+  })
 })

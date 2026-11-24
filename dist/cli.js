@@ -250577,7 +250577,7 @@ function implementationUses(files, checker, implementers, rel) {
 
 // src/backend/mount-arguments.ts
 var import_typescript18 = __toESM(require_typescript(), 1);
-var isInline = (type) => (type.getSymbol()?.declarations ?? []).some(import_typescript18.default.isTypeLiteralNode);
+var isInline = (type) => type.aliasSymbol === void 0 && (type.getSymbol()?.declarations ?? []).some(import_typescript18.default.isTypeLiteralNode);
 function inlineArgumentClasses(call, checker, classFile) {
   const decl = checker.getResolvedSignature(call)?.getDeclaration();
   const params = decl !== void 0 && import_typescript18.default.isFunctionLike(decl) ? decl.parameters : [];
@@ -250732,7 +250732,12 @@ function buildBackendTable(input2) {
     for (const m of mountNodes(sf, rel(sf.fileName))) {
       const target = unwrap(m.target);
       const files = import_typescript19.default.isCallExpression(target) ? inlineArgumentClasses(target, checker, classFile) : [];
-      for (const key of files.length > 0 ? mountKeys(m.id) : []) mountModules.set(key, /* @__PURE__ */ new Set([...mountModules.get(key) ?? [], ...files]));
+      if (files.length === 0) continue;
+      for (const key of mountKeys(m.id)) {
+        const modules = mountModules.get(key) ?? /* @__PURE__ */ new Set();
+        for (const f of files) modules.add(f);
+        mountModules.set(key, modules);
+      }
     }
   }
   const byType = /* @__PURE__ */ new Map();
@@ -250752,9 +250757,7 @@ function buildBackendTable(input2) {
   for (const [key, ids] of restKeys()) {
     resolverKeys.set(key, ids);
     const installed = honoKeys.has(key) ? registrations.filter((reg) => reg.paths.some((p) => underPath(keyPath(key), p))).flatMap((reg) => reg.modules) : [];
-    const handlerFiles = new Set([...ids].map((id) => anchors.get(id)?.file));
-    const passed = [...mountModules.get(key) ?? []].filter((f) => !handlerFiles.has(f));
-    entries.push({ key, path: key, index: false, entry: null, modules: sortedUnique([...[...ids].flatMap((id) => [...anchors.get(id)?.modules ?? []]), ...installed, ...passed]), layouts: [] });
+    entries.push({ key, path: key, index: false, entry: null, modules: sortedUnique([...[...ids].flatMap((id) => [...anchors.get(id)?.modules ?? []]), ...installed, ...mountModules.get(key) ?? []]), layouts: [] });
   }
   const configured = configuredEntries(input2.entries, programFiles, rel, anchorsOf);
   entries.push(...configured);

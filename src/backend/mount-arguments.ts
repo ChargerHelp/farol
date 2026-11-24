@@ -1,8 +1,11 @@
 import ts from 'typescript'
 import { sortedUnique } from '../output/order.js'
 
-/** An object type written inline (`{ execute(…): … }`): no class implements it, so a call on it reaches no code. */
-const isInline = (type: ts.Type): boolean => (type.getSymbol()?.declarations ?? []).some(ts.isTypeLiteralNode)
+/**
+ * An object type written inline (`{ execute(…): … }`), with no name: no class can implement it, so a call on it reaches
+ * no code. A named object type (`type Port = { … }`) is a port, which `implements` already follows.
+ */
+const isInline = (type: ts.Type): boolean => type.aliasSymbol === undefined && (type.getSymbol()?.declarations ?? []).some(ts.isTypeLiteralNode)
 
 /**
  * Files of the project classes a factory call passes where the factory's parameter type is inline: the parameter
