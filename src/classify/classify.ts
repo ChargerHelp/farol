@@ -4,11 +4,12 @@ import type { AddedRoute, AffectedRoute, Dependencies, OutputFile, UnresolvedImp
 import type { ImportGraph, ParseError } from '../project/graph.js'
 import { KEY_SEPARATOR } from '../routes/paths.js'
 import { editedEntryFiles, markEdited, reachedKeys } from './entry-files.js'
-import type { DynamicRoute, RouteEntry, RouteTable } from '../routes/types.js'
+import type { DynamicRoute, RouteTable } from '../routes/types.js'
 import { checkBarrelAdditive, checkI18nAdditive, compareRouteTables, JsonParseError, losesTokens, unexplainedRemovedLines } from './additive.js'
-import { createReachIndex, reachFrom, routesReaching, type ReachIndex } from './reach.js'
+import { createReachIndex, describeHits, reachFrom, routesReaching, type ReachIndex } from './reach.js'
+import { generatorInputReach } from './generated.js'
 import { classificationFrom, reason, REASONS, sortReasons, type Classification, type Reason } from './reasons.js'
-import type { AnalysisRole } from './roles.js'
+import type { AnalysisRole, GeneratorInput } from './roles.js'
 import { computeRisk, type FileRisk } from './risk.js'
 import type { BackendFileImpact } from '../backend/impact.js'
 import { describeChange, sortChanges, type ManifestResult } from './dependencies.js'
@@ -23,6 +24,8 @@ export interface ClassifyInput {
   isIgnored: (repoPath: string) => boolean
   /** Whether an import target (repo-relative, as written) is generated code that git ignores (`generated` globs). */
   isGenerated: (repoPath: string) => boolean
+  /** Generated code a changed file is an input of (`generated[].from`); TypeScript only. */
+  generatorInputOf?: (repoPath: string) => GeneratorInput | undefined
   /** Modified files that only declare types in base and head (erased at compile time). */
   typeOnlyFiles?: ReadonlySet<string>
   /** Backend only: impact of each changed schema or resolver file (Go/Python: of every source file). */
@@ -74,17 +77,6 @@ class AffectedCollector {
       .map((e) => ({ key: e.key, path: e.path, hasChildren: hasChildren(e.key), via: [...e.via.entries()].sort(([a], [b]) => compareStrings(a, b)).map(([file, chain]) => ({ file, chain })) }))
       .sort((a, b) => compareStrings(a.path, b.path) || compareStrings(a.key, b.key))
   }
-}
-
-/** Route label for reason details: the path, plus the key when another route shares the path. */
-function routeLabel(route: RouteEntry, all: readonly { route: RouteEntry }[]): string {
-  const shared = all.some((h) => h.route !== route && h.route.path === route.path)
-  return shared ? `${route.path} [${route.key}]` : route.path
-}
-
-function describeHits(hits: { route: RouteEntry; via: string[] }[]): string {
-  const shown = hits.slice(0, 3).map((h) => `${routeLabel(h.route, hits)} via ${h.via.join(' → ')}`)
-  return hits.length > 3 ? `${shown.join('; ')}; and ${hits.length - 3} more` : shown.join('; ')
 }
 
 function dependenciesBlock(input: ClassifyInput, files: readonly OutputFile[]): Dependencies {
@@ -232,6 +224,7 @@ export function classify(input: ClassifyInput): ClassifyResult {
     if (file.status === 'deleted') {
       reasons.push(reason('existing-file-deleted', 'existing file deleted', file.path))
       addImpact(file.path)
+      if (input.generatorInputOf?.(file.path)) reachTargets.push({ path: file.path, reportModified: false })
       continue
     }
     if (file.status === 'renamed') {
@@ -324,9 +317,13 @@ export function classify(input: ClassifyInput): ClassifyResult {
   }
 
   for (const target of reachTargets) {
-    const hits = nodes.has(target.path) ? routesReaching(reachFrom(index, target.path), existingRoutes) : []
+    // A generator input outside the import graph is reached through the code it generates.
+    const generator = nodes.has(target.path) ? undefined : input.generatorInputOf?.(target.path)
+    const viaGenerated = generator && generatorInputReach(target.path, generator, { graph, index, existingRoutes, isGenerated: input.isGenerated })
+    const hits = viaGenerated ? viaGenerated.hits : nodes.has(target.path) ? routesReaching(reachFrom(index, target.path), existingRoutes) : []
     for (const h of hits) affected.add(h.route, target.path, h.via)
-    if (!target.reportModified) continue
+    if (viaGenerated) reasons.push(viaGenerated.reason)
+    if (viaGenerated || !target.reportModified) continue
     if (hits.length > 0) reasons.push(reason('existing-file-modified', `reached by ${hits.length} existing route(s): ${describeHits(hits)}`, target.path))
     else reasons.push(reason('existing-file-unreachable', nodes.has(target.path) ? 'modified, and no route reaches it' : 'modified, and it is not part of the import graph', target.path))
   }

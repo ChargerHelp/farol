@@ -3,7 +3,7 @@ import { posix } from 'node:path'
 import { buildBackendTable, type BackendTable } from '../backend/entrypoints.js'
 import { compareStrings } from '../output/order.js'
 import { ECOSYSTEM_FILES, LOCKFILES, MANIFESTS } from '../classify/dependencies.js'
-import { createIgnoreMatcher, createInfraMatcher, createRoleMatcher, type AnalysisRole, type FileRole, type RoleMatcher } from '../classify/roles.js'
+import { createGeneratorInputOf, createIgnoreMatcher, createInfraMatcher, createRoleMatcher, type AnalysisRole, type FileRole, type RoleMatcher } from '../classify/roles.js'
 import { listFiles, readFiles } from '../git/index.js'
 import { createTreeFileSystem, toPosix, type ProjectFileSystem } from '../project/fs.js'
 import { addStaticEdges, buildImportGraph, type ImportGraph } from '../project/graph.js'
@@ -35,8 +35,11 @@ export interface Workspace {
 export function createRepoRoleOf(ctx: Context): (repoPath: string) => FileRole | 'outside' {
   const roleOf: RoleMatcher = createRoleMatcher(ctx.config)
   const isInfra = createInfraMatcher(ctx.config)
+  const generatorInputOf = createGeneratorInputOf(ctx.config.generated, ctx.projectPrefix)
   return (repoPath) => {
     const rel = ctx.projectPrefix === '' ? repoPath : posix.relative(ctx.projectPrefix, repoPath)
+    // Precedence: global, then generator inputs (code the project imports is built from them, also above the project).
+    if (roleOf(rel) !== 'global' && generatorInputOf(repoPath)) return 'source'
     if (rel.startsWith('../') || rel === '..') {
       // Global globs may name files above the project (e.g. "../../pnpm-lock.yaml" in a monorepo); infrastructure
       // usually lives at the repository root.

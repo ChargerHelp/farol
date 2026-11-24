@@ -236502,6 +236502,11 @@ var ENTRY_KINDS = ["JOB", "CONSUMER", "RPC", "RUN"];
 var isPositive = (g) => !g.startsWith("!") || g.startsWith("!(");
 var hasDotSegment = (g) => g.split(/[/{},]/).some((seg) => seg === "." || seg === "..");
 var entryGlob = pathGlob.refine((g) => isPositive(g) && !hasDotSegment(g), 'write a positive glob relative to the project, with no "!", "./" or "../"');
+var inputGlob = pathGlob.refine((g) => isPositive(g) && !g.split(/[/{},]/).includes("."), 'write a positive glob relative to the project ("../" climbs above it), with no "!" or "./"');
+var generatedEntry = external_exports.preprocess(
+  (entry) => typeof entry === "string" ? { files: entry } : entry,
+  external_exports.object({ files: pathGlob, from: external_exports.array(inputGlob).min(1, "list at least one generator input, or write the glob alone").optional() }).strict()
+).transform((entry) => ({ files: entry.files, from: entry.from ?? [] }));
 var DEFAULT_INFRA = [
   "**/.env",
   "**/.env.*",
@@ -236630,8 +236635,12 @@ var ConfigSchema = external_exports.object({
     ...routes.adapter === "react-router" ? {} : { dir: dir ?? (routes.adapter === "tanstack-router" ? "src/routes" : "") }
   })).optional(),
   exclude: globs.default([]),
-  /** TypeScript: import targets the build generates and git ignores (Prisma client, protobuf types): not an unresolved import. Project-relative globs, matched against the import path as written. */
-  generated: globs.default([]),
+  /**
+   * TypeScript: import targets the build generates and git ignores (Prisma client, protobuf types): not an unresolved
+   * import. `files`: project-relative glob, matched against the import path as written. `from`: the generator inputs
+   * (schema.prisma, .proto): a change to one reaches the importers of that code.
+   */
+  generated: external_exports.array(generatedEntry).default([]),
   /** Where `farol usage` reads traffic from (optional). */
   datadog: DatadogSchema.optional(),
   /** Changed files left out of every analysis (classification, dependencies, signals). A rename from a path that is not ignored still counts for the classification. Project-relative or repo-relative globs. */
@@ -237221,6 +237230,7 @@ var REASONS = {
   "i18n-not-additive": "touches-existing",
   "existing-file-modified": "touches-existing",
   "existing-file-unreachable": "touches-existing",
+  "generator-input-changed": "touches-existing",
   "existing-file-renamed": "touches-existing",
   "existing-file-deleted": "touches-existing",
   "infra-file-changed": "touches-existing",
@@ -237611,6 +237621,34 @@ function routesReaching(reach, routes) {
   }
   return hits.sort((a, b) => compareStrings(a.route.path, b.route.path) || compareStrings(a.route.key, b.route.key));
 }
+function routeLabel(route, all) {
+  const shared = all.some((h) => h.route !== route && h.route.path === route.path);
+  return shared ? `${route.path} [${route.key}]` : route.path;
+}
+function describeHits(hits) {
+  const shown = hits.slice(0, 3).map((h) => `${routeLabel(h.route, hits)} via ${h.via.join(" \u2192 ")}`);
+  return hits.length > 3 ? `${shown.join("; ")}; and ${hits.length - 3} more` : shown.join("; ");
+}
+
+// src/classify/generated.ts
+function generatorInputReach(path3, input2, ctx) {
+  const importers = ctx.graph.unresolved.filter((u) => u.target !== void 0 && ctx.isGenerated(u.target) && input2.feeds(u.target)).map((u) => u.file);
+  const starts = sortedUnique([...importers, ...ctx.graph.nodes.filter((n) => input2.feeds(n))]);
+  const code2 = input2.files.join(", ");
+  if (starts.length === 0) return { hits: [], reason: reason("existing-file-unreachable", `generator input of ${code2}; nothing in the project imports that code`, path3) };
+  const best = /* @__PURE__ */ new Map();
+  for (const start of starts) {
+    for (const h of routesReaching(reachFrom(ctx.index, start), ctx.existingRoutes)) {
+      const via = [...h.via, path3];
+      const prev = best.get(h.route.key);
+      if (!prev || via.length < prev.via.length) best.set(h.route.key, { route: h.route, via });
+    }
+  }
+  const hits = [...best.values()].sort((a, b) => compareStrings(a.route.path, b.route.path) || compareStrings(a.route.key, b.route.key));
+  const through = `generator input of ${code2}, used by ${starts.length} file(s)`;
+  if (hits.length === 0) return { hits, reason: reason("existing-file-unreachable", `${through}; no route reaches them`, path3) };
+  return { hits, reason: reason("generator-input-changed", `${through}; reached by ${hits.length} existing route(s): ${describeHits(hits)}`, path3) };
+}
 
 // src/classify/risk.ts
 var HIGH_PAGE_SHARE = 0.5;
@@ -237918,14 +237956,6 @@ var AffectedCollector = class {
     return [...this.byKey.values()].map((e) => ({ key: e.key, path: e.path, hasChildren: hasChildren(e.key), via: [...e.via.entries()].sort(([a], [b]) => compareStrings(a, b)).map(([file2, chain]) => ({ file: file2, chain })) })).sort((a, b) => compareStrings(a.path, b.path) || compareStrings(a.key, b.key));
   }
 };
-function routeLabel(route, all) {
-  const shared = all.some((h) => h.route !== route && h.route.path === route.path);
-  return shared ? `${route.path} [${route.key}]` : route.path;
-}
-function describeHits(hits) {
-  const shown = hits.slice(0, 3).map((h) => `${routeLabel(h.route, hits)} via ${h.via.join(" \u2192 ")}`);
-  return hits.length > 3 ? `${shown.join("; ")}; and ${hits.length - 3} more` : shown.join("; ");
-}
 function dependenciesBlock(input2, files) {
   const changes = sortChanges(input2.manifests.flatMap((m) => "error" in m ? [] : m.changes));
   const bumps = (b) => changes.filter((c) => (c.change === "updated" || c.change === "moved") && c.bump === b).length;
@@ -238053,6 +238083,7 @@ function classify(input2) {
     if (file2.status === "deleted") {
       reasons.push(reason("existing-file-deleted", "existing file deleted", file2.path));
       addImpact(file2.path);
+      if (input2.generatorInputOf?.(file2.path)) reachTargets.push({ path: file2.path, reportModified: false });
       continue;
     }
     if (file2.status === "renamed") {
@@ -238139,9 +238170,12 @@ function classify(input2) {
     reachTargets.push({ path: file2.path, reportModified: true });
   }
   for (const target of reachTargets) {
-    const hits = nodes.has(target.path) ? routesReaching(reachFrom(index, target.path), existingRoutes) : [];
+    const generator = nodes.has(target.path) ? void 0 : input2.generatorInputOf?.(target.path);
+    const viaGenerated = generator && generatorInputReach(target.path, generator, { graph, index, existingRoutes, isGenerated: input2.isGenerated });
+    const hits = viaGenerated ? viaGenerated.hits : nodes.has(target.path) ? routesReaching(reachFrom(index, target.path), existingRoutes) : [];
     for (const h of hits) affected.add(h.route, target.path, h.via);
-    if (!target.reportModified) continue;
+    if (viaGenerated) reasons.push(viaGenerated.reason);
+    if (viaGenerated || !target.reportModified) continue;
     if (hits.length > 0) reasons.push(reason("existing-file-modified", `reached by ${hits.length} existing route(s): ${describeHits(hits)}`, target.path));
     else reasons.push(reason("existing-file-unreachable", nodes.has(target.path) ? "modified, and no route reaches it" : "modified, and it is not part of the import graph", target.path));
   }
@@ -250845,6 +250879,16 @@ function createIgnoreMatcher(globs3) {
   const match = matcher(globs3);
   return (projectPath, repoPath) => match(projectPath) || match(repoPath);
 }
+function createGeneratorInputOf(entries, projectPrefix) {
+  const withInputs = entries.filter((e) => e.from.length > 0).map((e) => ({ files: e.files, isInput: matcher(e.from) }));
+  const rel = (repoPath) => projectPrefix === "" ? repoPath : posix10.relative(projectPrefix, repoPath);
+  return (repoPath) => {
+    const files = withInputs.filter((e) => e.isInput(rel(repoPath))).map((e) => e.files);
+    if (files.length === 0) return void 0;
+    const isFile = matcher(files);
+    return { files, feeds: (path3) => (projectPrefix === "" || path3.startsWith(`${projectPrefix}/`)) && isFile(rel(path3)) };
+  };
+}
 
 // src/project/graph.ts
 var import_typescript20 = __toESM(require_typescript(), 1);
@@ -251964,8 +252008,10 @@ var SOURCE_EXTENSIONS = /* @__PURE__ */ new Set([".ts", ".tsx", ".mts", ".cts", 
 function createRepoRoleOf(ctx) {
   const roleOf = createRoleMatcher(ctx.config);
   const isInfra = createInfraMatcher(ctx.config);
+  const generatorInputOf = createGeneratorInputOf(ctx.config.generated, ctx.projectPrefix);
   return (repoPath) => {
     const rel = ctx.projectPrefix === "" ? repoPath : posix15.relative(ctx.projectPrefix, repoPath);
+    if (roleOf(rel) !== "global" && generatorInputOf(repoPath)) return "source";
     if (rel.startsWith("../") || rel === "..") {
       if (roleOf(rel) === "global") return "global";
       return isInfra(repoPath) ? "infra" : "outside";
@@ -252701,7 +252747,7 @@ async function runAnalyze(ctx, options, deps) {
       const existing = new Set((baseRoutes ?? ws.routes).routes.map((r) => r.key));
       const declImpactMap = declImpacts(baseOut, head, declChanged, () => true, { existing, erasedTypes: true });
       lap("base");
-      result = classify({ files, roleOf, isIgnored: ignoredOf, isGenerated: createGeneratedMatcher(ctx.config.generated, ctx.projectPrefix, ctx.config.generated.length === 0 ? [] : await listFiles(ctx.repoRoot, meta3.head.sha)), manifests, otherManifests, typeOnlyFiles, declImpacts: declImpactMap, ...backend && ws.backend ? { backend: { impacts: backend.impacts, configEntries: ws.backend.configEntries } } : {}, graph: ws.graph, routesFile: ws.routesFile, ...ws.routesFromDirectory ? { routesFromDirectory: true } : {}, headRoutes: ws.routes, baseRoutes, baseText, headText });
+      result = classify({ files, roleOf, isIgnored: ignoredOf, isGenerated: createGeneratedMatcher(ctx.config.generated.map((g) => g.files), ctx.projectPrefix, ctx.config.generated.length === 0 ? [] : await listFiles(ctx.repoRoot, meta3.head.sha)), generatorInputOf: createGeneratorInputOf(ctx.config.generated, ctx.projectPrefix), manifests, otherManifests, typeOnlyFiles, declImpacts: declImpactMap, ...backend && ws.backend ? { backend: { impacts: backend.impacts, configEntries: ws.backend.configEntries } } : {}, graph: ws.graph, routesFile: ws.routesFile, ...ws.routesFromDirectory ? { routesFromDirectory: true } : {}, headRoutes: ws.routes, baseRoutes, baseText, headText });
     }
     for (const f of result.files) if (f.status === "added" && (f.role === "source" || f.role === "barrel") && isScriptFile(f.path) && isDeclarationsOnlyModule(f.path, readHead(f.path) ?? "x(")) f.declarationsOnly = true;
     lap("classify");
@@ -253368,6 +253414,7 @@ var REASON_TEXT = {
   "i18n-not-additive": "existing translations changed",
   "existing-file-modified": "existing file modified",
   "existing-file-unreachable": "existing file modified, no route reaches it",
+  "generator-input-changed": "generator input changed, reached through the code it generates",
   "existing-file-renamed": "existing file renamed",
   "infra-file-changed": "environment, infrastructure or CI file changed",
   "lockfile-changed-elsewhere": "lockfile changed by another project's dependencies",

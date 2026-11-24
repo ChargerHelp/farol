@@ -1,0 +1,9 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+model Payment {
+  id     String @id
+  amount Int
+}

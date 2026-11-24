@@ -108,6 +108,7 @@ export const REASON_TEXT: Record<ReasonCode, string> = {
   'i18n-not-additive': 'existing translations changed',
   'existing-file-modified': 'existing file modified',
   'existing-file-unreachable': 'existing file modified, no route reaches it',
+  'generator-input-changed': 'generator input changed, reached through the code it generates',
   'existing-file-renamed': 'existing file renamed',
   'infra-file-changed': 'environment, infrastructure or CI file changed',
   'lockfile-changed-elsewhere': "lockfile changed by another project's dependencies",

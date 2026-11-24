@@ -159,6 +159,7 @@ Only three roles have an additive rule. Any other existing file that is modified
 - New files that no route reaches are listed as disconnected.
 - A modified existing file that no route reaches is still a non-additive change, with an empty route list and its own reason.
 - TypeScript backends: a use of a member of a project interface reaches the files of the classes that declare `implements` of it (see DECISIONS.md, 2026-11-19).
+- A changed generator input (`generated[].from`) is reached through its generated code: from the files that import it and the generated files in the graph; the chain ends at the input (see DECISIONS.md, 2026-11-24).
 
 ### 7. Classification
 
