@@ -68,6 +68,8 @@ const SCENARIOS: Record<string, { classification: Output['classification']; affe
   'b13-entries': { classification: 'touches-existing', affected: ['CONSUMER src/consumers/signal.handler.ts'] },
   // The use case holds the repository only as an interface; the class that implements it is wired in main.ts.
   'b14-implements': { classification: 'touches-existing', affected: ['GET /items'] },
+  // A factory mounted twice takes an interface of inline types; each mount passes its own use case classes.
+  'b15-mount-arguments': { classification: 'touches-existing', affected: ['GET /admin/api/issues', 'GET /admin/api/issues/:id'] },
 }
 
 describe('backend scenarios (GraphQL and REST)', () => {
