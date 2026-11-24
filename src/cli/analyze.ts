@@ -241,7 +241,7 @@ export async function runAnalyze(ctx: Context, options: AnalyzeOptions, deps: An
       const helperContracts = helperContractChanges(langWs.base, langWs.head)
       contracts = contractsSection(helperContracts.changes, helperContracts.readable)
       lap('base')
-      result = classify({ files, roleOf, isIgnored: ignoredOf, isGenerated: () => false, manifests, otherManifests, backend: { impacts: langWs.impacts }, graph: langWs.graph, routesFile: '', headRoutes: langWs.headRoutes, baseRoutes: langWs.baseRoutes, baseText: new Map(), headText: new Map() })
+      result = classify({ files, roleOf, isIgnored: ignoredOf, isGenerated: () => false, generatorInputOf: () => undefined, manifests, otherManifests, backend: { impacts: langWs.impacts }, graph: langWs.graph, routesFile: '', headRoutes: langWs.headRoutes, baseRoutes: langWs.baseRoutes, baseText: new Map(), headText: new Map() })
     } else {
       const ws = await loadWorkspace(ctx, meta.head.sha, wsTimings, deps.clock)
       headRoutes = ws.routes

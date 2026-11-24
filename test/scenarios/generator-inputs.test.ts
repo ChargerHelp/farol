@@ -161,6 +161,16 @@ describe('generator inputs (generated[].from)', () => {
     expect(codesOf(o, SCHEMA)).toEqual(['generator-input-changed'])
   })
 
+  it('the chain through type-only imports is the shortest one', async () => {
+    const o = await analyzeVariant(SCENARIO, cleanups, changeSchema, (r) => {
+      r.write('src/a/q.ts', "export type { Payment } from '../generated/prisma/models.js'\n")
+      r.write('src/a/p.ts', "export type { Payment } from './q.js'\n")
+      r.write('src/z/r.ts', "export type { Payment } from '../generated/prisma/models.js'\n")
+      r.write('src/rest/stripe.ts', "import type { Payment } from '../a/p.js'\nimport type { Payment as P } from '../z/r.js'\n\nexport async function handleStripe(request: { body: Payment | P }) {\n  return { received: Boolean(request.body) }\n}\n")
+    })
+    expect(o.routes.affected.map((r) => r.via.map((v) => v.chain))).toEqual([[['src/rest/stripe.ts', 'src/z/r.ts', SCHEMA]]])
+  })
+
   it('a rename into an excluded folder still reaches the importers', async () => {
     const o = await analyzeVariant(SCENARIO, cleanups, (r) => {
       r.write('legacy/schema.prisma', r.read(SCHEMA))

@@ -1,18 +1,9 @@
-import type { ChangedFile } from '../git/types.js'
 import { compareStrings, sortedUnique } from '../output/order.js'
 import type { ImportGraph } from '../project/graph.js'
 import type { RouteEntry } from '../routes/types.js'
 import { describeHits, reachFrom, routesReaching, type ReachIndex, type RouteHit } from './reach.js'
 import { reason, type Reason } from './reasons.js'
-import type { AnalysisRole, GeneratedCode } from './roles.js'
-
-/** Roles whose files `classify` reports without reaching them. */
-const NO_REACH: ReadonlySet<AnalysisRole> = new Set(['excluded', 'story', 'manifest', 'lockfile', 'global', 'infra', 'test'])
-
-/** Whether a generator input was renamed to a path whose role skips reach (an excluded folder, a test): it is still an input. */
-export function renamedInputSkipsReach(file: ChangedFile, role: AnalysisRole, generatorInputOf: ((...repoPaths: string[]) => GeneratedCode | undefined) | undefined): boolean {
-  return file.status === 'renamed' && file.oldPath !== undefined && NO_REACH.has(role) && generatorInputOf?.(file.oldPath) !== undefined
-}
+import type { GeneratedCode } from './roles.js'
 
 interface ReachContext {
   graph: ImportGraph
@@ -23,21 +14,26 @@ interface ReachContext {
 }
 
 /**
- * Files that use the generated code, each with the files between it and that code: the importers of the git-ignored
- * output, output files in the import graph (committed, or read from disk), and the files that reach either through
- * type-only imports or re-exports (protobuf types of a .proto loaded at runtime, a file that re-exports Prisma types).
+ * Files that use the generated code, each with the shortest chain of files between it and that code: the importers of
+ * the git-ignored output (type-only imports too: protobuf types of a .proto loaded at runtime), output files in the
+ * import graph (committed, or read from disk), and the files that reach either through type-only imports or
+ * re-exports (a file that re-exports Prisma types).
  */
 function generatedUsers(code: GeneratedCode, ctx: ReachContext): Map<string, string[]> {
-  const importers = ctx.graph.unresolved.filter((u) => u.target !== undefined && ctx.isGenerated(u.target) && code.feeds(u.target)).map((u) => u.file)
+  const importers = [
+    ...ctx.graph.unresolved.filter((u) => u.target !== undefined && ctx.isGenerated(u.target) && code.feeds(u.target)).map((u) => u.file),
+    ...ctx.graph.typeImports.filter((t) => code.feeds(t.target)).map((t) => t.file),
+  ]
   const users = new Map(sortedUnique([...importers, ...ctx.graph.nodes.filter((n) => code.feeds(n))]).map((f): [string, string[]] => [f, []]))
-  for (let grew = true; grew; ) {
-    grew = false
-    for (const t of ctx.graph.typeImports) {
-      const next = users.get(t.target)
-      const via = code.feeds(t.target) ? [] : next && [t.target, ...next]
-      if (users.has(t.file) || via === undefined) continue
-      users.set(t.file, via)
-      grew = true
+  const typeImporters = new Map<string, string[]>()
+  for (const t of ctx.graph.typeImports) typeImporters.set(t.target, [...(typeImporters.get(t.target) ?? []), t.file])
+  const queue = [...users]
+  for (const [user, via] of queue) {
+    for (const file of typeImporters.get(user) ?? []) {
+      if (users.has(file)) continue
+      const chain = [user, ...via]
+      users.set(file, chain)
+      queue.push([file, chain])
     }
   }
   return users
@@ -49,13 +45,13 @@ function generatedUsers(code: GeneratedCode, ctx: ReachContext): Map<string, str
  */
 export function generatorInputReach(path: string, code: GeneratedCode, ctx: ReachContext): { hits: RouteHit[]; reason: Reason } {
   const users = generatedUsers(code, ctx)
-  const starts = [...users.keys()].sort(compareStrings)
+  const starts = [...users].sort(([a], [b]) => compareStrings(a, b))
   const of = `generator input of ${code.files.join(', ')}`
   if (starts.length === 0) return { hits: [], reason: reason('generator-input-changed', `${of}; no import of that code found (imports of a package name do not count): no route listed`, path) }
   const best = new Map<string, RouteHit>()
-  for (const start of starts) {
+  for (const [start, chain] of starts) {
     for (const h of routesReaching(reachFrom(ctx.index, start), ctx.existingRoutes)) {
-      const via = [...h.via, ...(users.get(start) ?? []), path]
+      const via = [...h.via, ...chain, path]
       const prev = best.get(h.route.key)
       if (!prev || via.length < prev.via.length) best.set(h.route.key, { route: h.route, via })
     }

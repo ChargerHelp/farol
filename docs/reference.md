@@ -120,7 +120,7 @@ re-exports count (also `import type X = require(…)` and `import('…').T` in a
 and the `.proto` file itself is loaded at runtime. The PR is `touches-existing`
 with reason `generator-input-changed` and lists the routes behind that code; the detail says so when nothing in the
 project imports the generated code. A rename counts when the old or the new path is an input (both entries when each path is an input of a different
-entry), also when the new path is excluded or a test. An input that matches
+entry), also when the new path is excluded or a test (a global new path makes the PR `global`). An input that matches
 `ignore` is ignored, and one that matches `roles.global` makes the PR `global` (every schema PR then is). Imports of a
 package (`@prisma/client`) do not count: point the generator `output` into the project and list that folder in `files`.
 

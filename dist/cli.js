@@ -237632,34 +237632,34 @@ function describeHits(hits) {
 }
 
 // src/classify/generated.ts
-var NO_REACH = /* @__PURE__ */ new Set(["excluded", "story", "manifest", "lockfile", "global", "infra", "test"]);
-function renamedInputSkipsReach(file2, role, generatorInputOf) {
-  return file2.status === "renamed" && file2.oldPath !== void 0 && NO_REACH.has(role) && generatorInputOf?.(file2.oldPath) !== void 0;
-}
 function generatedUsers(code2, ctx) {
-  const importers = ctx.graph.unresolved.filter((u) => u.target !== void 0 && ctx.isGenerated(u.target) && code2.feeds(u.target)).map((u) => u.file);
+  const importers = [
+    ...ctx.graph.unresolved.filter((u) => u.target !== void 0 && ctx.isGenerated(u.target) && code2.feeds(u.target)).map((u) => u.file),
+    ...ctx.graph.typeImports.filter((t) => code2.feeds(t.target)).map((t) => t.file)
+  ];
   const users = new Map(sortedUnique([...importers, ...ctx.graph.nodes.filter((n) => code2.feeds(n))]).map((f) => [f, []]));
-  for (let grew = true; grew; ) {
-    grew = false;
-    for (const t of ctx.graph.typeImports) {
-      const next = users.get(t.target);
-      const via = code2.feeds(t.target) ? [] : next && [t.target, ...next];
-      if (users.has(t.file) || via === void 0) continue;
-      users.set(t.file, via);
-      grew = true;
+  const typeImporters = /* @__PURE__ */ new Map();
+  for (const t of ctx.graph.typeImports) typeImporters.set(t.target, [...typeImporters.get(t.target) ?? [], t.file]);
+  const queue = [...users];
+  for (const [user, via] of queue) {
+    for (const file2 of typeImporters.get(user) ?? []) {
+      if (users.has(file2)) continue;
+      const chain = [user, ...via];
+      users.set(file2, chain);
+      queue.push([file2, chain]);
     }
   }
   return users;
 }
 function generatorInputReach(path3, code2, ctx) {
   const users = generatedUsers(code2, ctx);
-  const starts = [...users.keys()].sort(compareStrings);
+  const starts = [...users].sort(([a], [b]) => compareStrings(a, b));
   const of = `generator input of ${code2.files.join(", ")}`;
   if (starts.length === 0) return { hits: [], reason: reason("generator-input-changed", `${of}; no import of that code found (imports of a package name do not count): no route listed`, path3) };
   const best = /* @__PURE__ */ new Map();
-  for (const start of starts) {
+  for (const [start, chain] of starts) {
     for (const h of routesReaching(reachFrom(ctx.index, start), ctx.existingRoutes)) {
-      const via = [...h.via, ...users.get(start) ?? [], path3];
+      const via = [...h.via, ...chain, path3];
       const prev = best.get(h.route.key);
       if (!prev || via.length < prev.via.length) best.set(h.route.key, { route: h.route, via });
     }
@@ -238063,7 +238063,8 @@ function classify(input2) {
     outputFiles.push(out);
     const leaves = renamedOutOfProduction(file2, role, input2.roleOf);
     if (leaves) reasons.push(reason("existing-file-renamed", `renamed from ${file2.oldPath}, which no longer counts as production code`, file2.path));
-    if (renamedInputSkipsReach(file2, role, input2.generatorInputOf)) reachTargets.push({ path: file2.path, reportModified: false, inputPaths: [file2.path, file2.oldPath ?? file2.path] });
+    const generated = nodes.has(file2.path) ? void 0 : input2.generatorInputOf(...file2.oldPath === void 0 ? [file2.path] : [file2.path, file2.oldPath]);
+    if (generated && file2.status === "renamed" && role !== "global") reachTargets.push({ path: file2.path, reportModified: false, generated });
     if (role === "excluded" || role === "story") continue;
     if (role === "manifest") {
       const diff2 = input2.manifests.find((m) => m.manifest === file2.path);
@@ -238092,8 +238093,8 @@ function classify(input2) {
       continue;
     }
     if (file2.status === "added") {
-      if (!nodes.has(file2.path) && input2.generatorInputOf?.(file2.path)) {
-        reachTargets.push({ path: file2.path, reportModified: false });
+      if (generated) {
+        reachTargets.push({ path: file2.path, reportModified: false, generated });
         continue;
       }
       newFiles.push(file2.path);
@@ -238107,12 +238108,12 @@ function classify(input2) {
     if (file2.status === "deleted") {
       reasons.push(reason("existing-file-deleted", "existing file deleted", file2.path));
       addImpact(file2.path);
-      if (input2.generatorInputOf?.(file2.path)) reachTargets.push({ path: file2.path, reportModified: false });
+      if (generated) reachTargets.push({ path: file2.path, reportModified: false, generated });
       continue;
     }
     if (file2.status === "renamed") {
       reasons.push(reason("existing-file-renamed", `renamed from ${file2.oldPath}`, file2.path));
-      reachTargets.push({ path: file2.path, reportModified: false, inputPaths: [file2.path, file2.oldPath ?? file2.path] });
+      if (!generated) reachTargets.push({ path: file2.path, reportModified: false });
       continue;
     }
     const declImpact = role === "source" ? impactOf(file2.path) : void 0;
@@ -238191,11 +238192,10 @@ function classify(input2) {
       else reachTargets.push({ path: file2.path, reportModified: false });
       continue;
     }
-    reachTargets.push({ path: file2.path, reportModified: true });
+    reachTargets.push({ path: file2.path, reportModified: true, generated });
   }
   for (const target of reachTargets) {
-    const generated = nodes.has(target.path) ? void 0 : input2.generatorInputOf?.(...target.inputPaths ?? [target.path]);
-    const viaGenerated = generated ? generatorInputReach(target.path, generated, { graph, index, existingRoutes, isGenerated: input2.isGenerated }) : void 0;
+    const viaGenerated = target.generated ? generatorInputReach(target.path, target.generated, { graph, index, existingRoutes, isGenerated: input2.isGenerated }) : void 0;
     const hits = viaGenerated?.hits ?? (nodes.has(target.path) ? routesReaching(reachFrom(index, target.path), existingRoutes) : []);
     for (const h of hits) affected.add(h.route, target.path, h.via);
     if (viaGenerated) reasons.push(viaGenerated.reason);
@@ -250909,8 +250909,8 @@ function projectRelative(projectPrefix, repoPath) {
 function createGeneratorInputOf(entries, projectPrefix) {
   const withInputs = entries.filter((e) => e.from.length > 0).map((e) => ({ files: e.files, isInput: matcher(e.from), isOutput: matcher([e.files]) }));
   return (...repoPaths) => {
-    const own2 = repoPaths.map((p) => projectRelative(projectPrefix, p));
-    const hit = withInputs.filter((e) => own2.some((p) => e.isInput(p)));
+    const projectPaths = repoPaths.map((p) => projectRelative(projectPrefix, p));
+    const hit = withInputs.filter((e) => projectPaths.some((p) => e.isInput(p)));
     if (hit.length === 0) return void 0;
     return { files: hit.map((e) => e.files), feeds: (path3) => hit.some((e) => e.isOutput(projectRelative(projectPrefix, path3))) };
   };
@@ -250974,8 +250974,8 @@ var GraphBuilder = class {
     const r = this.resolve(sf, literal3);
     if (r.kind === "unresolved") {
       const entry = { file: from, specifier: literal3.text, line: lineOf(sf, literal3), reason: "not-found" };
-      const target = specifierTarget(this.project, toPosix(sf.fileName), literal3.text);
-      if (target !== void 0 && this.isProjectFile(target)) entry.target = this.rel(target);
+      const target = this.unresolvedTarget(sf, literal3);
+      if (target !== void 0) entry.target = target;
       if (r.packages !== void 0) entry.packages = r.packages.map((p) => this.rel(p));
       this.unresolved.push(entry);
       return void 0;
@@ -250985,14 +250985,24 @@ var GraphBuilder = class {
     this.addEdge(from, to, r.kind === "asset" ? "asset" : kind);
     return r.kind === "module" ? to : void 0;
   }
+  /** Repo-relative project path an unresolved specifier points to (no extension probing). */
+  unresolvedTarget(sf, literal3) {
+    const target = specifierTarget(this.project, toPosix(sf.fileName), literal3.text);
+    return target !== void 0 && this.isProjectFile(target) ? this.rel(target) : void 0;
+  }
   /** Records a type-only import or re-export of a project file, resolved or not. */
-  typeImport(sf, from, literal3) {
+  recordTypeImport(sf, from, literal3) {
     if (this.options.typeImports !== true) return;
     const r = this.resolve(sf, literal3);
-    const target = r.kind === "module" ? r.file : r.kind === "unresolved" ? specifierTarget(this.project, toPosix(sf.fileName), literal3.text) : void 0;
-    if (target === void 0 || !this.isProjectFile(target)) return;
-    const to = this.rel(target);
-    this.typeImports.set(`${from}\0${to}`, { file: from, target: to });
+    let to;
+    if (r.kind === "module") to = this.isProjectFile(r.file) ? this.rel(r.file) : void 0;
+    else if (r.kind === "unresolved") to = this.unresolvedTarget(sf, literal3);
+    if (to !== void 0) this.typeImports.set(`${from}\0${to}`, { file: from, target: to });
+  }
+  /** A statement whose bindings are all `{ type A }`: the emitter may keep it (it still runs), else it is type-only. */
+  inlineTypesOnly(sf, from, literal3) {
+    if (this.keepsInlineTypes) this.link(sf, from, literal3, "side-effect");
+    else this.recordTypeImport(sf, from, literal3);
   }
   /** Files that declare the symbol a local import binding refers to, following every alias (barrels). */
   declaringFiles(binding) {
@@ -251018,15 +251028,14 @@ var GraphBuilder = class {
       return;
     }
     if (isTypeOnlyImport(clause)) {
-      this.typeImport(sf, from, node2.moduleSpecifier);
+      this.recordTypeImport(sf, from, node2.moduleSpecifier);
       return;
     }
     const named = clause.namedBindings && import_typescript20.default.isNamedImports(clause.namedBindings) ? clause.namedBindings.elements.filter((e) => !e.isTypeOnly) : [];
     const namespace = clause.namedBindings && import_typescript20.default.isNamespaceImport(clause.namedBindings) ? clause.namedBindings : void 0;
     const allTypes = clause.namedBindings && import_typescript20.default.isNamedImports(clause.namedBindings) && clause.namedBindings.elements.length > 0 && named.length === 0;
     if (!clause.name && !namespace && allTypes) {
-      if (this.keepsInlineTypes) this.link(sf, from, node2.moduleSpecifier, "side-effect");
-      else this.typeImport(sf, from, node2.moduleSpecifier);
+      this.inlineTypesOnly(sf, from, node2.moduleSpecifier);
       return;
     }
     const r = this.resolve(sf, node2.moduleSpecifier);
@@ -251051,18 +251060,17 @@ var GraphBuilder = class {
   visitExport(sf, from, node2) {
     if (!node2.moduleSpecifier || !import_typescript20.default.isStringLiteralLike(node2.moduleSpecifier)) return;
     if (node2.isTypeOnly) {
-      this.typeImport(sf, from, node2.moduleSpecifier);
+      this.recordTypeImport(sf, from, node2.moduleSpecifier);
       return;
     }
     const clause = node2.exportClause;
     if (clause && import_typescript20.default.isNamedExports(clause) && clause.elements.length > 0 && clause.elements.every((e) => e.isTypeOnly)) {
-      if (this.keepsInlineTypes) this.link(sf, from, node2.moduleSpecifier, "side-effect");
-      else this.typeImport(sf, from, node2.moduleSpecifier);
+      this.inlineTypesOnly(sf, from, node2.moduleSpecifier);
       return;
     }
     this.link(sf, from, node2.moduleSpecifier, "reexport");
   }
-  visitCalls(sf, from) {
+  visitNested(sf, from) {
     const visit3 = (node2) => {
       if (import_typescript20.default.isCallExpression(node2)) {
         const arg = node2.arguments[0];
@@ -251075,7 +251083,7 @@ var GraphBuilder = class {
           this.unresolved.push({ file: from, specifier: node2.getText(sf), line: lineOf(sf, node2), reason: "non-literal" });
         }
       } else if (import_typescript20.default.isImportTypeNode(node2) && import_typescript20.default.isLiteralTypeNode(node2.argument) && import_typescript20.default.isStringLiteral(node2.argument.literal)) {
-        this.typeImport(sf, from, node2.argument.literal);
+        this.recordTypeImport(sf, from, node2.argument.literal);
       }
       import_typescript20.default.forEachChild(node2, visit3);
     };
@@ -251091,11 +251099,11 @@ var GraphBuilder = class {
       else if (import_typescript20.default.isImportEqualsDeclaration(statement) && import_typescript20.default.isExternalModuleReference(statement.moduleReference)) {
         const expr = statement.moduleReference.expression;
         if (!import_typescript20.default.isStringLiteralLike(expr)) continue;
-        if (statement.isTypeOnly) this.typeImport(sf, from, expr);
+        if (statement.isTypeOnly) this.recordTypeImport(sf, from, expr);
         else this.link(sf, from, expr, "require");
       }
     }
-    this.visitCalls(sf, from);
+    this.visitNested(sf, from);
   }
   build() {
     const parseErrors = [];
@@ -252758,7 +252766,7 @@ async function runAnalyze(ctx, options, deps) {
       const helperContracts = helperContractChanges(langWs.base, langWs.head);
       contracts = contractsSection(helperContracts.changes, helperContracts.readable);
       lap("base");
-      result = classify({ files, roleOf, isIgnored: ignoredOf, isGenerated: () => false, manifests, otherManifests, backend: { impacts: langWs.impacts }, graph: langWs.graph, routesFile: "", headRoutes: langWs.headRoutes, baseRoutes: langWs.baseRoutes, baseText: /* @__PURE__ */ new Map(), headText: /* @__PURE__ */ new Map() });
+      result = classify({ files, roleOf, isIgnored: ignoredOf, isGenerated: () => false, generatorInputOf: () => void 0, manifests, otherManifests, backend: { impacts: langWs.impacts }, graph: langWs.graph, routesFile: "", headRoutes: langWs.headRoutes, baseRoutes: langWs.baseRoutes, baseText: /* @__PURE__ */ new Map(), headText: /* @__PURE__ */ new Map() });
     } else {
       const ws = await loadWorkspace(ctx, meta3.head.sha, wsTimings, deps.clock);
       headRoutes = ws.routes;

@@ -25,6 +25,7 @@ function run(partial: Partial<ClassifyInput>): ReturnType<typeof classify> {
     baseText: new Map(),
     headText: new Map(),
     isGenerated: () => false,
+    generatorInputOf: () => undefined,
     ...partial,
   })
 }

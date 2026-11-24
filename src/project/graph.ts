@@ -135,8 +135,8 @@ class GraphBuilder {
     const r = this.resolve(sf, literal)
     if (r.kind === 'unresolved') {
       const entry: UnresolvedImport = { file: from, specifier: literal.text, line: lineOf(sf, literal), reason: 'not-found' }
-      const target = specifierTarget(this.project, toPosix(sf.fileName), literal.text)
-      if (target !== undefined && this.isProjectFile(target)) entry.target = this.rel(target)
+      const target = this.unresolvedTarget(sf, literal)
+      if (target !== undefined) entry.target = target
       if (r.packages !== undefined) entry.packages = r.packages.map((p) => this.rel(p))
       this.unresolved.push(entry)
       return undefined
@@ -147,14 +147,26 @@ class GraphBuilder {
     return r.kind === 'module' ? to : undefined
   }
 
+  /** Repo-relative project path an unresolved specifier points to (no extension probing). */
+  unresolvedTarget(sf: ts.SourceFile, literal: ts.StringLiteralLike): string | undefined {
+    const target = specifierTarget(this.project, toPosix(sf.fileName), literal.text)
+    return target !== undefined && this.isProjectFile(target) ? this.rel(target) : undefined
+  }
+
   /** Records a type-only import or re-export of a project file, resolved or not. */
-  typeImport(sf: ts.SourceFile, from: string, literal: ts.StringLiteralLike): void {
+  recordTypeImport(sf: ts.SourceFile, from: string, literal: ts.StringLiteralLike): void {
     if (this.options.typeImports !== true) return
     const r = this.resolve(sf, literal)
-    const target = r.kind === 'module' ? r.file : r.kind === 'unresolved' ? specifierTarget(this.project, toPosix(sf.fileName), literal.text) : undefined
-    if (target === undefined || !this.isProjectFile(target)) return
-    const to = this.rel(target)
-    this.typeImports.set(`${from}\0${to}`, { file: from, target: to })
+    let to: string | undefined
+    if (r.kind === 'module') to = this.isProjectFile(r.file) ? this.rel(r.file) : undefined
+    else if (r.kind === 'unresolved') to = this.unresolvedTarget(sf, literal)
+    if (to !== undefined) this.typeImports.set(`${from}\0${to}`, { file: from, target: to })
+  }
+
+  /** A statement whose bindings are all `{ type A }`: the emitter may keep it (it still runs), else it is type-only. */
+  inlineTypesOnly(sf: ts.SourceFile, from: string, literal: ts.StringLiteralLike): void {
+    if (this.keepsInlineTypes) this.link(sf, from, literal, 'side-effect')
+    else this.recordTypeImport(sf, from, literal)
   }
 
   /** Files that declare the symbol a local import binding refers to, following every alias (barrels). */
@@ -184,15 +196,14 @@ class GraphBuilder {
       return
     }
     if (isTypeOnlyImport(clause)) {
-      this.typeImport(sf, from, node.moduleSpecifier)
+      this.recordTypeImport(sf, from, node.moduleSpecifier)
       return
     }
     const named = clause.namedBindings && ts.isNamedImports(clause.namedBindings) ? clause.namedBindings.elements.filter((e) => !e.isTypeOnly) : []
     const namespace = clause.namedBindings && ts.isNamespaceImport(clause.namedBindings) ? clause.namedBindings : undefined
     const allTypes = clause.namedBindings && ts.isNamedImports(clause.namedBindings) && clause.namedBindings.elements.length > 0 && named.length === 0
     if (!clause.name && !namespace && allTypes) {
-      if (this.keepsInlineTypes) this.link(sf, from, node.moduleSpecifier, 'side-effect')
-      else this.typeImport(sf, from, node.moduleSpecifier)
+      this.inlineTypesOnly(sf, from, node.moduleSpecifier)
       return
     }
     const r = this.resolve(sf, node.moduleSpecifier)
@@ -218,19 +229,18 @@ class GraphBuilder {
   visitExport(sf: ts.SourceFile, from: string, node: ts.ExportDeclaration): void {
     if (!node.moduleSpecifier || !ts.isStringLiteralLike(node.moduleSpecifier)) return
     if (node.isTypeOnly) {
-      this.typeImport(sf, from, node.moduleSpecifier)
+      this.recordTypeImport(sf, from, node.moduleSpecifier)
       return
     }
     const clause = node.exportClause
     if (clause && ts.isNamedExports(clause) && clause.elements.length > 0 && clause.elements.every((e) => e.isTypeOnly)) {
-      if (this.keepsInlineTypes) this.link(sf, from, node.moduleSpecifier, 'side-effect')
-      else this.typeImport(sf, from, node.moduleSpecifier)
+      this.inlineTypesOnly(sf, from, node.moduleSpecifier)
       return
     }
     this.link(sf, from, node.moduleSpecifier, 'reexport')
   }
 
-  visitCalls(sf: ts.SourceFile, from: string): void {
+  visitNested(sf: ts.SourceFile, from: string): void {
     const visit = (node: ts.Node): void => {
       if (ts.isCallExpression(node)) {
         const arg = node.arguments[0]
@@ -249,7 +259,7 @@ class GraphBuilder {
           this.unresolved.push({ file: from, specifier: node.getText(sf), line: lineOf(sf, node), reason: 'non-literal' })
         }
       } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
-        this.typeImport(sf, from, node.argument.literal) // `import('./x').T` in a type
+        this.recordTypeImport(sf, from, node.argument.literal) // `import('./x').T` in a type
       }
       ts.forEachChild(node, visit)
     }
@@ -266,11 +276,11 @@ class GraphBuilder {
       else if (ts.isImportEqualsDeclaration(statement) && ts.isExternalModuleReference(statement.moduleReference)) {
         const expr = statement.moduleReference.expression
         if (!ts.isStringLiteralLike(expr)) continue
-        if (statement.isTypeOnly) this.typeImport(sf, from, expr)
+        if (statement.isTypeOnly) this.recordTypeImport(sf, from, expr)
         else this.link(sf, from, expr, 'require')
       }
     }
-    this.visitCalls(sf, from)
+    this.visitNested(sf, from)
   }
 
   build(): ImportGraph {

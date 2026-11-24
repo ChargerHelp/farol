@@ -7,9 +7,9 @@ import { editedEntryFiles, markEdited, reachedKeys } from './entry-files.js'
 import type { DynamicRoute, RouteTable } from '../routes/types.js'
 import { checkBarrelAdditive, checkI18nAdditive, compareRouteTables, JsonParseError, losesTokens, unexplainedRemovedLines } from './additive.js'
 import { createReachIndex, describeHits, reachFrom, routesReaching, type ReachIndex } from './reach.js'
-import { generatorInputReach, renamedInputSkipsReach } from './generated.js'
+import { generatorInputReach } from './generated.js'
 import { classificationFrom, reason, REASONS, sortReasons, type Classification, type Reason } from './reasons.js'
-import type { AnalysisRole, GeneratedCode } from './roles.js'
+import type { AnalysisRole, GeneratedCode, GeneratorInputOf } from './roles.js'
 import { computeRisk, type FileRisk } from './risk.js'
 import type { BackendFileImpact } from '../backend/impact.js'
 import { describeChange, sortChanges, type ManifestResult } from './dependencies.js'
@@ -25,7 +25,7 @@ export interface ClassifyInput {
   /** Whether an import target (repo-relative, as written) is generated code that git ignores (`generated` globs). */
   isGenerated: (repoPath: string) => boolean
   /** Generated code a changed file is an input of (`generated[].from`); TypeScript only. */
-  generatorInputOf?: (...repoPaths: string[]) => GeneratedCode | undefined
+  generatorInputOf: GeneratorInputOf
   /** Modified files that only declare types in base and head (erased at compile time). */
   typeOnlyFiles?: ReadonlySet<string>
   /** Backend only: impact of each changed schema or resolver file (Go/Python: of every source file). */
@@ -161,7 +161,7 @@ export function classify(input: ClassifyInput): ClassifyResult {
     }
   }
 
-  const reachTargets: { path: string; reportModified: boolean; inputPaths?: string[] }[] = []
+  const reachTargets: { path: string; reportModified: boolean; generated?: GeneratedCode }[] = []
   const newFiles: string[] = []
 
   for (const file of input.files) {
@@ -183,7 +183,9 @@ export function classify(input: ClassifyInput): ClassifyResult {
     const leaves = renamedOutOfProduction(file, role, input.roleOf)
     if (leaves) reasons.push(reason('existing-file-renamed', `renamed from ${file.oldPath}, which no longer counts as production code`, file.path))
 
-    if (renamedInputSkipsReach(file, role, input.generatorInputOf)) reachTargets.push({ path: file.path, reportModified: false, inputPaths: [file.path, file.oldPath ?? file.path] })
+    // A generator input outside the import graph (old or new path) is reached through its generated code, also when renamed to an excluded or test path.
+    const generated = nodes.has(file.path) ? undefined : input.generatorInputOf(...(file.oldPath === undefined ? [file.path] : [file.path, file.oldPath]))
+    if (generated && file.status === 'renamed' && role !== 'global') reachTargets.push({ path: file.path, reportModified: false, generated })
     if (role === 'excluded' || role === 'story') continue
     if (role === 'manifest') {
       const diff = input.manifests.find((m) => m.manifest === file.path)
@@ -214,8 +216,8 @@ export function classify(input: ClassifyInput): ClassifyResult {
     }
     if (file.status === 'added') {
       // A new generator input changes the generated code that existing files import: not a new file.
-      if (!nodes.has(file.path) && input.generatorInputOf?.(file.path)) {
-        reachTargets.push({ path: file.path, reportModified: false })
+      if (generated) {
+        reachTargets.push({ path: file.path, reportModified: false, generated })
         continue
       }
       newFiles.push(file.path)
@@ -230,12 +232,12 @@ export function classify(input: ClassifyInput): ClassifyResult {
     if (file.status === 'deleted') {
       reasons.push(reason('existing-file-deleted', 'existing file deleted', file.path))
       addImpact(file.path)
-      if (input.generatorInputOf?.(file.path)) reachTargets.push({ path: file.path, reportModified: false })
+      if (generated) reachTargets.push({ path: file.path, reportModified: false, generated })
       continue
     }
     if (file.status === 'renamed') {
       reasons.push(reason('existing-file-renamed', `renamed from ${file.oldPath}`, file.path))
-      reachTargets.push({ path: file.path, reportModified: false, inputPaths: [file.path, file.oldPath ?? file.path] })
+      if (!generated) reachTargets.push({ path: file.path, reportModified: false })
       continue
     }
     // Modified existing file: only routes, barrel and i18n files can be additive.
@@ -319,13 +321,11 @@ export function classify(input: ClassifyInput): ClassifyResult {
       else reachTargets.push({ path: file.path, reportModified: false })
       continue
     }
-    reachTargets.push({ path: file.path, reportModified: true })
+    reachTargets.push({ path: file.path, reportModified: true, generated })
   }
 
   for (const target of reachTargets) {
-    // A generator input outside the import graph is reached through the code it generates.
-    const generated = nodes.has(target.path) ? undefined : input.generatorInputOf?.(...(target.inputPaths ?? [target.path]))
-    const viaGenerated = generated ? generatorInputReach(target.path, generated, { graph, index, existingRoutes, isGenerated: input.isGenerated }) : undefined
+    const viaGenerated = target.generated ? generatorInputReach(target.path, target.generated, { graph, index, existingRoutes, isGenerated: input.isGenerated }) : undefined
     const hits = viaGenerated?.hits ?? (nodes.has(target.path) ? routesReaching(reachFrom(index, target.path), existingRoutes) : [])
     for (const h of hits) affected.add(h.route, target.path, h.via)
     if (viaGenerated) reasons.push(viaGenerated.reason)
