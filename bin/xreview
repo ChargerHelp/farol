@@ -24,7 +24,10 @@
 #   - Other AWS settings are removed from the environment. Static keys
 #     (AWS_ACCESS_KEY_ID and the rest) win over AWS_PROFILE, and Codex prefers a
 #     Bedrock API key (AWS_BEARER_TOKEN_BEDROCK) to both: either one would make
-#     the call as another identity. AWS_ENDPOINT_URL would send it elsewhere.
+#     the call as another identity. AWS_ENDPOINT_URL would send it elsewhere,
+#     and so would an endpoint_url in the AWS config file (in the profile or in
+#     its services section): AWS_IGNORE_CONFIGURED_ENDPOINT_URLS=true makes the
+#     AWS CLI and SDKs ignore both.
 #   - Codex gets an empty home folder for the run, and --ignore-user-config. So
 #     a developer's own Codex config, stored key or hooks cannot change the
 #     provider or the identity.
@@ -134,6 +137,7 @@ fi
 
 unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_BEARER_TOKEN_BEDROCK \
   AWS_ENDPOINT_URL AWS_ENDPOINT_URL_BEDROCK_RUNTIME AWS_ENDPOINT_URL_STS
+export AWS_IGNORE_CONFIGURED_ENDPOINT_URLS=true
 
 if ! command -v codex >/dev/null 2>&1; then
   echo "xreview: the Codex CLI is not installed. Install it with: npm install -g @openai/codex" >&2
