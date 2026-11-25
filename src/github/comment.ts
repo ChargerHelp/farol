@@ -4,9 +4,13 @@ import type { GitHubClient, IssueComment } from './client.js'
 /** Marker of comments written before the project was renamed (revscope → farol): they are updated, not duplicated. */
 export const LEGACY_MARKER = '<!-- revscope -->'
 
-/** The farol comment of a PR: the first comment that starts with the hidden marker (or the legacy one). */
-export function findFarolComment(comments: readonly IssueComment[]): IssueComment | undefined {
-  return comments.find((c) => typeof c.body === 'string' && (c.body.trimStart().startsWith(MARKER) || c.body.trimStart().startsWith(LEGACY_MARKER)))
+/**
+ * The farol comment of one project on a PR: the first comment that starts with the project's marker.
+ * Only the root project also takes a comment with the legacy marker: comments written before markers had a project are the root's.
+ */
+export function findFarolComment(comments: readonly IssueComment[], marker: string): IssueComment | undefined {
+  const markers = marker === MARKER ? [MARKER, LEGACY_MARKER] : [marker]
+  return comments.find((c) => typeof c.body === 'string' && markers.some((m) => c.body.trimStart().startsWith(m)))
 }
 
 function checkedLabels(body: string): Set<string> {
@@ -37,9 +41,9 @@ export function preserveFeedback(oldBody: string, newBody: string): string {
 
 export type CommentResult = { action: 'created' | 'updated' | 'unchanged'; url: string }
 
-/** Creates the farol comment or updates the existing one, keeping the reviewers' feedback marks. */
-export async function upsertComment(client: GitHubClient, pr: number, body: string): Promise<CommentResult> {
-  const existing = findFarolComment(await client.listComments(pr))
+/** Creates the project's farol comment or updates the existing one, keeping the reviewers' feedback marks. */
+export async function upsertComment(client: GitHubClient, pr: number, body: string, marker: string): Promise<CommentResult> {
+  const existing = findFarolComment(await client.listComments(pr), marker)
   if (!existing) {
     const created = await client.createComment(pr, body)
     return { action: 'created', url: created.html_url }

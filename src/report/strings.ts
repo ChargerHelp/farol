@@ -3,6 +3,11 @@ import type { Classification, ReasonCode } from '../classify/reasons.js'
 /** Every user-facing text of the PR comment and the HTML report, in English, in one place. */
 export const MARKER = '<!-- farol -->'
 
+/** Hidden marker of the PR comment of one project: the root project keeps MARKER, so its existing comments stay its own. */
+export function markerFor(project: string | null): string {
+  return project === null ? MARKER : `<!-- farol:${project} -->`
+}
+
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
 
 /** The entry-point unit of a report: pages for a frontend, operations (GraphQL fields, REST endpoints) for a backend. */
@@ -23,7 +28,7 @@ export function terms(surface: 'frontend' | 'backend'): Terms {
 }
 
 export const TEXT = {
-  title: '### farol · PR reading (shadow mode)',
+  title: (project: string | null) => `### farol · ${project === null ? '' : `${project} · `}PR reading (shadow mode)`,
   intro: 'Signals computed on the lines this PR changes. farol only informs: it never approves or blocks.',
   notVerified: 'not verified',
   reportError: (message: string) => `could not read the report (${message})`,

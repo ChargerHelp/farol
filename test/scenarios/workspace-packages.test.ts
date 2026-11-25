@@ -121,6 +121,15 @@ describe('workspace packages that export only their build output', () => {
     expect(affectedPaths(o)).toEqual(['/about'])
   }, 60_000)
 
+  it('records the project directory, also when the analysis fails', async () => {
+    const repo = workspace(changeThing)
+    expect((await analyzeApp(repo)).project).toBe('apps/a')
+    const ctx = await loadContext({ config: 'farol.config.json', cwd: `${repo.dir}/apps/a`, verbose: false })
+    const { output, failed } = await runAnalyze(ctx, { base: 'no-such-branch', head: 'feature' }, { now: () => FIXED_DATE, clock: () => 0, env: {} })
+    expect(failed).toBe(true)
+    expect(output.project).toBe('apps/a')
+  }, 60_000)
+
   it('reaches the pages through an export that has no types target', async () => {
     const o = await analyzeApp(workspace(changeNode))
     expect(o.classification).toBe('touches-existing')

@@ -50030,10 +50030,10 @@ ${lanes.join("\n")}
       function shouldAllowImportingTsExtension(compilerOptions, fromFileName) {
         return getAllowImportingTsExtensions(compilerOptions) || !!fromFileName && isDeclarationFileName(fromFileName);
       }
-      function loadModuleFromGlobalCache(moduleName, projectName, compilerOptions, host, globalCache, packageJsonInfoCache) {
+      function loadModuleFromGlobalCache(moduleName, projectName2, compilerOptions, host, globalCache, packageJsonInfoCache) {
         const traceEnabled = isTraceEnabled(compilerOptions, host);
         if (traceEnabled) {
-          trace(host, Diagnostics.Auto_discovery_for_typings_is_enabled_in_project_0_Running_extra_resolution_pass_for_module_1_using_cache_location_2, projectName, moduleName, globalCache);
+          trace(host, Diagnostics.Auto_discovery_for_typings_is_enabled_in_project_0_Running_extra_resolution_pass_for_module_1_using_cache_location_2, projectName2, moduleName, globalCache);
         }
         const failedLookupLocations = [];
         const affectingLocations = [];
@@ -198876,21 +198876,21 @@ ${options.prefix}` : "\n" : options.prefix
         closeProject(req) {
           this.closeWatchers(req.projectName);
         }
-        closeWatchers(projectName) {
+        closeWatchers(projectName2) {
           if (this.log.isEnabled()) {
-            this.log.writeLine(`Closing file watchers for project '${projectName}'`);
+            this.log.writeLine(`Closing file watchers for project '${projectName2}'`);
           }
-          const watchers = this.projectWatchers.get(projectName);
+          const watchers = this.projectWatchers.get(projectName2);
           if (!watchers) {
             if (this.log.isEnabled()) {
-              this.log.writeLine(`No watchers are registered for project '${projectName}'`);
+              this.log.writeLine(`No watchers are registered for project '${projectName2}'`);
             }
             return;
           }
-          this.projectWatchers.delete(projectName);
-          this.sendResponse({ kind: ActionWatchTypingLocations, projectName, files: [] });
+          this.projectWatchers.delete(projectName2);
+          this.sendResponse({ kind: ActionWatchTypingLocations, projectName: projectName2, files: [] });
           if (this.log.isEnabled()) {
-            this.log.writeLine(`Closing file watchers for project '${projectName}' - done.`);
+            this.log.writeLine(`Closing file watchers for project '${projectName2}' - done.`);
           }
         }
         install(req) {
@@ -198930,7 +198930,7 @@ ${options.prefix}` : "\n" : options.prefix
         }
         /** @internal */
         installPackage(req) {
-          const { fileName, packageName: packageName2, projectName, projectRootPath, id } = req;
+          const { fileName, packageName: packageName2, projectName: projectName2, projectRootPath, id } = req;
           const validationResult = ts_JsTyping_exports.validatePackageName(packageName2);
           if (validationResult !== ts_JsTyping_exports.NameValidationResult.Ok) {
             const message = ts_JsTyping_exports.renderPackageNameValidationFailure(validationResult, packageName2);
@@ -198939,7 +198939,7 @@ ${options.prefix}` : "\n" : options.prefix
             }
             const response = {
               kind: ActionPackageInstalled,
-              projectName,
+              projectName: projectName2,
               id,
               success: false,
               message
@@ -198957,7 +198957,7 @@ ${options.prefix}` : "\n" : options.prefix
               const message = success2 ? `Package ${packageName2} installed.` : `There was an error installing ${packageName2}.`;
               const response = {
                 kind: ActionPackageInstalled,
-                projectName,
+                projectName: projectName2,
                 id,
                 success: success2,
                 message
@@ -198967,7 +198967,7 @@ ${options.prefix}` : "\n" : options.prefix
           } else {
             const response = {
               kind: ActionPackageInstalled,
-              projectName,
+              projectName: projectName2,
               id,
               success: false,
               message: "Could not determine a project root path."
@@ -199162,18 +199162,18 @@ ${options.prefix}` : "\n" : options.prefix
             host.createDirectory(directory);
           }
         }
-        watchFiles(projectName, files) {
+        watchFiles(projectName2, files) {
           if (!files.length) {
-            this.closeWatchers(projectName);
+            this.closeWatchers(projectName2);
             return;
           }
-          const existing = this.projectWatchers.get(projectName);
+          const existing = this.projectWatchers.get(projectName2);
           const newSet = new Set(files);
           if (!existing || forEachKey(newSet, (s) => !existing.has(s)) || forEachKey(existing, (s) => !newSet.has(s))) {
-            this.projectWatchers.set(projectName, newSet);
-            this.sendResponse({ kind: ActionWatchTypingLocations, projectName, files });
+            this.projectWatchers.set(projectName2, newSet);
+            this.sendResponse({ kind: ActionWatchTypingLocations, projectName: projectName2, files });
           } else {
-            this.sendResponse({ kind: ActionWatchTypingLocations, projectName, files: void 0 });
+            this.sendResponse({ kind: ActionWatchTypingLocations, projectName: projectName2, files: void 0 });
           }
         }
         createSetTypings(request, typings) {
@@ -200189,7 +200189,7 @@ ${options.prefix}` : "\n" : options.prefix
       }
       var Project2 = class _Project {
         /** @internal */
-        constructor(projectName, projectKind, projectService, hasExplicitListOfFiles, lastFileExceededProgramSize, compilerOptions, compileOnSaveEnabled, watchOptions, directoryStructureHost, currentDirectory) {
+        constructor(projectName2, projectKind, projectService, hasExplicitListOfFiles, lastFileExceededProgramSize, compilerOptions, compileOnSaveEnabled, watchOptions, directoryStructureHost, currentDirectory) {
           this.projectKind = projectKind;
           this.projectService = projectService;
           this.compilerOptions = compilerOptions;
@@ -200210,8 +200210,8 @@ ${options.prefix}` : "\n" : options.prefix
           this.createHash = maybeBind(this.projectService.host, this.projectService.host.createHash);
           this.globalCacheResolutionModuleName = ts_JsTyping_exports.nonRelativeModuleNameForTypingCache;
           this.updateFromProjectInProgress = false;
-          projectService.logger.info(`Creating ${ProjectKind[projectKind]}Project: ${projectName}, currentDirectory: ${currentDirectory}`);
-          this.projectName = projectName;
+          projectService.logger.info(`Creating ${ProjectKind[projectKind]}Project: ${projectName2}, currentDirectory: ${currentDirectory}`);
+          this.projectName = projectName2;
           this.directoryStructureHost = directoryStructureHost;
           this.currentDirectory = this.projectService.getNormalizedAbsolutePath(currentDirectory);
           this.getCanonicalFileName = this.projectService.toCanonicalFileName;
@@ -202658,9 +202658,9 @@ ${options.prefix}` : "\n" : options.prefix
         // TODO: GH#18217
         hasMixedContent: (x) => !!x.hasMixedContent
       };
-      function findProjectByName(projectName, projects) {
+      function findProjectByName(projectName2, projects) {
         for (const proj of projects) {
-          if (proj.getProjectName() === projectName) {
+          if (proj.getProjectName() === projectName2) {
             return proj;
           }
         }
@@ -203261,14 +203261,14 @@ ${options.prefix}` : "\n" : options.prefix
           if (isProjectDeferredClose(project)) return;
           project.markAsDirty();
           if (isBackgroundProject(project)) return;
-          const projectName = project.getProjectName();
-          this.pendingProjectUpdates.set(projectName, project);
+          const projectName2 = project.getProjectName();
+          this.pendingProjectUpdates.set(projectName2, project);
           this.throttledOperations.schedule(
-            projectName,
+            projectName2,
             /*delay*/
             250,
             () => {
-              if (this.pendingProjectUpdates.delete(projectName)) {
+              if (this.pendingProjectUpdates.delete(projectName2)) {
                 updateProjectIfDirty(project);
               }
             }
@@ -203375,14 +203375,14 @@ ${options.prefix}` : "\n" : options.prefix
           }
           this.delayEnsureProjectForOpenFiles();
         }
-        findProject(projectName) {
-          if (projectName === void 0) {
+        findProject(projectName2) {
+          if (projectName2 === void 0) {
             return void 0;
           }
-          if (isInferredProjectName(projectName)) {
-            return findProjectByName(projectName, this.inferredProjects);
+          if (isInferredProjectName(projectName2)) {
+            return findProjectByName(projectName2, this.inferredProjects);
           }
-          return this.findExternalProjectByProjectName(projectName) || this.findConfiguredProjectByProjectName(toNormalizedPath(projectName));
+          return this.findExternalProjectByProjectName(projectName2) || this.findConfiguredProjectByProjectName(toNormalizedPath(projectName2));
         }
         /** @internal */
         forEachProject(cb) {
@@ -205031,9 +205031,9 @@ Dynamic files must always be opened with service's current directory or service 
             if (mapInfo.documentPositionMapper !== void 0) return mapInfo.documentPositionMapper;
             return getSnapshotText(snap);
           };
-          const projectName = project.projectName;
+          const projectName2 = project.projectName;
           const documentPositionMapper = getDocumentPositionMapper(
-            { getCanonicalFileName: this.toCanonicalFileName, log: (s) => this.logger.info(s), getSourceFileLike: (f) => this.getSourceFileLike(f, projectName, declarationInfo) },
+            { getCanonicalFileName: this.toCanonicalFileName, log: (s) => this.logger.info(s), getSourceFileLike: (f) => this.getSourceFileLike(f, projectName2, declarationInfo) },
             declarationInfo.fileName,
             declarationInfo.textStorage.getLineInfo(),
             readMapFile
@@ -205231,9 +205231,9 @@ Dynamic files must always be opened with service's current directory or service 
             /*inPath*/
             void 0
           );
-          this.pendingProjectUpdates.forEach((_project, projectName) => {
-            this.throttledOperations.cancel(projectName);
-            this.pendingProjectUpdates.delete(projectName);
+          this.pendingProjectUpdates.forEach((_project, projectName2) => {
+            this.throttledOperations.cancel(projectName2);
+            this.pendingProjectUpdates.delete(projectName2);
           });
           this.throttledOperations.cancel(ensureProjectForOpenFileSchedule);
           this.pendingOpenFileProjectUpdates = void 0;
@@ -238384,6 +238384,7 @@ function header(meta3) {
     surface: meta3.surface,
     tool: { name: TOOL_NAME, version: TOOL_VERSION },
     repo: meta3.repo,
+    project: meta3.project,
     pr: meta3.pr,
     base: meta3.base,
     mergeBase: meta3.mergeBase,
@@ -238657,6 +238658,8 @@ var OutputSchema = external_exports.object({
   /** "revscope" in results written before the project was renamed. */
   tool: external_exports.object({ name: external_exports.enum(["farol", "revscope"]), version: external_exports.string() }).strict(),
   repo: external_exports.string().nullable(),
+  /** Project directory relative to the repository root, with `/`; null for the root project (and in results written before the field existed). */
+  project: external_exports.string().min(1).nullable().default(null),
   /** Pull request number, when known (--pr or the GitHub Actions event); used for links to the PR diff. */
   pr: external_exports.number().int().positive().nullable(),
   base: external_exports.object({ ref: external_exports.string(), sha: external_exports.string().nullable() }).strict(),
@@ -252713,6 +252716,7 @@ async function runAnalyze(ctx, options, deps) {
   };
   const meta3 = {
     repo: repoName(deps.env, await originUrl(ctx.repoRoot)),
+    project: ctx.projectPrefix === "" ? null : ctx.projectPrefix,
     surface: ctx.config.surface,
     pr: options.pr ?? prFromEvent(deps.env),
     base: { ref: options.base, sha: null },
@@ -253391,6 +253395,9 @@ var CONTRACT_TEXT = {
 
 // src/report/strings.ts
 var MARKER = "<!-- farol -->";
+function markerFor(project) {
+  return project === null ? MARKER : `<!-- farol:${project} -->`;
+}
 var plural2 = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 var FRONTEND_TERMS = { aOne: "a page", one: "page", many: "pages", Many: "Pages", section: "Routes" };
 var BACKEND_TERMS = { aOne: "an operation", one: "operation", many: "operations", Many: "Operations", section: "Operations" };
@@ -253398,7 +253405,7 @@ function terms(surface) {
   return surface === "backend" ? BACKEND_TERMS : FRONTEND_TERMS;
 }
 var TEXT = {
-  title: "### farol \xB7 PR reading (shadow mode)",
+  title: (project) => `### farol \xB7 ${project === null ? "" : `${project} \xB7 `}PR reading (shadow mode)`,
   intro: "Signals computed on the lines this PR changes. farol only informs: it never approves or blocks.",
   notVerified: "not verified",
   reportError: (message) => `could not read the report (${message})`,
@@ -253648,8 +253655,9 @@ var HTML_TEXT = {
 
 // src/github/comment.ts
 var LEGACY_MARKER = "<!-- revscope -->";
-function findFarolComment(comments) {
-  return comments.find((c) => typeof c.body === "string" && (c.body.trimStart().startsWith(MARKER) || c.body.trimStart().startsWith(LEGACY_MARKER)));
+function findFarolComment(comments, marker) {
+  const markers = marker === MARKER ? [MARKER, LEGACY_MARKER] : [marker];
+  return comments.find((c) => typeof c.body === "string" && markers.some((m) => c.body.trimStart().startsWith(m)));
 }
 function checkedLabels(body) {
   const checked = /* @__PURE__ */ new Set();
@@ -253671,8 +253679,8 @@ function preserveFeedback(oldBody, newBody) {
     return checked.has(label2) ? line3.replace("- [ ] ", "- [x] ") : line3;
   }).join("\n");
 }
-async function upsertComment(client, pr2, body) {
-  const existing = findFarolComment(await client.listComments(pr2));
+async function upsertComment(client, pr2, body, marker) {
+  const existing = findFarolComment(await client.listComments(pr2), marker);
   if (!existing) {
     const created = await client.createComment(pr2, body);
     return { action: "created", url: created.html_url };
@@ -253990,7 +253998,7 @@ function sinceLines(since) {
 function render(o, limit, truncated, l, reportUrl, since) {
   const commit = o.head.sha === null ? o.head.ref : o.head.sha.slice(0, 12);
   const report = [...reportUrl === void 0 ? [] : [TEXT.fullReport(reportUrl), ""], ...sinceLines(since)];
-  const lines = [MARKER, TEXT.title, "", TEXT.intro, "", ...report, ...signalsSection(o, limit, l), "", ...detailsSection(o, limit, l), "", ...testSection(o, limit)];
+  const lines = [markerFor(o.project), TEXT.title(o.project === null ? null : esc3(o.project)), "", TEXT.intro, "", ...report, ...signalsSection(o, limit, l), "", ...detailsSection(o, limit, l), "", ...testSection(o, limit)];
   if (truncated) lines.push(`_${TEXT.truncated}_`, "");
   lines.push(`<sub>${esc3(TEXT.footer(o.tool.version, commit))}</sub>`, "");
   return lines.join("\n");
@@ -255487,13 +255495,15 @@ async function commentCommand(options, env = process.env, fetchImpl) {
   if (options.reportUrl !== void 0 && !options.reportUrl.startsWith("https://")) throw new UsageError(`--report-url must be an https URL, got "${options.reportUrl}"`);
   if (options.sinceReportUrl !== void 0 && !options.sinceReportUrl.startsWith("https://")) throw new UsageError(`--since-report-url must be an https URL, got "${options.sinceReportUrl}"`);
   const since = options.sinceIn === void 0 ? void 0 : { output: readOutputFile(options.sinceIn), ...options.sinceReportUrl === void 0 ? {} : { reportUrl: options.sinceReportUrl } };
+  if (since !== void 0 && since.output.project !== output2.project) throw new UsageError(`--since-in ${options.sinceIn ?? ""} is a result of ${projectName(since.output.project)}, not of ${projectName(output2.project)}: pass the incremental result of the same project`);
   const body = renderReport(output2, void 0, linkerFor(output2, { repo, pr: pr2 }, env), options.reportUrl, since);
   const client = new GitHubClient({ token, repo, ...env.GITHUB_API_URL ? { apiUrl: env.GITHUB_API_URL } : {}, ...fetchImpl ? { fetch: fetchImpl } : {} });
-  const result = options.new === true ? { action: "created", url: (await client.createComment(pr2, body)).html_url } : await upsertComment(client, pr2, body);
+  const result = options.new === true ? { action: "created", url: (await client.createComment(pr2, body)).html_url } : await upsertComment(client, pr2, body, markerFor(output2.project));
   process.stderr.write(`farol: comment ${result.action}: ${result.url}
 `);
   return 0;
 }
+var projectName = (project) => project === null ? "the root project" : `project ${project}`;
 
 // src/cli/farol-file.ts
 import { existsSync as existsSync5, readFileSync as readFileSync7 } from "fs";

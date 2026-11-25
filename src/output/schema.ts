@@ -195,6 +195,8 @@ export const OutputSchema = z
     /** "revscope" in results written before the project was renamed. */
     tool: z.object({ name: z.enum(['farol', 'revscope']), version: z.string() }).strict(),
     repo: z.string().nullable(),
+    /** Project directory relative to the repository root, with `/`; null for the root project (and in results written before the field existed). */
+    project: z.string().min(1).nullable().default(null),
     /** Pull request number, when known (--pr or the GitHub Actions event); used for links to the PR diff. */
     pr: z.number().int().positive().nullable(),
     base: z.object({ ref: z.string(), sha: z.string().nullable() }).strict(),

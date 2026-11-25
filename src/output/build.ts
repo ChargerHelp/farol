@@ -6,6 +6,7 @@ import { TOOL_NAME, TOOL_VERSION } from './tool.js'
 
 export interface OutputMeta {
   repo: string | null
+  project: string | null
   pr: number | null
   surface: 'frontend' | 'backend'
   base: { ref: string; sha: string | null }
@@ -21,12 +22,13 @@ export interface OutputMeta {
   contracts?: Output['contracts']
 }
 
-function header(meta: OutputMeta): Pick<Output, 'schemaVersion' | 'surface' | 'tool' | 'repo' | 'pr' | 'base' | 'mergeBase' | 'head' | 'analyzedAt'> {
+function header(meta: OutputMeta): Pick<Output, 'schemaVersion' | 'surface' | 'tool' | 'repo' | 'project' | 'pr' | 'base' | 'mergeBase' | 'head' | 'analyzedAt'> {
   return {
     schemaVersion: 1,
     surface: meta.surface,
     tool: { name: TOOL_NAME, version: TOOL_VERSION },
     repo: meta.repo,
+    project: meta.project,
     pr: meta.pr,
     base: meta.base,
     mergeBase: meta.mergeBase,

@@ -2,6 +2,7 @@ import { UsageError } from '../config/load.js'
 import { GitHubClient } from '../github/client.js'
 import { upsertComment } from '../github/comment.js'
 import { renderReport } from '../report/markdown.js'
+import { markerFor } from '../report/strings.js'
 import { linkerFor, readOutputFile, withReviewers } from './report.js'
 
 export interface CommentOptions {
@@ -28,9 +29,12 @@ export async function commentCommand(options: CommentOptions, env: NodeJS.Proces
   if (options.reportUrl !== undefined && !options.reportUrl.startsWith('https://')) throw new UsageError(`--report-url must be an https URL, got "${options.reportUrl}"`)
   if (options.sinceReportUrl !== undefined && !options.sinceReportUrl.startsWith('https://')) throw new UsageError(`--since-report-url must be an https URL, got "${options.sinceReportUrl}"`)
   const since = options.sinceIn === undefined ? undefined : { output: readOutputFile(options.sinceIn), ...(options.sinceReportUrl === undefined ? {} : { reportUrl: options.sinceReportUrl }) }
+  if (since !== undefined && since.output.project !== output.project) throw new UsageError(`--since-in ${options.sinceIn ?? ''} is a result of ${projectName(since.output.project)}, not of ${projectName(output.project)}: pass the incremental result of the same project`)
   const body = renderReport(output, undefined, linkerFor(output, { repo, pr }, env), options.reportUrl, since)
   const client = new GitHubClient({ token, repo, ...(env.GITHUB_API_URL ? { apiUrl: env.GITHUB_API_URL } : {}), ...(fetchImpl ? { fetch: fetchImpl } : {}) })
-  const result = options.new === true ? { action: 'created' as const, url: (await client.createComment(pr, body)).html_url } : await upsertComment(client, pr, body)
+  const result = options.new === true ? { action: 'created' as const, url: (await client.createComment(pr, body)).html_url } : await upsertComment(client, pr, body, markerFor(output.project))
   process.stderr.write(`farol: comment ${result.action}: ${result.url}\n`)
   return 0
 }
+
+const projectName = (project: string | null): string => (project === null ? 'the root project' : `project ${project}`)

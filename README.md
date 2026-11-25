@@ -483,7 +483,7 @@ to see what reaches a file. Unreadable route constructs are listed under diagnos
 head. Run `go mod download` for both before analyzing.
 
 **Monorepo?** Point `--cwd` at the app. Paths stay relative to the repository root, and changes in apps the project
-does not use are listed as outside it.
+does not use are listed as outside it. Each app gets its own PR comment.
 
 ## Contributing
 
