@@ -32,7 +32,7 @@ inputs:
     required: false
     default: ""
   new-comment:
-    description: "comment: create a new comment instead of updating farol's comment (true/false)"
+    description: "comment: create a new comment instead of updating the project's farol comment (true/false)"
     required: false
     default: "false"
   since-in:

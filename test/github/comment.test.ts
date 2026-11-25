@@ -60,7 +60,7 @@ function body(commit: string): string {
 describe('comment', () => {
   it('creates the comment when no comment has the marker', async () => {
     const gh = fakeGitHub([other(1), other(2), other(3)])
-    const result = await upsertComment(client(gh.impl), 7, body('a'.repeat(40)), MARKER)
+    const result = await upsertComment(client(gh.impl), 7, body('a'.repeat(40)), null)
     expect(result).toEqual({ action: 'created', url: 'https://github.com/acme/shop/pull/7#issuecomment-100' })
     expect(gh.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
       'GET https://api.github.com/repos/acme/shop/issues/7/comments?per_page=100',
@@ -74,7 +74,7 @@ describe('comment', () => {
   it('finds the marker on a later page and updates that comment', async () => {
     const existing = { id: 42, body: body('a'.repeat(40)), html_url: 'https://github.com/acme/shop/pull/7#issuecomment-42' }
     const gh = fakeGitHub([other(1), other(2), other(3), other(4), existing], 2)
-    const result = await upsertComment(client(gh.impl), 7, body('b'.repeat(40)), MARKER)
+    const result = await upsertComment(client(gh.impl), 7, body('b'.repeat(40)), null)
     expect(result.action).toBe('updated')
     expect(gh.calls.filter((c) => c.method === 'GET')).toHaveLength(3)
     expect(gh.calls.at(-1)).toMatchObject({ method: 'PATCH', url: 'https://api.github.com/repos/acme/shop/issues/comments/42' })
@@ -84,7 +84,7 @@ describe('comment', () => {
   it('keeps the feedback boxes reviewers ticked when the analyzed commit changes', async () => {
     const ticked = body('a'.repeat(40)).replace(`- [ ] ${FEEDBACK_OPTIONS[1]}`, `- [x] ${FEEDBACK_OPTIONS[1]}`)
     const gh = fakeGitHub([{ id: 42, body: ticked, html_url: 'u' }])
-    await upsertComment(client(gh.impl), 7, body('c'.repeat(40)), MARKER)
+    await upsertComment(client(gh.impl), 7, body('c'.repeat(40)), null)
     const updated = gh.comments[0]?.body ?? ''
     expect(updated).toContain('analyzed commit cccccccccccc')
     expect(updated).toContain(`- [x] ${FEEDBACK_OPTIONS[1]}`)
@@ -95,13 +95,13 @@ describe('comment', () => {
   it('does not touch the comment when nothing changed', async () => {
     const same = body('a'.repeat(40)).replace(`- [ ] ${FEEDBACK_OPTIONS[0]}`, `- [x] ${FEEDBACK_OPTIONS[0]}`)
     const gh = fakeGitHub([{ id: 42, body: same, html_url: 'u' }])
-    expect((await upsertComment(client(gh.impl), 7, body('a'.repeat(40)), MARKER)).action).toBe('unchanged')
+    expect((await upsertComment(client(gh.impl), 7, body('a'.repeat(40)), null)).action).toBe('unchanged')
     expect(gh.calls.map((c) => c.method)).toEqual(['GET'])
   })
 
   it('explains HTTP errors', async () => {
     const gh = fakeGitHub([], 2, { status: 403, message: 'Resource not accessible by integration' })
-    const error = await upsertComment(client(gh.impl), 7, 'x', MARKER).catch((e: unknown) => e)
+    const error = await upsertComment(client(gh.impl), 7, 'x', null).catch((e: unknown) => e)
     expect(error).toBeInstanceOf(GitHubError)
     expect((error as GitHubError).message).toBe(
       'GitHub API GET https://api.github.com/repos/acme/shop/issues/7/comments?per_page=100 failed: 403 Forbidden (Resource not accessible by integration); the token lacks permission (the job needs "permissions: pull-requests: write"; pull requests from forks only get a read-only token)',

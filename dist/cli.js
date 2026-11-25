@@ -136150,18 +136150,18 @@ ${lanes.join("\n")}
         return formatStyle + text + resetEscapeSequence;
       }
       function formatCodeSpan(file2, start, length2, indent3, squiggleColor, host) {
-        const { line: firstLine, character: firstLineChar } = getLineAndCharacterOfPosition(file2, start);
+        const { line: firstLine2, character: firstLineChar } = getLineAndCharacterOfPosition(file2, start);
         const { line: lastLine, character: lastLineChar } = getLineAndCharacterOfPosition(file2, start + length2);
         const lastLineInFile = getLineAndCharacterOfPosition(file2, file2.text.length).line;
-        const hasMoreThanFiveLines = lastLine - firstLine >= 4;
+        const hasMoreThanFiveLines = lastLine - firstLine2 >= 4;
         let gutterWidth = (lastLine + 1 + "").length;
         if (hasMoreThanFiveLines) {
           gutterWidth = Math.max(ellipsis.length, gutterWidth);
         }
         let context = "";
-        for (let i = firstLine; i <= lastLine; i++) {
+        for (let i = firstLine2; i <= lastLine; i++) {
           context += host.getNewLine();
-          if (hasMoreThanFiveLines && firstLine + 1 < i && i < lastLine - 1) {
+          if (hasMoreThanFiveLines && firstLine2 + 1 < i && i < lastLine - 1) {
             context += indent3 + formatColorAndReset(ellipsis.padStart(gutterWidth), gutterStyleSequence) + gutterSeparator + host.getNewLine();
             i = lastLine - 1;
           }
@@ -136174,7 +136174,7 @@ ${lanes.join("\n")}
           context += lineContent + host.getNewLine();
           context += indent3 + formatColorAndReset("".padStart(gutterWidth), gutterStyleSequence) + gutterSeparator;
           context += squiggleColor;
-          if (i === firstLine) {
+          if (i === firstLine2) {
             const lastCharForLine = i === lastLine ? lastLineChar : void 0;
             context += lineContent.slice(0, firstLineChar).replace(/\S/g, " ");
             context += lineContent.slice(firstLineChar, lastCharForLine).replace(/./g, "~");
@@ -136188,7 +136188,7 @@ ${lanes.join("\n")}
         return context;
       }
       function formatLocation(file2, start, host, color = formatColorAndReset) {
-        const { line: firstLine, character: firstLineChar } = getLineAndCharacterOfPosition(file2, start);
+        const { line: firstLine2, character: firstLineChar } = getLineAndCharacterOfPosition(file2, start);
         const relativeFileName = host ? convertToRelativePath(file2.fileName, host.getCurrentDirectory(), (fileName) => host.getCanonicalFileName(fileName)) : file2.fileName;
         let output2 = "";
         output2 += color(
@@ -136198,7 +136198,7 @@ ${lanes.join("\n")}
         );
         output2 += ":";
         output2 += color(
-          `${firstLine + 1}`,
+          `${firstLine2 + 1}`,
           "\x1B[93m"
           /* Yellow */
         );
@@ -164454,14 +164454,14 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
         function toggleLineComment(fileName, textRange, insertComment) {
           const sourceFile = syntaxTreeCache.getCurrentSourceFile(fileName);
           const textChanges2 = [];
-          const { lineStarts, firstLine, lastLine } = getLinesForRange(sourceFile, textRange);
+          const { lineStarts, firstLine: firstLine2, lastLine } = getLinesForRange(sourceFile, textRange);
           let isCommenting = insertComment || false;
           let leftMostPosition = Number.MAX_VALUE;
           const lineTextStarts = /* @__PURE__ */ new Map();
           const firstNonWhitespaceCharacterRegex = new RegExp(/\S/);
-          const isJsx2 = isInsideJsxElement(sourceFile, lineStarts[firstLine]);
+          const isJsx2 = isInsideJsxElement(sourceFile, lineStarts[firstLine2]);
           const openComment = isJsx2 ? "{/*" : "//";
-          for (let i = firstLine; i <= lastLine; i++) {
+          for (let i = firstLine2; i <= lastLine; i++) {
             const lineText = sourceFile.text.substring(lineStarts[i], sourceFile.getLineEndOfPosition(lineStarts[i]));
             const regExec = firstNonWhitespaceCharacterRegex.exec(lineText);
             if (regExec) {
@@ -164472,8 +164472,8 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
               }
             }
           }
-          for (let i = firstLine; i <= lastLine; i++) {
-            if (firstLine !== lastLine && lineStarts[i] === textRange.end) {
+          for (let i = firstLine2; i <= lastLine; i++) {
+            if (firstLine2 !== lastLine && lineStarts[i] === textRange.end) {
               continue;
             }
             const lineTextStart = lineTextStarts.get(i.toString());
@@ -164596,8 +164596,8 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
         }
         function commentSelection(fileName, textRange) {
           const sourceFile = syntaxTreeCache.getCurrentSourceFile(fileName);
-          const { firstLine, lastLine } = getLinesForRange(sourceFile, textRange);
-          return firstLine === lastLine && textRange.pos !== textRange.end ? toggleMultilineComment(
+          const { firstLine: firstLine2, lastLine } = getLinesForRange(sourceFile, textRange);
+          return firstLine2 === lastLine && textRange.pos !== textRange.end ? toggleMultilineComment(
             fileName,
             textRange,
             /*insertComment*/
@@ -253655,9 +253655,12 @@ var HTML_TEXT = {
 
 // src/github/comment.ts
 var LEGACY_MARKER = "<!-- revscope -->";
-function findFarolComment(comments, marker) {
-  const markers = marker === MARKER ? [MARKER, LEGACY_MARKER] : [marker];
-  return comments.find((c) => typeof c.body === "string" && markers.some((m) => c.body.trimStart().startsWith(m)));
+function findFarolComment(comments, project) {
+  const markers = project === null ? [MARKER, LEGACY_MARKER] : [markerFor(project)];
+  return comments.find((c) => typeof c.body === "string" && markers.includes(firstLine(c.body)));
+}
+function firstLine(body) {
+  return (body.trimStart().split("\n", 1)[0] ?? "").trimEnd();
 }
 function checkedLabels(body) {
   const checked = /* @__PURE__ */ new Set();
@@ -253679,8 +253682,8 @@ function preserveFeedback(oldBody, newBody) {
     return checked.has(label2) ? line3.replace("- [ ] ", "- [x] ") : line3;
   }).join("\n");
 }
-async function upsertComment(client, pr2, body, marker) {
-  const existing = findFarolComment(await client.listComments(pr2), marker);
+async function upsertComment(client, pr2, body, project) {
+  const existing = findFarolComment(await client.listComments(pr2), project);
   if (!existing) {
     const created = await client.createComment(pr2, body);
     return { action: "created", url: created.html_url };
@@ -255494,16 +255497,20 @@ async function commentCommand(options, env = process.env, fetchImpl) {
   const output2 = withReviewers(readOutputFile(options.in), options.reviewers);
   if (options.reportUrl !== void 0 && !options.reportUrl.startsWith("https://")) throw new UsageError(`--report-url must be an https URL, got "${options.reportUrl}"`);
   if (options.sinceReportUrl !== void 0 && !options.sinceReportUrl.startsWith("https://")) throw new UsageError(`--since-report-url must be an https URL, got "${options.sinceReportUrl}"`);
-  const since = options.sinceIn === void 0 ? void 0 : { output: readOutputFile(options.sinceIn), ...options.sinceReportUrl === void 0 ? {} : { reportUrl: options.sinceReportUrl } };
-  if (since !== void 0 && since.output.project !== output2.project) throw new UsageError(`--since-in ${options.sinceIn ?? ""} is a result of ${projectName(since.output.project)}, not of ${projectName(output2.project)}: pass the incremental result of the same project`);
+  const since = options.sinceIn === void 0 ? void 0 : { output: sinceOutput(options.sinceIn, output2.project), ...options.sinceReportUrl === void 0 ? {} : { reportUrl: options.sinceReportUrl } };
   const body = renderReport(output2, void 0, linkerFor(output2, { repo, pr: pr2 }, env), options.reportUrl, since);
   const client = new GitHubClient({ token, repo, ...env.GITHUB_API_URL ? { apiUrl: env.GITHUB_API_URL } : {}, ...fetchImpl ? { fetch: fetchImpl } : {} });
-  const result = options.new === true ? { action: "created", url: (await client.createComment(pr2, body)).html_url } : await upsertComment(client, pr2, body, markerFor(output2.project));
+  const result = options.new === true ? { action: "created", url: (await client.createComment(pr2, body)).html_url } : await upsertComment(client, pr2, body, output2.project);
   process.stderr.write(`farol: comment ${result.action}: ${result.url}
 `);
   return 0;
 }
 var projectName = (project) => project === null ? "the root project" : `project ${project}`;
+function sinceOutput(path3, project) {
+  const since = readOutputFile(path3);
+  if (since.project !== project) throw new UsageError(`--since-in ${path3} is a result of ${projectName(since.project)}, not of ${projectName(project)}: pass the incremental result of the same project`);
+  return since;
+}
 
 // src/cli/farol-file.ts
 import { existsSync as existsSync5, readFileSync as readFileSync7 } from "fs";
@@ -256136,7 +256143,7 @@ function buildProgram() {
       return htmlCommand({ ...opts, in: required2(opts.in, "--in", "html") });
     })
   );
-  program3.command("comment").description("create or update the PR comment (uses GITHUB_TOKEN and GITHUB_REPOSITORY)").option("--in <file>", "analyze JSON").option("--pr <number>", "pull request number", positiveInt).option("--repo <owner/name>", "repository (defaults to GITHUB_REPOSITORY)").option("--report-url <url>", "link to the HTML report (e.g. the workflow artifact) shown at the top of the comment").option("--reviewers <file>", 'reviewers file written by "farol reviewers"').option("--new", "create a new comment instead of updating farol's comment (one comment per push)").option("--since-in <file>", "incremental analyze JSON (analyze --since) summarized on top of the comment").option("--since-report-url <url>", "link to the HTML report of the incremental analysis").action(
+  program3.command("comment").description("create or update the PR comment (uses GITHUB_TOKEN and GITHUB_REPOSITORY)").option("--in <file>", "analyze JSON").option("--pr <number>", "pull request number", positiveInt).option("--repo <owner/name>", "repository (defaults to GITHUB_REPOSITORY)").option("--report-url <url>", "link to the HTML report (e.g. the workflow artifact) shown at the top of the comment").option("--reviewers <file>", 'reviewers file written by "farol reviewers"').option("--new", "create a new comment instead of updating the project's farol comment (one comment per push)").option("--since-in <file>", "incremental analyze JSON (analyze --since) summarized on top of the comment").option("--since-report-url <url>", "link to the HTML report of the incremental analysis").action(
     (raw, cmd) => runAction(() => {
       const opts = withFarolFile("comment", cmd, raw);
       return commentCommand({ ...opts, in: required2(opts.in, "--in", "comment"), pr: required2(opts.pr, "--pr", "comment") });

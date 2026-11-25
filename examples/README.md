@@ -223,7 +223,8 @@ With uv: `uv export --format requirements-txt --no-hashes > req.txt && uvx pip-a
 ## Monorepos
 
 Put `farol.config.json` in the app's directory and point farol at it with `--cwd` (or `cwd` in `.farol.json`, or the
-`cwd` action input). One analysis per app: a repository with `backend/` and `frontend/` runs farol twice.
+`cwd` action input). One analysis per app: a repository with `backend/` and `frontend/` runs farol twice, and each app
+gets its own PR comment. Parallel jobs on one PR need the app in `concurrency.group`, or they cancel each other.
 
 ```sh
 farol --cwd apps/web analyze --base origin/main --head HEAD --out web.json
