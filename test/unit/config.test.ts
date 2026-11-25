@@ -152,6 +152,18 @@ describe('generated import targets', () => {
     expect(createGeneratedMatcher([], '', head)('src/generated/x.js')).toBe(false)
   })
 
+  it('reads generator inputs next to plain globs', () => {
+    expect(() => parseConfig(JSON.stringify({ surface: 'backend', generated: ['src/gen/**', { files: 'src/generated/**', from: ['prisma/schema.prisma', '../../schemas/protobuf/*.proto'] }] }), 'c')).not.toThrow()
+  })
+
+  it('rejects an entry without inputs', () => {
+    expect(() => parseConfig(JSON.stringify({ surface: 'backend', generated: [{ files: 'src/generated/**', from: [] }] }), 'c')).toThrow(/generated\.0\.from: /)
+  })
+
+  it.each(['/prisma/schema.prisma', './prisma/schema.prisma', '!prisma/schema.prisma'])('rejects the input glob %s', (glob) => {
+    expect(() => parseConfig(JSON.stringify({ surface: 'backend', generated: [{ files: 'src/generated/**', from: [glob] }] }), 'c')).toThrow(/generated\.0\.from\.0: /)
+  })
+
   it('is rejected in Go and Python projects, which do not read it', () => {
     expect(() => parseConfig('{"language":"go","surface":"backend","generated":["gen/**"]}', 'c')).toThrow(/generated: only TypeScript projects read generated import targets/)
   })

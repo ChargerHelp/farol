@@ -96,3 +96,14 @@ export function routesReaching(reach: ReachMap, routes: readonly RouteEntry[]): 
   }
   return hits.sort((a, b) => compareStrings(a.route.path, b.route.path) || compareStrings(a.route.key, b.route.key))
 }
+
+/** Route label for reason details: the path, plus the key when another route shares the path. */
+function routeLabel(route: RouteEntry, all: readonly { route: RouteEntry }[]): string {
+  const shared = all.some((h) => h.route !== route && h.route.path === route.path)
+  return shared ? `${route.path} [${route.key}]` : route.path
+}
+
+export function describeHits(hits: { route: RouteEntry; via: string[] }[]): string {
+  const shown = hits.slice(0, 3).map((h) => `${routeLabel(h.route, hits)} via ${h.via.join(' → ')}`)
+  return hits.length > 3 ? `${shown.join('; ')}; and ${hits.length - 3} more` : shown.join('; ')
+}

@@ -23,6 +23,7 @@ export const REASONS = {
   'i18n-not-additive': 'touches-existing',
   'existing-file-modified': 'touches-existing',
   'existing-file-unreachable': 'touches-existing',
+  'generator-input-changed': 'touches-existing',
   'existing-file-renamed': 'touches-existing',
   'existing-file-deleted': 'touches-existing',
   'infra-file-changed': 'touches-existing',

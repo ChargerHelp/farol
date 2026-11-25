@@ -84,3 +84,33 @@ export function createIgnoreMatcher(globs: readonly string[]): (projectPath: str
   const match = matcher(globs)
   return (projectPath, repoPath) => match(projectPath) || match(repoPath)
 }
+
+/** Path relative to the project ("../" above it); the repo-relative path when the project is the repository root. */
+export function projectRelative(projectPrefix: string, repoPath: string): string {
+  return projectPrefix === '' ? repoPath : posix.relative(projectPrefix, repoPath)
+}
+
+/** Generated code a changed file is an input of: its `files` globs, and whether a path is part of it. */
+export interface GeneratedCode {
+  files: readonly string[]
+  /** Whether a repo-relative path (an import target or a graph node) matches the `files` globs. */
+  feeds: (repoPath: string) => boolean
+}
+
+/** The generated code of the changed generator input with these repo-relative paths, if it is one. */
+export type GeneratorInputOf = (...repoPaths: string[]) => GeneratedCode | undefined
+
+/**
+ * Generator inputs (`generated[].from`, project-relative; "../" climbs above the project): for changed repo-relative
+ * paths (a renamed file gives its new and old path), the generated code of every entry whose inputs match one of them,
+ * or undefined when none matches.
+ */
+export function createGeneratorInputOf(entries: Config['generated'], projectPrefix: string): GeneratorInputOf {
+  const withInputs = entries.filter((e) => e.from.length > 0).map((e) => ({ files: e.files, isInput: matcher(e.from), isOutput: matcher([e.files]) }))
+  return (...repoPaths) => {
+    const projectPaths = repoPaths.map((p) => projectRelative(projectPrefix, p))
+    const hit = withInputs.filter((e) => projectPaths.some((p) => e.isInput(p)))
+    if (hit.length === 0) return undefined
+    return { files: hit.map((e) => e.files), feeds: (path) => hit.some((e) => e.isOutput(projectRelative(projectPrefix, path))) }
+  }
+}

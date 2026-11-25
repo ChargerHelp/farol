@@ -84,7 +84,7 @@ export function declImportGraph(out: DeclHelperOutput): ImportGraph {
   }
   edges.sort((x, y) => compareStrings(x.from, y.from) || compareStrings(x.to, y.to))
   const parseErrors = out.problems.filter((p) => p.kind !== 'dynamic-route').map((p) => ({ file: p.file, line: Math.max(1, p.line), message: p.detail }))
-  return { nodes: [...out.files].sort(compareStrings), edges, unresolved: [], parseErrors, reexportOnly: [] }
+  return { nodes: [...out.files].sort(compareStrings), edges, unresolved: [], typeImports: [], parseErrors, reexportOnly: [] }
 }
 
 /** Entry points as a route table: the anchors' files are the route modules. */

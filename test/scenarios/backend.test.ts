@@ -47,6 +47,15 @@ const SCENARIOS: Record<string, { classification: Output['classification']; affe
       expect(o.reasons.map((r) => r.code)).not.toContain('unresolved-import')
     },
   },
+  // The Prisma schema feeds the generated client (generated[].from): its change reaches the client's importers.
+  'b15-generator-input': {
+    classification: 'touches-existing',
+    affected: ['POST /webhooks/stripe'],
+    check: (o) => {
+      expect(o.reasons.map((r) => [r.code, r.file])).toEqual([['generator-input-changed', 'prisma/schema.prisma']])
+      expect(o.routes.affected[0]?.via).toEqual([{ file: 'prisma/schema.prisma', chain: ['src/rest/stripe.ts', 'prisma/schema.prisma'] }])
+    },
+  },
   // Contracts (graphql-js rules): a required argument on Query.brand, Post.title removed (every operation returning a
   // Brand reaches Post), an optional argument on Query.brands (dangerous for graphql-js).
   'b9-schema-breaking': {

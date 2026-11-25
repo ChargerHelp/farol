@@ -68,8 +68,16 @@ const globs = z.array(pathGlob)
 export const ENTRY_KINDS = ['JOB', 'CONSUMER', 'RPC', 'RUN'] as const
 // `!(a).ts` is a positive glob; `{./a,b}` holds a segment like any other.
 const isPositive = (g: string): boolean => !g.startsWith('!') || g.startsWith('!(')
-const hasDotSegment = (g: string): boolean => g.split(/[/{},]/).some((seg) => seg === '.' || seg === '..')
+const segments = (g: string): string[] => g.split(/[/{},]/)
+const hasDotSegment = (g: string): boolean => segments(g).some((seg) => seg === '.' || seg === '..')
 const entryGlob = pathGlob.refine((g) => isPositive(g) && !hasDotSegment(g), 'write a positive glob relative to the project, with no "!", "./" or "../"')
+/** A generator input: project-relative, "../" climbs above the project (a .proto folder at the repository root). */
+const inputGlob = pathGlob.refine((g) => isPositive(g) && !segments(g).includes('.'), 'write a positive glob relative to the project ("../" climbs above it), with no "!" or "./"')
+/** A plain glob is generated code without inputs. */
+const generatedEntry = z.preprocess(
+  (entry) => (typeof entry === 'string' ? { files: entry } : entry),
+  z.object({ files: pathGlob, from: z.array(inputGlob).min(1, 'list at least one generator input, or write the glob alone').default([]) }).strict(),
+)
 
 /**
  * Environment, infrastructure and CI files (deploy-time configuration, not code): matched anywhere in the repository,
@@ -203,8 +211,12 @@ export const ConfigSchema = z
       }))
       .optional(),
     exclude: globs.default([]),
-    /** TypeScript: import targets the build generates and git ignores (Prisma client, protobuf types): not an unresolved import. Project-relative globs, matched against the import path as written. */
-    generated: globs.default([]),
+    /**
+     * TypeScript: import targets the build generates and git ignores (Prisma client, protobuf types): not an unresolved
+     * import. `files`: project-relative glob, matched against the import path as written. `from`: the generator inputs
+     * (schema.prisma, .proto): a change to one reaches the importers of that code.
+     */
+    generated: z.array(generatedEntry).default([]),
     /** Where `farol usage` reads traffic from (optional). */
     datadog: DatadogSchema.optional(),
     /** Changed files left out of every analysis (classification, dependencies, signals). A rename from a path that is not ignored still counts for the classification. Project-relative or repo-relative globs. */

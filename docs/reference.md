@@ -95,7 +95,7 @@ A complete example is in [examples/.farol.json](../examples/.farol.json).
 | `python.roots` | `["src", "."]` | Python import roots (`src` for a src layout). |
 | `exclude` | `[]` (Go: generated mocks) | Files left out of the analysis, still listed. |
 | `ignore` | `[]` | Changed files left out of **everything**: classification, dependencies, signals. One exception: a file renamed from a path that is not ignored still counts for the class, as code that left production (`existing-file-renamed`). Its new path gets no role, dependencies or signals. |
-| `generated` | `[]` | TypeScript: import targets the build generates and git ignores, such as `["src/generated/**"]` for a Prisma client or protobuf types. A changed file that imports them is not an unresolved import (which would make the PR `unknown`). |
+| `generated` | `[]` | TypeScript: import targets the build generates and git ignores, such as `["src/generated/**"]` for a Prisma client or protobuf types. A changed file that imports them is not an unresolved import (which would make the PR `unknown`). An entry `{ "files": "src/generated/prisma/**", "from": ["prisma/schema.prisma"] }` also names the generator inputs: a change to one lists the routes behind the code that imports the generated files. |
 | `roles.global` | TS: app entry, configs, `package.json`… | Files whose change affects everything (class `global`). Globs may point above the project in a monorepo (`../../pnpm-lock.yaml`). No glob of the configuration can start with `/`. |
 | `roles.test` / `roles.story` | per language | Tests and stories: reported, never treated as code. |
 | `roles.barrel` / `roles.i18n` | `**/index.ts` / `src/locales/**/*.json` | TypeScript re-export files and translation JSON: additive when they only add exports or keys. |
@@ -110,8 +110,19 @@ folder), not the generated `.ts` file, so `src/generated/**` works and `src/gene
 imports that do not resolve are affected, and only targets inside the project, in a folder with no committed file: a
 typo in an import of committed code stays `unknown` even under a wide glob, and so does a PR that deletes a file that
 is still imported. `ignore` is for committed generated files you do not want analyzed; `generated` is for files git
-ignores. A change to a generator input (such as `prisma/schema.prisma`) is `touches-existing`; add it to
-`roles.global` to make such PRs `global` instead (every schema PR then is).
+ignores.
+
+`from` lists the generator inputs of an entry, as project-relative globs; `../` climbs above the project, so
+`"../../schemas/protobuf/**/*.proto"` names proto files at the root of a monorepo. A change to an input (added,
+modified, deleted or renamed) counts as a change to the code that uses the generated files: the files that import them, and the
+generated files that are in the import graph (committed, or on disk in working-tree mode). Type-only imports and
+re-exports count (also `import type X = require(…)` and `import('…').T` in a type), also through other files (a file that re-exports Prisma types): protobuf types are often only types,
+and the `.proto` file itself is loaded at runtime. The PR is `touches-existing`
+with reason `generator-input-changed` and lists the routes behind that code; the detail says so when nothing in the
+project imports the generated code. A rename counts when the old or the new path is an input (both entries when each path is an input of a different
+entry), also when the new path is excluded or a test (a global new path makes the PR `global`). An input that matches
+`ignore` is ignored, and one that matches `roles.global` makes the PR `global` (every schema PR then is). Imports of a
+package (`@prisma/client`) do not count: point the generator `output` into the project and list that folder in `files`.
 
 Each `roles` key left out takes the default of the project's language, key by key. A complete frontend example is in
 [examples/farol.config.json](../examples/farol.config.json); [examples/README.md](../examples/README.md) lists the defaults

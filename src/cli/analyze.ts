@@ -28,7 +28,7 @@ import { contractsSection, helperContractChanges } from '../contracts/entries.js
 import { diffGoMod } from '../golang/gomod.js'
 import { baseDecls, tsDeclGraph } from '../project/decls.js'
 import { declImpacts } from '../decls/impact.js'
-import { createGeneratedMatcher, type AnalysisRole } from '../classify/roles.js'
+import { createGeneratedMatcher, createGeneratorInputOf, type AnalysisRole } from '../classify/roles.js'
 import { KEY_SEPARATOR } from '../routes/paths.js'
 
 export interface AnalyzeOptions {
@@ -241,7 +241,7 @@ export async function runAnalyze(ctx: Context, options: AnalyzeOptions, deps: An
       const helperContracts = helperContractChanges(langWs.base, langWs.head)
       contracts = contractsSection(helperContracts.changes, helperContracts.readable)
       lap('base')
-      result = classify({ files, roleOf, isIgnored: ignoredOf, isGenerated: () => false, manifests, otherManifests, backend: { impacts: langWs.impacts }, graph: langWs.graph, routesFile: '', headRoutes: langWs.headRoutes, baseRoutes: langWs.baseRoutes, baseText: new Map(), headText: new Map() })
+      result = classify({ files, roleOf, isIgnored: ignoredOf, isGenerated: () => false, generatorInputOf: () => undefined, manifests, otherManifests, backend: { impacts: langWs.impacts }, graph: langWs.graph, routesFile: '', headRoutes: langWs.headRoutes, baseRoutes: langWs.baseRoutes, baseText: new Map(), headText: new Map() })
     } else {
       const ws = await loadWorkspace(ctx, meta.head.sha, wsTimings, deps.clock)
       headRoutes = ws.routes
@@ -282,7 +282,7 @@ export async function runAnalyze(ctx: Context, options: AnalyzeOptions, deps: An
       const existing = new Set((baseRoutes ?? ws.routes).routes.map((r) => r.key))
       const declImpactMap = declImpacts(baseOut, head, declChanged, () => true, { existing, erasedTypes: true })
       lap('base')
-      result = classify({ files, roleOf, isIgnored: ignoredOf, isGenerated: createGeneratedMatcher(ctx.config.generated, ctx.projectPrefix, ctx.config.generated.length === 0 ? [] : await listFiles(ctx.repoRoot, meta.head.sha)), manifests, otherManifests, typeOnlyFiles, declImpacts: declImpactMap, ...(backend && ws.backend ? { backend: { impacts: backend.impacts, configEntries: ws.backend.configEntries } } : {}), graph: ws.graph, routesFile: ws.routesFile, ...(ws.routesFromDirectory ? { routesFromDirectory: true } : {}), headRoutes: ws.routes, baseRoutes, baseText, headText })
+      result = classify({ files, roleOf, isIgnored: ignoredOf, isGenerated: createGeneratedMatcher(ctx.config.generated.map((g) => g.files), ctx.projectPrefix, ctx.config.generated.length === 0 ? [] : await listFiles(ctx.repoRoot, meta.head.sha)), generatorInputOf: createGeneratorInputOf(ctx.config.generated, ctx.projectPrefix), manifests, otherManifests, typeOnlyFiles, declImpacts: declImpactMap, ...(backend && ws.backend ? { backend: { impacts: backend.impacts, configEntries: ws.backend.configEntries } } : {}), graph: ws.graph, routesFile: ws.routesFile, ...(ws.routesFromDirectory ? { routesFromDirectory: true } : {}), headRoutes: ws.routes, baseRoutes, baseText, headText })
     }
     // Added files that only declare things weigh almost nothing in the merge score.
     for (const f of result.files) if (f.status === 'added' && (f.role === 'source' || f.role === 'barrel') && isScriptFile(f.path) && isDeclarationsOnlyModule(f.path, readHead(f.path) ?? 'x(')) f.declarationsOnly = true

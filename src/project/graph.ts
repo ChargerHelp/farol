@@ -35,6 +35,13 @@ export interface UnresolvedImport {
   packages?: string[]
 }
 
+/** A type-only import or re-export of a project file: erased at runtime, so not an edge. */
+export interface TypeImport {
+  file: string
+  /** Repo-relative path of the imported module, or the path the specifier points to when it does not resolve. */
+  target: string
+}
+
 export interface ParseError {
   file: string
   line: number
@@ -46,6 +53,8 @@ export interface ImportGraph {
   nodes: string[]
   edges: GraphEdge[]
   unresolved: UnresolvedImport[]
+  /** Type-only imports and re-exports of project files (with `GraphOptions.typeImports`): only read for generator inputs. */
+  typeImports: TypeImport[]
   parseErrors: ParseError[]
   /** Modules whose statements are all `export … from`: changes to them may follow barrel edges. */
   reexportOnly: string[]
@@ -73,6 +82,8 @@ export interface GraphOptions {
   repoRoot: string
   /** Whether imports of this repo-relative file count (tests, stories and excluded files are not callers). */
   isOrigin: (path: string) => boolean
+  /** Records type-only imports and re-exports (`typeImports`): types of generated code. */
+  typeImports?: boolean
 }
 
 function lineOf(sf: ts.SourceFile, node: ts.Node): number {
@@ -87,6 +98,7 @@ class GraphBuilder {
   private readonly nodes = new Set<string>()
   private readonly edges = new Map<string, GraphEdge>()
   private readonly unresolved: UnresolvedImport[] = []
+  private readonly typeImports = new Map<string, TypeImport>()
   private readonly checker: ts.TypeChecker
   /** The emitter keeps `import { type A } from "./x"`: `./x` still runs. */
   private readonly keepsInlineTypes: boolean
@@ -123,8 +135,8 @@ class GraphBuilder {
     const r = this.resolve(sf, literal)
     if (r.kind === 'unresolved') {
       const entry: UnresolvedImport = { file: from, specifier: literal.text, line: lineOf(sf, literal), reason: 'not-found' }
-      const target = specifierTarget(this.project, toPosix(sf.fileName), literal.text)
-      if (target !== undefined && this.isProjectFile(target)) entry.target = this.rel(target)
+      const target = this.unresolvedTarget(sf, literal)
+      if (target !== undefined) entry.target = target
       if (r.packages !== undefined) entry.packages = r.packages.map((p) => this.rel(p))
       this.unresolved.push(entry)
       return undefined
@@ -133,6 +145,28 @@ class GraphBuilder {
     const to = this.rel(r.file)
     this.addEdge(from, to, r.kind === 'asset' ? 'asset' : kind)
     return r.kind === 'module' ? to : undefined
+  }
+
+  /** Repo-relative project path an unresolved specifier points to (no extension probing). */
+  unresolvedTarget(sf: ts.SourceFile, literal: ts.StringLiteralLike): string | undefined {
+    const target = specifierTarget(this.project, toPosix(sf.fileName), literal.text)
+    return target !== undefined && this.isProjectFile(target) ? this.rel(target) : undefined
+  }
+
+  /** Records a type-only import or re-export of a project file, resolved or not. */
+  recordTypeImport(sf: ts.SourceFile, from: string, literal: ts.StringLiteralLike): void {
+    if (this.options.typeImports !== true) return
+    const r = this.resolve(sf, literal)
+    let to: string | undefined
+    if (r.kind === 'module') to = this.isProjectFile(r.file) ? this.rel(r.file) : undefined
+    else if (r.kind === 'unresolved') to = this.unresolvedTarget(sf, literal)
+    if (to !== undefined) this.typeImports.set(`${from}\0${to}`, { file: from, target: to })
+  }
+
+  /** A statement whose bindings are all `{ type A }`: the emitter may keep it (it still runs), else it is type-only. */
+  inlineTypesOnly(sf: ts.SourceFile, from: string, literal: ts.StringLiteralLike): void {
+    if (this.keepsInlineTypes) this.link(sf, from, literal, 'side-effect')
+    else this.recordTypeImport(sf, from, literal)
   }
 
   /** Files that declare the symbol a local import binding refers to, following every alias (barrels). */
@@ -161,12 +195,15 @@ class GraphBuilder {
       this.link(sf, from, node.moduleSpecifier, 'side-effect')
       return
     }
-    if (isTypeOnlyImport(clause)) return
+    if (isTypeOnlyImport(clause)) {
+      this.recordTypeImport(sf, from, node.moduleSpecifier)
+      return
+    }
     const named = clause.namedBindings && ts.isNamedImports(clause.namedBindings) ? clause.namedBindings.elements.filter((e) => !e.isTypeOnly) : []
     const namespace = clause.namedBindings && ts.isNamespaceImport(clause.namedBindings) ? clause.namedBindings : undefined
     const allTypes = clause.namedBindings && ts.isNamedImports(clause.namedBindings) && clause.namedBindings.elements.length > 0 && named.length === 0
     if (!clause.name && !namespace && allTypes) {
-      if (this.keepsInlineTypes) this.link(sf, from, node.moduleSpecifier, 'side-effect')
+      this.inlineTypesOnly(sf, from, node.moduleSpecifier)
       return
     }
     const r = this.resolve(sf, node.moduleSpecifier)
@@ -190,16 +227,20 @@ class GraphBuilder {
   }
 
   visitExport(sf: ts.SourceFile, from: string, node: ts.ExportDeclaration): void {
-    if (!node.moduleSpecifier || !ts.isStringLiteralLike(node.moduleSpecifier) || node.isTypeOnly) return
+    if (!node.moduleSpecifier || !ts.isStringLiteralLike(node.moduleSpecifier)) return
+    if (node.isTypeOnly) {
+      this.recordTypeImport(sf, from, node.moduleSpecifier)
+      return
+    }
     const clause = node.exportClause
     if (clause && ts.isNamedExports(clause) && clause.elements.length > 0 && clause.elements.every((e) => e.isTypeOnly)) {
-      if (this.keepsInlineTypes) this.link(sf, from, node.moduleSpecifier, 'side-effect')
+      this.inlineTypesOnly(sf, from, node.moduleSpecifier)
       return
     }
     this.link(sf, from, node.moduleSpecifier, 'reexport')
   }
 
-  visitCalls(sf: ts.SourceFile, from: string): void {
+  visitNested(sf: ts.SourceFile, from: string): void {
     const visit = (node: ts.Node): void => {
       if (ts.isCallExpression(node)) {
         const arg = node.arguments[0]
@@ -217,6 +258,8 @@ class GraphBuilder {
           // Vite's import.meta.glob: the set of modules depends on the file system, not on a literal module path.
           this.unresolved.push({ file: from, specifier: node.getText(sf), line: lineOf(sf, node), reason: 'non-literal' })
         }
+      } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
+        this.recordTypeImport(sf, from, node.argument.literal) // `import('./x').T` in a type
       }
       ts.forEachChild(node, visit)
     }
@@ -230,12 +273,14 @@ class GraphBuilder {
     for (const statement of sf.statements) {
       if (ts.isImportDeclaration(statement)) this.visitImport(sf, from, statement)
       else if (ts.isExportDeclaration(statement)) this.visitExport(sf, from, statement)
-      else if (ts.isImportEqualsDeclaration(statement) && !statement.isTypeOnly && ts.isExternalModuleReference(statement.moduleReference)) {
+      else if (ts.isImportEqualsDeclaration(statement) && ts.isExternalModuleReference(statement.moduleReference)) {
         const expr = statement.moduleReference.expression
-        if (ts.isStringLiteralLike(expr)) this.link(sf, from, expr, 'require')
+        if (!ts.isStringLiteralLike(expr)) continue
+        if (statement.isTypeOnly) this.recordTypeImport(sf, from, expr)
+        else this.link(sf, from, expr, 'require')
       }
     }
-    this.visitCalls(sf, from)
+    this.visitNested(sf, from)
   }
 
   build(): ImportGraph {
@@ -255,7 +300,8 @@ class GraphBuilder {
     const unresolved = this.unresolved.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.specifier, b.specifier))
     const uniqueErrors = [...new Map(parseErrors.map((e) => [`${e.file}\0${e.line}\0${e.message}`, e])).values()]
     uniqueErrors.sort((a, b) => compareStrings(a.file, b.file) || a.line - b.line || compareStrings(a.message, b.message))
-    return { nodes: [...this.nodes].sort(compareStrings), edges, unresolved, parseErrors: uniqueErrors, reexportOnly: reexportOnly.sort(compareStrings) }
+    const typeImports = [...this.typeImports.values()].sort((a, b) => compareStrings(a.file, b.file) || compareStrings(a.target, b.target))
+    return { nodes: [...this.nodes].sort(compareStrings), edges, unresolved, typeImports, parseErrors: uniqueErrors, reexportOnly: reexportOnly.sort(compareStrings) }
   }
 }
 
