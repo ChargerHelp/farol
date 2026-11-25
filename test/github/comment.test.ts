@@ -1,6 +1,7 @@
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vitest'
 import { commentCommand } from '../../src/cli/comment.js'
 import { GitHubClient, GitHubError, nextPageUrl, type IssueComment } from '../../src/github/client.js'
 import { preserveFeedback, upsertComment } from '../../src/github/comment.js'
@@ -34,7 +35,8 @@ function fakeGitHub(initial: IssueComment[], perPage = 2, failWith?: { status: n
     }
     const { body } = JSON.parse(typeof init?.body === 'string' ? init.body : '{}') as { body: string }
     if (method === 'POST') {
-      const created = { id: 100, body, html_url: 'https://github.com/acme/shop/pull/7#issuecomment-100' }
+      const id = 100 + calls.filter((c) => c.method === 'POST').length - 1
+      const created = { id, body, html_url: `https://github.com/acme/shop/pull/7#issuecomment-${id}` }
       comments.push(created)
       return new Response(JSON.stringify(created), { status: 201 })
     }
@@ -58,7 +60,7 @@ function body(commit: string): string {
 describe('comment', () => {
   it('creates the comment when no comment has the marker', async () => {
     const gh = fakeGitHub([other(1), other(2), other(3)])
-    const result = await upsertComment(client(gh.impl), 7, body('a'.repeat(40)))
+    const result = await upsertComment(client(gh.impl), 7, body('a'.repeat(40)), null)
     expect(result).toEqual({ action: 'created', url: 'https://github.com/acme/shop/pull/7#issuecomment-100' })
     expect(gh.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
       'GET https://api.github.com/repos/acme/shop/issues/7/comments?per_page=100',
@@ -72,7 +74,7 @@ describe('comment', () => {
   it('finds the marker on a later page and updates that comment', async () => {
     const existing = { id: 42, body: body('a'.repeat(40)), html_url: 'https://github.com/acme/shop/pull/7#issuecomment-42' }
     const gh = fakeGitHub([other(1), other(2), other(3), other(4), existing], 2)
-    const result = await upsertComment(client(gh.impl), 7, body('b'.repeat(40)))
+    const result = await upsertComment(client(gh.impl), 7, body('b'.repeat(40)), null)
     expect(result.action).toBe('updated')
     expect(gh.calls.filter((c) => c.method === 'GET')).toHaveLength(3)
     expect(gh.calls.at(-1)).toMatchObject({ method: 'PATCH', url: 'https://api.github.com/repos/acme/shop/issues/comments/42' })
@@ -82,7 +84,7 @@ describe('comment', () => {
   it('keeps the feedback boxes reviewers ticked when the analyzed commit changes', async () => {
     const ticked = body('a'.repeat(40)).replace(`- [ ] ${FEEDBACK_OPTIONS[1]}`, `- [x] ${FEEDBACK_OPTIONS[1]}`)
     const gh = fakeGitHub([{ id: 42, body: ticked, html_url: 'u' }])
-    await upsertComment(client(gh.impl), 7, body('c'.repeat(40)))
+    await upsertComment(client(gh.impl), 7, body('c'.repeat(40)), null)
     const updated = gh.comments[0]?.body ?? ''
     expect(updated).toContain('analyzed commit cccccccccccc')
     expect(updated).toContain(`- [x] ${FEEDBACK_OPTIONS[1]}`)
@@ -93,13 +95,13 @@ describe('comment', () => {
   it('does not touch the comment when nothing changed', async () => {
     const same = body('a'.repeat(40)).replace(`- [ ] ${FEEDBACK_OPTIONS[0]}`, `- [x] ${FEEDBACK_OPTIONS[0]}`)
     const gh = fakeGitHub([{ id: 42, body: same, html_url: 'u' }])
-    expect((await upsertComment(client(gh.impl), 7, body('a'.repeat(40)))).action).toBe('unchanged')
+    expect((await upsertComment(client(gh.impl), 7, body('a'.repeat(40)), null)).action).toBe('unchanged')
     expect(gh.calls.map((c) => c.method)).toEqual(['GET'])
   })
 
   it('explains HTTP errors', async () => {
     const gh = fakeGitHub([], 2, { status: 403, message: 'Resource not accessible by integration' })
-    const error = await upsertComment(client(gh.impl), 7, 'x').catch((e: unknown) => e)
+    const error = await upsertComment(client(gh.impl), 7, 'x', null).catch((e: unknown) => e)
     expect(error).toBeInstanceOf(GitHubError)
     expect((error as GitHubError).message).toBe(
       'GitHub API GET https://api.github.com/repos/acme/shop/issues/7/comments?per_page=100 failed: 403 Forbidden (Resource not accessible by integration); the token lacks permission (the job needs "permissions: pull-requests: write"; pull requests from forks only get a read-only token)',
@@ -143,5 +145,70 @@ describe('comment', () => {
     expect(body).toContain('🔁 **Since the last push**')
     expect(body).toContain('[Report of these commits (HTML)](https://example.com/since)')
     await expect(commentCommand({ in: input, pr: '7', sinceReportUrl: 'http://x' }, { GITHUB_REPOSITORY: 'acme/shop', GITHUB_TOKEN: 'x' }, gh.impl)).rejects.toThrow('--since-report-url must be an https URL')
+  })
+})
+
+describe('one comment per project', () => {
+  const env = { GITHUB_REPOSITORY: 'acme/shop', GITHUB_TOKEN: 'x' }
+  const dir = mkdtempSync(join(tmpdir(), 'farol-projects-'))
+  afterAll(() => {
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  /** An analyze result of `project` at commit `sha`, written to disk as `farol comment --in` reads it. */
+  function outputFile(project: string | null, sha: string): string {
+    const json = JSON.parse(readFileSync(join(FIXTURES_DIR, '05-shared-component', 'expected.json'), 'utf8')) as Record<string, unknown>
+    const file = join(dir, `${(project ?? 'root').replaceAll('/', '_')}-${sha.slice(0, 1)}.json`)
+    writeFileSync(file, JSON.stringify({ ...json, project, head: { ref: 'feature', sha } }))
+    return file
+  }
+
+  async function comment(file: string, gh: ReturnType<typeof fakeGitHub>, extra: { new?: boolean; sinceIn?: string } = {}): Promise<void> {
+    const stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
+    try {
+      await commentCommand({ in: file, pr: '7', ...extra }, env, gh.impl)
+    } finally {
+      stderr.mockRestore()
+    }
+  }
+
+  it('projects of one repository keep their own comment, and a push updates only its own', async () => {
+    const gh = fakeGitHub([other(1)], 100)
+    await comment(outputFile(null, 'a'.repeat(40)), gh)
+    await comment(outputFile('apps/b', 'a'.repeat(40)), gh)
+    await comment(outputFile('apps/bc', 'a'.repeat(40)), gh)
+    expect(gh.calls.filter((c) => c.method === 'POST')).toHaveLength(3)
+    const [root, b, bc] = gh.comments.slice(1).map((c) => c.body)
+    expect(root?.startsWith('<!-- farol -->\n### farol · PR reading (shadow mode)\n')).toBe(true)
+    expect(b?.startsWith('<!-- farol:apps/b -->\n### farol · apps/b · PR reading (shadow mode)\n')).toBe(true)
+    expect(bc?.startsWith('<!-- farol:apps/bc -->\n### farol · apps/bc · PR reading (shadow mode)\n')).toBe(true)
+
+    await comment(outputFile('apps/b', 'b'.repeat(40)), gh)
+    expect(gh.calls.at(-1)?.method).toBe('PATCH')
+    expect(gh.comments.map((c) => c.body)).toEqual([other(1).body, root, expect.stringContaining('analyzed commit bbbbbbbbbbbb'), bc])
+    expect(gh.comments[2]?.body.startsWith('<!-- farol:apps/b -->')).toBe(true)
+
+    await comment(outputFile('apps/b', 'c'.repeat(40)), gh, { new: true })
+    expect(gh.calls.at(-1)?.method).toBe('POST')
+    expect(gh.comments.at(-1)?.body.startsWith('<!-- farol:apps/b -->\n### farol · apps/b · PR reading (shadow mode)\n')).toBe(true)
+  })
+
+  it('refuses a --since-in result of another project', async () => {
+    const gh = fakeGitHub([])
+    await expect(comment(outputFile('apps/b', 'a'.repeat(40)), gh, { sinceIn: outputFile(null, 'd'.repeat(40)) })).rejects.toThrow(/--since-in .* project apps\/b/)
+    await expect(comment(outputFile(null, 'a'.repeat(40)), gh, { sinceIn: outputFile('apps/b', 'd'.repeat(40)) })).rejects.toThrow('--since-in')
+    expect(gh.calls).toEqual([])
+  })
+
+  it('accepts a --since-in result of the same project, and an older one without project for the root', async () => {
+    const gh = fakeGitHub([])
+    await comment(outputFile('apps/b', 'a'.repeat(40)), gh, { sinceIn: outputFile('apps/b', 'd'.repeat(40)) })
+    const older = join(dir, 'older-since.json')
+    const json = JSON.parse(readFileSync(join(FIXTURES_DIR, '06-optional-prop', 'expected.json'), 'utf8')) as Record<string, unknown>
+    delete json.project
+    writeFileSync(older, JSON.stringify(json))
+    await comment(outputFile(null, 'a'.repeat(40)), gh, { sinceIn: older })
+    expect(gh.comments.map((c) => c.body.split('\n')[0])).toEqual(['<!-- farol:apps/b -->', '<!-- farol -->'])
+    expect(gh.comments.every((c) => c.body.includes('🔁 **Since the last push**'))).toBe(true)
   })
 })

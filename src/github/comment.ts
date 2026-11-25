@@ -1,12 +1,22 @@
-import { FEEDBACK_OPTIONS, MARKER } from '../report/strings.js'
+import { FEEDBACK_OPTIONS, MARKER, markerFor } from '../report/strings.js'
 import type { GitHubClient, IssueComment } from './client.js'
 
 /** Marker of comments written before the project was renamed (revscope → farol): they are updated, not duplicated. */
 export const LEGACY_MARKER = '<!-- revscope -->'
 
-/** The farol comment of a PR: the first comment that starts with the hidden marker (or the legacy one). */
-export function findFarolComment(comments: readonly IssueComment[]): IssueComment | undefined {
-  return comments.find((c) => typeof c.body === 'string' && (c.body.trimStart().startsWith(MARKER) || c.body.trimStart().startsWith(LEGACY_MARKER)))
+/**
+ * The farol comment of one project (null: the root project) on a PR: the first comment whose first line is the
+ * project's marker. The whole line must match, so one project's marker cannot match a longer one. Only the root
+ * project also takes a comment with the legacy marker: comments written before markers had a project are the root's.
+ */
+export function findFarolComment(comments: readonly IssueComment[], project: string | null): IssueComment | undefined {
+  const markers = project === null ? [MARKER, LEGACY_MARKER] : [markerFor(project)]
+  return comments.find((c) => typeof c.body === 'string' && markers.includes(firstLine(c.body)))
+}
+
+/** Without surrounding whitespace: GitHub may store a comment edited in its editor with CRLF line ends. */
+function firstLine(body: string): string {
+  return (body.trimStart().split('\n', 1)[0] ?? '').trimEnd()
 }
 
 function checkedLabels(body: string): Set<string> {
@@ -37,9 +47,9 @@ export function preserveFeedback(oldBody: string, newBody: string): string {
 
 export type CommentResult = { action: 'created' | 'updated' | 'unchanged'; url: string }
 
-/** Creates the farol comment or updates the existing one, keeping the reviewers' feedback marks. */
-export async function upsertComment(client: GitHubClient, pr: number, body: string): Promise<CommentResult> {
-  const existing = findFarolComment(await client.listComments(pr))
+/** Creates the project's farol comment or updates the existing one, keeping the reviewers' feedback marks. */
+export async function upsertComment(client: GitHubClient, pr: number, body: string, project: string | null): Promise<CommentResult> {
+  const existing = findFarolComment(await client.listComments(pr), project)
   if (!existing) {
     const created = await client.createComment(pr, body)
     return { action: 'created', url: created.html_url }

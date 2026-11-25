@@ -118,7 +118,7 @@ export function buildProgram(): Command {
     .option('--repo <owner/name>', 'repository (defaults to GITHUB_REPOSITORY)')
     .option('--report-url <url>', 'link to the HTML report (e.g. the workflow artifact) shown at the top of the comment')
     .option('--reviewers <file>', 'reviewers file written by "farol reviewers"')
-    .option('--new', 'create a new comment instead of updating farol\'s comment (one comment per push)')
+    .option('--new', 'create a new comment instead of updating the project\'s farol comment (one comment per push)')
     .option('--since-in <file>', 'incremental analyze JSON (analyze --since) summarized on top of the comment')
     .option('--since-report-url <url>', 'link to the HTML report of the incremental analysis')
     .action((raw: Partial<CommentOptions>, cmd: Command) =>

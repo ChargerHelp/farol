@@ -42,7 +42,7 @@ https://github.com/winnin/farol.git && node farol/dist/cli.js --help` works too.
 | `analyze --base <ref> --head <ref>` | Runs the analysis between the merge-base of the two refs and the head. Writes the JSON result. Options:<br>• `--coverage`, `--eslint`, `--audit <file>`: [reports](#reports-from-your-tests-linters-and-audits).<br>• `--usage <file>`: [traffic and errors](#traffic-and-errors-from-datadog) of the affected pages/operations.<br>• `--pr <n>`: links point to the PR diff (detected in GitHub Actions).<br>• `--ignore <glob…>`: leave files out of everything.<br>• `--coverage-ignore <glob…>`: leave files out of diff coverage only.<br>• `--since <sha>`: incremental review, only the changes since that commit (after a force-push, its merge-base with the head).<br>• `--reviewers`: recent committers and CODEOWNERS of the changed files (the `reviewers` command is finer).<br>• `--cache-dir` / `--no-cache`: Go/Python helper cache. |
 | `html --in farol.json [--out file]` | Single-file HTML report: a review workbench (live merge risk, what to check by hand, files by risk with their diff and coverage, what the change can affect, results to paste in the PR) with the full analysis in *Details*. Works offline; the route graphs in Details load Mermaid from a CDN. `--reviewers <file>` adds suggested reviewers. |
 | `report --in farol.json` | The PR comment as Markdown. `--report-url <https://…>` adds a link to the HTML report. |
-| `comment --in farol.json --pr <n>` | Creates or updates the PR comment. Needs `GITHUB_TOKEN`, and `GITHUB_REPOSITORY` or `--repo`. Keeps the reviewers' feedback ticks. `--new` posts a new comment instead (one per push); `--since-in <json>` and `--since-report-url <url>` add a "since the last push" block from an incremental analysis (`analyze --since`). |
+| `comment --in farol.json --pr <n>` | Creates or updates the PR comment. Needs `GITHUB_TOKEN`, and `GITHUB_REPOSITORY` or `--repo`. Keeps the reviewers' feedback ticks. Each project has its own comment (see the monorepo note below). `--new` posts a new comment instead (one per push); `--since-in <json>` and `--since-report-url <url>` add a "since the last push" block from an incremental analysis (`analyze --since`). |
 | `routes [--ref <ref>]` | Prints the entry points farol finds: pages, operations, endpoints, RPC methods, tools, jobs, scripts. Use it to check your setup. |
 | `impact <file> [--ref <ref>]` | Lists the entry points that reach a file, with the chain of files to each. |
 | `reviewers --in farol.json [--out file]` | [Suggested reviewers](#suggested-reviewers) by who wrote the code the PR changes. |
@@ -130,6 +130,12 @@ per language.
 
 In a monorepo, point `--cwd` (or `cwd` in `.farol.json`) at the app: paths in the output stay relative to the
 repository root, and changes in other apps the project does not use are listed as outside the project.
+
+The output records the app directory in `project` (`null` for the repository root). `comment` uses it, so each app
+of a monorepo has its own PR comment: the hidden marker is `<!-- farol:apps/web -->` and the title names the app. The
+root project keeps `<!-- farol -->`. When several apps run on one PR in parallel jobs, put the project in the
+workflow's `concurrency.group` (for example `farol-${{ github.event.pull_request.number }}-apps-web`), or the jobs
+cancel each other. `--since-in` must be a result of the same project.
 
 ## Reports from your tests, linters and audits
 

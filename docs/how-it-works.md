@@ -351,7 +351,7 @@ own history.
 `analyze` writes one JSON document (schema version 1, validated with zod, deterministic: sorted arrays, `/` paths).
 Its main fields:
 
-- **Identification:** `surface`, `tool`, `repo`, `pr`, `base`, `mergeBase`, `head`, `analyzedAt`.
+- **Identification:** `surface`, `tool`, `repo`, `project` (the project directory, `null` at the repository root), `pr`, `base`, `mergeBase`, `head`, `analyzedAt`.
 - **Result:** `classification`, `reasons` (code, file, detail) and `files` (path, status, role, additive, lines).
 - **Analysis blocks:** `dependencies`, `risk` (per file: reach, centrality, level), and `routes` (added, affected with chains, disconnected new files).
 - **Signals:** `signals.coverage`, `lint`, `suppressions`, `testsModified`, `security`, `vulnerabilities`.

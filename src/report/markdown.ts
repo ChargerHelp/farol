@@ -2,7 +2,7 @@ import type { Output } from '../output/schema.js'
 import type { Linker } from './links.js'
 import { mergeScore } from './merge-score.js'
 import { computeVerdict } from './verdict.js'
-import { CLASS_TEXT, FEEDBACK_OPTIONS, MARKER, PLAN_TEXT, TEST_TEXT, TEXT, REASON_TEXT, USAGE_TEXT, CONTRACT_TEXT, OWNER_TEXT, SINCE_TEXT, terms } from './strings.js'
+import { CLASS_TEXT, FEEDBACK_OPTIONS, markerFor, PLAN_TEXT, TEST_TEXT, TEXT, REASON_TEXT, USAGE_TEXT, CONTRACT_TEXT, OWNER_TEXT, SINCE_TEXT, terms } from './strings.js'
 import { compactNumber, datadogErrorsUrl, usageSummary } from './usage.js'
 import { callersText } from './html-contracts.js'
 import { shortFile, testPlan } from './test-plan.js'
@@ -234,7 +234,7 @@ function sinceLines(since: SinceBlock | undefined): string[] {
 function render(o: Output, limit: number, truncated: boolean, l: Linker, reportUrl: string | undefined, since?: SinceBlock): string {
   const commit = o.head.sha === null ? o.head.ref : o.head.sha.slice(0, 12)
   const report = [...(reportUrl === undefined ? [] : [TEXT.fullReport(reportUrl), '']), ...sinceLines(since)]
-  const lines = [MARKER, TEXT.title, '', TEXT.intro, '', ...report, ...signalsSection(o, limit, l), '', ...detailsSection(o, limit, l), '', ...testSection(o, limit)]
+  const lines = [markerFor(o.project), TEXT.title(o.project === null ? null : esc(o.project)), '', TEXT.intro, '', ...report, ...signalsSection(o, limit, l), '', ...detailsSection(o, limit, l), '', ...testSection(o, limit)]
   if (truncated) lines.push(`_${TEXT.truncated}_`, '')
   lines.push(`<sub>${esc(TEXT.footer(o.tool.version, commit))}</sub>`, '')
   return lines.join('\n')

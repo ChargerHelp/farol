@@ -183,6 +183,7 @@ export async function runAnalyze(ctx: Context, options: AnalyzeOptions, deps: An
   }
   const meta: OutputMeta = {
     repo: repoName(deps.env, await originUrl(ctx.repoRoot)),
+    project: ctx.projectPrefix === '' ? null : ctx.projectPrefix,
     surface: ctx.config.surface,
     pr: options.pr ?? prFromEvent(deps.env),
     base: { ref: options.base, sha: null },

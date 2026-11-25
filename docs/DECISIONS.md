@@ -1033,3 +1033,21 @@ Every decision not covered by `docs/SPEC.md`. One entry per decision: problem, o
 - **Not chosen:** inputs in `roles.global` (every schema PR `global`; still possible); files that call `loadSync` with a literal `.proto` path as importers (a new rule that reads string literals; the type-only importers already reach the endpoints in assess); a risk level from the importers' reach.
 - **Limits:** imports of a package (`@prisma/client`) do not count. Type-only imports stay out of the reach graph (2026-10-17 stays): they are followed only from the generated code and its direct users, so a type-only import of a file that uses the code through a value import of another file is not followed. The risk table rates the input by its own place in the graph ("nothing imports it"). Importers get file-graph reach (frontends: not the declaration level; backends: every endpoint anchored at the importer), which lists more endpoints, never fewer. An input that is a graph node (a `.ts` file in `from`) or a backend schema or resolver file keeps its own rule.
 - **Reason:** CHA-14905.
+
+## 2026-11-25 — One PR comment per project (CHA-15688)
+
+- **Problem:** `comment` found its PR comment by one fixed marker, `<!-- farol -->`. When two projects of one repository run on the same PR, each run overwrote the other project's comment.
+- **Choice:**
+  - The output has a new field `project`: the project directory relative to the repository root (`projectPrefix`), or `null` for the root project. `analyze` always writes it, also in a failure output. The field is optional in the schema (`schemaVersion` stays 1): a result written before this change reads as `project: null`.
+  - The marker of a subproject is `<!-- farol:<project> -->`, with the raw path. The root project keeps `<!-- farol -->`. The comment title of a subproject names it: `### farol · apps/dispatch-ai · PR reading (shadow mode)`. The root title does not change.
+  - The marker comes from the output (`project`), not from a flag. `--new` uses the same marker through the rendered body.
+  - The first line of a comment must be the whole marker (surrounding whitespace and a CRLF line end are ignored). A prefix match is not enough: the marker of `apps/x` is a prefix of the marker of a directory named `apps/x -->y`. Found by `/xreview` (GPT-6.2 Sol).
+  - Only the root project also takes a comment with an old marker (`<!-- farol -->` written before this change, `<!-- revscope -->`). Otherwise the first run of a subproject would take over the root project's comment.
+  - `comment --since-in` refuses a result of another project (`UsageError`): the incremental block of one project must not show in the comment of another.
+- **Decided with the user:** always write `project` (`null` for root), so 62 golden files got one new line. The subproject title format.
+- **Not chosen:**
+  - Escape or refuse `-->` in a project path. With the whole-line match, such a path cannot take another project's comment; it only shows stray text after the hidden marker, and no real directory has that name.
+  - A fallback from a subproject to a `<!-- farol -->` comment when it is the only farol comment on the PR. It is a guess, and it can take the root project's comment.
+- **Effect on open PRs:** a subproject that commented before this change wrote `<!-- farol -->`. After the change, that comment belongs to the root project. The subproject posts a new comment, and its old comment is not updated again.
+- **Workflows:** parallel jobs of several projects on one PR need the project in `concurrency.group`; the example workflows are single-project and group by PR only. The empwr-platform workflow change is CHA-14805.
+- **Reason:** CHA-15688 (S4a, blocks the second project of CHA-14805).

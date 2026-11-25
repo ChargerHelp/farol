@@ -50030,10 +50030,10 @@ ${lanes.join("\n")}
       function shouldAllowImportingTsExtension(compilerOptions, fromFileName) {
         return getAllowImportingTsExtensions(compilerOptions) || !!fromFileName && isDeclarationFileName(fromFileName);
       }
-      function loadModuleFromGlobalCache(moduleName, projectName, compilerOptions, host, globalCache, packageJsonInfoCache) {
+      function loadModuleFromGlobalCache(moduleName, projectName2, compilerOptions, host, globalCache, packageJsonInfoCache) {
         const traceEnabled = isTraceEnabled(compilerOptions, host);
         if (traceEnabled) {
-          trace(host, Diagnostics.Auto_discovery_for_typings_is_enabled_in_project_0_Running_extra_resolution_pass_for_module_1_using_cache_location_2, projectName, moduleName, globalCache);
+          trace(host, Diagnostics.Auto_discovery_for_typings_is_enabled_in_project_0_Running_extra_resolution_pass_for_module_1_using_cache_location_2, projectName2, moduleName, globalCache);
         }
         const failedLookupLocations = [];
         const affectingLocations = [];
@@ -136150,18 +136150,18 @@ ${lanes.join("\n")}
         return formatStyle + text + resetEscapeSequence;
       }
       function formatCodeSpan(file2, start, length2, indent3, squiggleColor, host) {
-        const { line: firstLine, character: firstLineChar } = getLineAndCharacterOfPosition(file2, start);
+        const { line: firstLine2, character: firstLineChar } = getLineAndCharacterOfPosition(file2, start);
         const { line: lastLine, character: lastLineChar } = getLineAndCharacterOfPosition(file2, start + length2);
         const lastLineInFile = getLineAndCharacterOfPosition(file2, file2.text.length).line;
-        const hasMoreThanFiveLines = lastLine - firstLine >= 4;
+        const hasMoreThanFiveLines = lastLine - firstLine2 >= 4;
         let gutterWidth = (lastLine + 1 + "").length;
         if (hasMoreThanFiveLines) {
           gutterWidth = Math.max(ellipsis.length, gutterWidth);
         }
         let context = "";
-        for (let i = firstLine; i <= lastLine; i++) {
+        for (let i = firstLine2; i <= lastLine; i++) {
           context += host.getNewLine();
-          if (hasMoreThanFiveLines && firstLine + 1 < i && i < lastLine - 1) {
+          if (hasMoreThanFiveLines && firstLine2 + 1 < i && i < lastLine - 1) {
             context += indent3 + formatColorAndReset(ellipsis.padStart(gutterWidth), gutterStyleSequence) + gutterSeparator + host.getNewLine();
             i = lastLine - 1;
           }
@@ -136174,7 +136174,7 @@ ${lanes.join("\n")}
           context += lineContent + host.getNewLine();
           context += indent3 + formatColorAndReset("".padStart(gutterWidth), gutterStyleSequence) + gutterSeparator;
           context += squiggleColor;
-          if (i === firstLine) {
+          if (i === firstLine2) {
             const lastCharForLine = i === lastLine ? lastLineChar : void 0;
             context += lineContent.slice(0, firstLineChar).replace(/\S/g, " ");
             context += lineContent.slice(firstLineChar, lastCharForLine).replace(/./g, "~");
@@ -136188,7 +136188,7 @@ ${lanes.join("\n")}
         return context;
       }
       function formatLocation(file2, start, host, color = formatColorAndReset) {
-        const { line: firstLine, character: firstLineChar } = getLineAndCharacterOfPosition(file2, start);
+        const { line: firstLine2, character: firstLineChar } = getLineAndCharacterOfPosition(file2, start);
         const relativeFileName = host ? convertToRelativePath(file2.fileName, host.getCurrentDirectory(), (fileName) => host.getCanonicalFileName(fileName)) : file2.fileName;
         let output2 = "";
         output2 += color(
@@ -136198,7 +136198,7 @@ ${lanes.join("\n")}
         );
         output2 += ":";
         output2 += color(
-          `${firstLine + 1}`,
+          `${firstLine2 + 1}`,
           "\x1B[93m"
           /* Yellow */
         );
@@ -164454,14 +164454,14 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
         function toggleLineComment(fileName, textRange, insertComment) {
           const sourceFile = syntaxTreeCache.getCurrentSourceFile(fileName);
           const textChanges2 = [];
-          const { lineStarts, firstLine, lastLine } = getLinesForRange(sourceFile, textRange);
+          const { lineStarts, firstLine: firstLine2, lastLine } = getLinesForRange(sourceFile, textRange);
           let isCommenting = insertComment || false;
           let leftMostPosition = Number.MAX_VALUE;
           const lineTextStarts = /* @__PURE__ */ new Map();
           const firstNonWhitespaceCharacterRegex = new RegExp(/\S/);
-          const isJsx2 = isInsideJsxElement(sourceFile, lineStarts[firstLine]);
+          const isJsx2 = isInsideJsxElement(sourceFile, lineStarts[firstLine2]);
           const openComment = isJsx2 ? "{/*" : "//";
-          for (let i = firstLine; i <= lastLine; i++) {
+          for (let i = firstLine2; i <= lastLine; i++) {
             const lineText = sourceFile.text.substring(lineStarts[i], sourceFile.getLineEndOfPosition(lineStarts[i]));
             const regExec = firstNonWhitespaceCharacterRegex.exec(lineText);
             if (regExec) {
@@ -164472,8 +164472,8 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
               }
             }
           }
-          for (let i = firstLine; i <= lastLine; i++) {
-            if (firstLine !== lastLine && lineStarts[i] === textRange.end) {
+          for (let i = firstLine2; i <= lastLine; i++) {
+            if (firstLine2 !== lastLine && lineStarts[i] === textRange.end) {
               continue;
             }
             const lineTextStart = lineTextStarts.get(i.toString());
@@ -164596,8 +164596,8 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
         }
         function commentSelection(fileName, textRange) {
           const sourceFile = syntaxTreeCache.getCurrentSourceFile(fileName);
-          const { firstLine, lastLine } = getLinesForRange(sourceFile, textRange);
-          return firstLine === lastLine && textRange.pos !== textRange.end ? toggleMultilineComment(
+          const { firstLine: firstLine2, lastLine } = getLinesForRange(sourceFile, textRange);
+          return firstLine2 === lastLine && textRange.pos !== textRange.end ? toggleMultilineComment(
             fileName,
             textRange,
             /*insertComment*/
@@ -198876,21 +198876,21 @@ ${options.prefix}` : "\n" : options.prefix
         closeProject(req) {
           this.closeWatchers(req.projectName);
         }
-        closeWatchers(projectName) {
+        closeWatchers(projectName2) {
           if (this.log.isEnabled()) {
-            this.log.writeLine(`Closing file watchers for project '${projectName}'`);
+            this.log.writeLine(`Closing file watchers for project '${projectName2}'`);
           }
-          const watchers = this.projectWatchers.get(projectName);
+          const watchers = this.projectWatchers.get(projectName2);
           if (!watchers) {
             if (this.log.isEnabled()) {
-              this.log.writeLine(`No watchers are registered for project '${projectName}'`);
+              this.log.writeLine(`No watchers are registered for project '${projectName2}'`);
             }
             return;
           }
-          this.projectWatchers.delete(projectName);
-          this.sendResponse({ kind: ActionWatchTypingLocations, projectName, files: [] });
+          this.projectWatchers.delete(projectName2);
+          this.sendResponse({ kind: ActionWatchTypingLocations, projectName: projectName2, files: [] });
           if (this.log.isEnabled()) {
-            this.log.writeLine(`Closing file watchers for project '${projectName}' - done.`);
+            this.log.writeLine(`Closing file watchers for project '${projectName2}' - done.`);
           }
         }
         install(req) {
@@ -198930,7 +198930,7 @@ ${options.prefix}` : "\n" : options.prefix
         }
         /** @internal */
         installPackage(req) {
-          const { fileName, packageName: packageName2, projectName, projectRootPath, id } = req;
+          const { fileName, packageName: packageName2, projectName: projectName2, projectRootPath, id } = req;
           const validationResult = ts_JsTyping_exports.validatePackageName(packageName2);
           if (validationResult !== ts_JsTyping_exports.NameValidationResult.Ok) {
             const message = ts_JsTyping_exports.renderPackageNameValidationFailure(validationResult, packageName2);
@@ -198939,7 +198939,7 @@ ${options.prefix}` : "\n" : options.prefix
             }
             const response = {
               kind: ActionPackageInstalled,
-              projectName,
+              projectName: projectName2,
               id,
               success: false,
               message
@@ -198957,7 +198957,7 @@ ${options.prefix}` : "\n" : options.prefix
               const message = success2 ? `Package ${packageName2} installed.` : `There was an error installing ${packageName2}.`;
               const response = {
                 kind: ActionPackageInstalled,
-                projectName,
+                projectName: projectName2,
                 id,
                 success: success2,
                 message
@@ -198967,7 +198967,7 @@ ${options.prefix}` : "\n" : options.prefix
           } else {
             const response = {
               kind: ActionPackageInstalled,
-              projectName,
+              projectName: projectName2,
               id,
               success: false,
               message: "Could not determine a project root path."
@@ -199162,18 +199162,18 @@ ${options.prefix}` : "\n" : options.prefix
             host.createDirectory(directory);
           }
         }
-        watchFiles(projectName, files) {
+        watchFiles(projectName2, files) {
           if (!files.length) {
-            this.closeWatchers(projectName);
+            this.closeWatchers(projectName2);
             return;
           }
-          const existing = this.projectWatchers.get(projectName);
+          const existing = this.projectWatchers.get(projectName2);
           const newSet = new Set(files);
           if (!existing || forEachKey(newSet, (s) => !existing.has(s)) || forEachKey(existing, (s) => !newSet.has(s))) {
-            this.projectWatchers.set(projectName, newSet);
-            this.sendResponse({ kind: ActionWatchTypingLocations, projectName, files });
+            this.projectWatchers.set(projectName2, newSet);
+            this.sendResponse({ kind: ActionWatchTypingLocations, projectName: projectName2, files });
           } else {
-            this.sendResponse({ kind: ActionWatchTypingLocations, projectName, files: void 0 });
+            this.sendResponse({ kind: ActionWatchTypingLocations, projectName: projectName2, files: void 0 });
           }
         }
         createSetTypings(request, typings) {
@@ -200189,7 +200189,7 @@ ${options.prefix}` : "\n" : options.prefix
       }
       var Project2 = class _Project {
         /** @internal */
-        constructor(projectName, projectKind, projectService, hasExplicitListOfFiles, lastFileExceededProgramSize, compilerOptions, compileOnSaveEnabled, watchOptions, directoryStructureHost, currentDirectory) {
+        constructor(projectName2, projectKind, projectService, hasExplicitListOfFiles, lastFileExceededProgramSize, compilerOptions, compileOnSaveEnabled, watchOptions, directoryStructureHost, currentDirectory) {
           this.projectKind = projectKind;
           this.projectService = projectService;
           this.compilerOptions = compilerOptions;
@@ -200210,8 +200210,8 @@ ${options.prefix}` : "\n" : options.prefix
           this.createHash = maybeBind(this.projectService.host, this.projectService.host.createHash);
           this.globalCacheResolutionModuleName = ts_JsTyping_exports.nonRelativeModuleNameForTypingCache;
           this.updateFromProjectInProgress = false;
-          projectService.logger.info(`Creating ${ProjectKind[projectKind]}Project: ${projectName}, currentDirectory: ${currentDirectory}`);
-          this.projectName = projectName;
+          projectService.logger.info(`Creating ${ProjectKind[projectKind]}Project: ${projectName2}, currentDirectory: ${currentDirectory}`);
+          this.projectName = projectName2;
           this.directoryStructureHost = directoryStructureHost;
           this.currentDirectory = this.projectService.getNormalizedAbsolutePath(currentDirectory);
           this.getCanonicalFileName = this.projectService.toCanonicalFileName;
@@ -202658,9 +202658,9 @@ ${options.prefix}` : "\n" : options.prefix
         // TODO: GH#18217
         hasMixedContent: (x) => !!x.hasMixedContent
       };
-      function findProjectByName(projectName, projects) {
+      function findProjectByName(projectName2, projects) {
         for (const proj of projects) {
-          if (proj.getProjectName() === projectName) {
+          if (proj.getProjectName() === projectName2) {
             return proj;
           }
         }
@@ -203261,14 +203261,14 @@ ${options.prefix}` : "\n" : options.prefix
           if (isProjectDeferredClose(project)) return;
           project.markAsDirty();
           if (isBackgroundProject(project)) return;
-          const projectName = project.getProjectName();
-          this.pendingProjectUpdates.set(projectName, project);
+          const projectName2 = project.getProjectName();
+          this.pendingProjectUpdates.set(projectName2, project);
           this.throttledOperations.schedule(
-            projectName,
+            projectName2,
             /*delay*/
             250,
             () => {
-              if (this.pendingProjectUpdates.delete(projectName)) {
+              if (this.pendingProjectUpdates.delete(projectName2)) {
                 updateProjectIfDirty(project);
               }
             }
@@ -203375,14 +203375,14 @@ ${options.prefix}` : "\n" : options.prefix
           }
           this.delayEnsureProjectForOpenFiles();
         }
-        findProject(projectName) {
-          if (projectName === void 0) {
+        findProject(projectName2) {
+          if (projectName2 === void 0) {
             return void 0;
           }
-          if (isInferredProjectName(projectName)) {
-            return findProjectByName(projectName, this.inferredProjects);
+          if (isInferredProjectName(projectName2)) {
+            return findProjectByName(projectName2, this.inferredProjects);
           }
-          return this.findExternalProjectByProjectName(projectName) || this.findConfiguredProjectByProjectName(toNormalizedPath(projectName));
+          return this.findExternalProjectByProjectName(projectName2) || this.findConfiguredProjectByProjectName(toNormalizedPath(projectName2));
         }
         /** @internal */
         forEachProject(cb) {
@@ -205031,9 +205031,9 @@ Dynamic files must always be opened with service's current directory or service 
             if (mapInfo.documentPositionMapper !== void 0) return mapInfo.documentPositionMapper;
             return getSnapshotText(snap);
           };
-          const projectName = project.projectName;
+          const projectName2 = project.projectName;
           const documentPositionMapper = getDocumentPositionMapper(
-            { getCanonicalFileName: this.toCanonicalFileName, log: (s) => this.logger.info(s), getSourceFileLike: (f) => this.getSourceFileLike(f, projectName, declarationInfo) },
+            { getCanonicalFileName: this.toCanonicalFileName, log: (s) => this.logger.info(s), getSourceFileLike: (f) => this.getSourceFileLike(f, projectName2, declarationInfo) },
             declarationInfo.fileName,
             declarationInfo.textStorage.getLineInfo(),
             readMapFile
@@ -205231,9 +205231,9 @@ Dynamic files must always be opened with service's current directory or service 
             /*inPath*/
             void 0
           );
-          this.pendingProjectUpdates.forEach((_project, projectName) => {
-            this.throttledOperations.cancel(projectName);
-            this.pendingProjectUpdates.delete(projectName);
+          this.pendingProjectUpdates.forEach((_project, projectName2) => {
+            this.throttledOperations.cancel(projectName2);
+            this.pendingProjectUpdates.delete(projectName2);
           });
           this.throttledOperations.cancel(ensureProjectForOpenFileSchedule);
           this.pendingOpenFileProjectUpdates = void 0;
@@ -238384,6 +238384,7 @@ function header(meta3) {
     surface: meta3.surface,
     tool: { name: TOOL_NAME, version: TOOL_VERSION },
     repo: meta3.repo,
+    project: meta3.project,
     pr: meta3.pr,
     base: meta3.base,
     mergeBase: meta3.mergeBase,
@@ -238657,6 +238658,8 @@ var OutputSchema = external_exports.object({
   /** "revscope" in results written before the project was renamed. */
   tool: external_exports.object({ name: external_exports.enum(["farol", "revscope"]), version: external_exports.string() }).strict(),
   repo: external_exports.string().nullable(),
+  /** Project directory relative to the repository root, with `/`; null for the root project (and in results written before the field existed). */
+  project: external_exports.string().min(1).nullable().default(null),
   /** Pull request number, when known (--pr or the GitHub Actions event); used for links to the PR diff. */
   pr: external_exports.number().int().positive().nullable(),
   base: external_exports.object({ ref: external_exports.string(), sha: external_exports.string().nullable() }).strict(),
@@ -252713,6 +252716,7 @@ async function runAnalyze(ctx, options, deps) {
   };
   const meta3 = {
     repo: repoName(deps.env, await originUrl(ctx.repoRoot)),
+    project: ctx.projectPrefix === "" ? null : ctx.projectPrefix,
     surface: ctx.config.surface,
     pr: options.pr ?? prFromEvent(deps.env),
     base: { ref: options.base, sha: null },
@@ -253391,6 +253395,9 @@ var CONTRACT_TEXT = {
 
 // src/report/strings.ts
 var MARKER = "<!-- farol -->";
+function markerFor(project) {
+  return project === null ? MARKER : `<!-- farol:${project} -->`;
+}
 var plural2 = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 var FRONTEND_TERMS = { aOne: "a page", one: "page", many: "pages", Many: "Pages", section: "Routes" };
 var BACKEND_TERMS = { aOne: "an operation", one: "operation", many: "operations", Many: "Operations", section: "Operations" };
@@ -253398,7 +253405,7 @@ function terms(surface) {
   return surface === "backend" ? BACKEND_TERMS : FRONTEND_TERMS;
 }
 var TEXT = {
-  title: "### farol \xB7 PR reading (shadow mode)",
+  title: (project) => `### farol \xB7 ${project === null ? "" : `${project} \xB7 `}PR reading (shadow mode)`,
   intro: "Signals computed on the lines this PR changes. farol only informs: it never approves or blocks.",
   notVerified: "not verified",
   reportError: (message) => `could not read the report (${message})`,
@@ -253648,8 +253655,12 @@ var HTML_TEXT = {
 
 // src/github/comment.ts
 var LEGACY_MARKER = "<!-- revscope -->";
-function findFarolComment(comments) {
-  return comments.find((c) => typeof c.body === "string" && (c.body.trimStart().startsWith(MARKER) || c.body.trimStart().startsWith(LEGACY_MARKER)));
+function findFarolComment(comments, project) {
+  const markers = project === null ? [MARKER, LEGACY_MARKER] : [markerFor(project)];
+  return comments.find((c) => typeof c.body === "string" && markers.includes(firstLine(c.body)));
+}
+function firstLine(body) {
+  return (body.trimStart().split("\n", 1)[0] ?? "").trimEnd();
 }
 function checkedLabels(body) {
   const checked = /* @__PURE__ */ new Set();
@@ -253671,8 +253682,8 @@ function preserveFeedback(oldBody, newBody) {
     return checked.has(label2) ? line3.replace("- [ ] ", "- [x] ") : line3;
   }).join("\n");
 }
-async function upsertComment(client, pr2, body) {
-  const existing = findFarolComment(await client.listComments(pr2));
+async function upsertComment(client, pr2, body, project) {
+  const existing = findFarolComment(await client.listComments(pr2), project);
   if (!existing) {
     const created = await client.createComment(pr2, body);
     return { action: "created", url: created.html_url };
@@ -253990,7 +254001,7 @@ function sinceLines(since) {
 function render(o, limit, truncated, l, reportUrl, since) {
   const commit = o.head.sha === null ? o.head.ref : o.head.sha.slice(0, 12);
   const report = [...reportUrl === void 0 ? [] : [TEXT.fullReport(reportUrl), ""], ...sinceLines(since)];
-  const lines = [MARKER, TEXT.title, "", TEXT.intro, "", ...report, ...signalsSection(o, limit, l), "", ...detailsSection(o, limit, l), "", ...testSection(o, limit)];
+  const lines = [markerFor(o.project), TEXT.title(o.project === null ? null : esc3(o.project)), "", TEXT.intro, "", ...report, ...signalsSection(o, limit, l), "", ...detailsSection(o, limit, l), "", ...testSection(o, limit)];
   if (truncated) lines.push(`_${TEXT.truncated}_`, "");
   lines.push(`<sub>${esc3(TEXT.footer(o.tool.version, commit))}</sub>`, "");
   return lines.join("\n");
@@ -255486,13 +255497,19 @@ async function commentCommand(options, env = process.env, fetchImpl) {
   const output2 = withReviewers(readOutputFile(options.in), options.reviewers);
   if (options.reportUrl !== void 0 && !options.reportUrl.startsWith("https://")) throw new UsageError(`--report-url must be an https URL, got "${options.reportUrl}"`);
   if (options.sinceReportUrl !== void 0 && !options.sinceReportUrl.startsWith("https://")) throw new UsageError(`--since-report-url must be an https URL, got "${options.sinceReportUrl}"`);
-  const since = options.sinceIn === void 0 ? void 0 : { output: readOutputFile(options.sinceIn), ...options.sinceReportUrl === void 0 ? {} : { reportUrl: options.sinceReportUrl } };
+  const since = options.sinceIn === void 0 ? void 0 : { output: sinceOutput(options.sinceIn, output2.project), ...options.sinceReportUrl === void 0 ? {} : { reportUrl: options.sinceReportUrl } };
   const body = renderReport(output2, void 0, linkerFor(output2, { repo, pr: pr2 }, env), options.reportUrl, since);
   const client = new GitHubClient({ token, repo, ...env.GITHUB_API_URL ? { apiUrl: env.GITHUB_API_URL } : {}, ...fetchImpl ? { fetch: fetchImpl } : {} });
-  const result = options.new === true ? { action: "created", url: (await client.createComment(pr2, body)).html_url } : await upsertComment(client, pr2, body);
+  const result = options.new === true ? { action: "created", url: (await client.createComment(pr2, body)).html_url } : await upsertComment(client, pr2, body, output2.project);
   process.stderr.write(`farol: comment ${result.action}: ${result.url}
 `);
   return 0;
+}
+var projectName = (project) => project === null ? "the root project" : `project ${project}`;
+function sinceOutput(path3, project) {
+  const since = readOutputFile(path3);
+  if (since.project !== project) throw new UsageError(`--since-in ${path3} is a result of ${projectName(since.project)}, not of ${projectName(project)}: pass the incremental result of the same project`);
+  return since;
 }
 
 // src/cli/farol-file.ts
@@ -256126,7 +256143,7 @@ function buildProgram() {
       return htmlCommand({ ...opts, in: required2(opts.in, "--in", "html") });
     })
   );
-  program3.command("comment").description("create or update the PR comment (uses GITHUB_TOKEN and GITHUB_REPOSITORY)").option("--in <file>", "analyze JSON").option("--pr <number>", "pull request number", positiveInt).option("--repo <owner/name>", "repository (defaults to GITHUB_REPOSITORY)").option("--report-url <url>", "link to the HTML report (e.g. the workflow artifact) shown at the top of the comment").option("--reviewers <file>", 'reviewers file written by "farol reviewers"').option("--new", "create a new comment instead of updating farol's comment (one comment per push)").option("--since-in <file>", "incremental analyze JSON (analyze --since) summarized on top of the comment").option("--since-report-url <url>", "link to the HTML report of the incremental analysis").action(
+  program3.command("comment").description("create or update the PR comment (uses GITHUB_TOKEN and GITHUB_REPOSITORY)").option("--in <file>", "analyze JSON").option("--pr <number>", "pull request number", positiveInt).option("--repo <owner/name>", "repository (defaults to GITHUB_REPOSITORY)").option("--report-url <url>", "link to the HTML report (e.g. the workflow artifact) shown at the top of the comment").option("--reviewers <file>", 'reviewers file written by "farol reviewers"').option("--new", "create a new comment instead of updating the project's farol comment (one comment per push)").option("--since-in <file>", "incremental analyze JSON (analyze --since) summarized on top of the comment").option("--since-report-url <url>", "link to the HTML report of the incremental analysis").action(
     (raw, cmd) => runAction(() => {
       const opts = withFarolFile("comment", cmd, raw);
       return commentCommand({ ...opts, in: required2(opts.in, "--in", "comment"), pr: required2(opts.pr, "--pr", "comment") });
